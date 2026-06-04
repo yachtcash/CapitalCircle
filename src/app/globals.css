@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #050D1A;
+  --color-navy-900: #0A1628;
+  --color-navy-800: #112344;
+  --color-navy-700: #1A3160;
+  --color-navy-600: #294378;
+  --color-navy-500: #4B6CA8;
+
+  --color-gold-400: #E8CB73;
+  --color-gold-500: #D4AF37;
+  --color-gold-600: #B8941F;
+  --color-gold-700: #8C6F14;
+
+  --color-cream: #FAF7F2;
+  --color-bone: #F1ECE3;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0A1628;
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.hero-gradient {
+  background:
+    radial-gradient(ellipse at top right, rgba(212, 175, 55, 0.18), transparent 55%),
+    radial-gradient(ellipse at bottom left, rgba(74, 108, 168, 0.25), transparent 60%),
+    linear-gradient(180deg, #050D1A 0%, #0A1628 60%, #112344 100%);
+}
+
+.card-gradient-1 { background: linear-gradient(135deg, #1A3160 0%, #294378 100%); }
+.card-gradient-2 { background: linear-gradient(135deg, #112344 0%, #1A3160 100%); }
+.card-gradient-3 { background: linear-gradient(135deg, #294378 0%, #4B6CA8 100%); }
+.card-gradient-4 { background: linear-gradient(135deg, #0A1628 0%, #294378 100%); }
+.card-gradient-5 { background: linear-gradient(135deg, #1A3160 0%, #8C6F14 100%); }
+.card-gradient-6 { background: linear-gradient(135deg, #112344 0%, #B8941F 100%); }
+
+::selection {
+  background: rgba(212, 175, 55, 0.35);
+  color: #0A1628;
+}
