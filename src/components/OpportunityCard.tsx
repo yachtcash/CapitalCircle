@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { MapPin, TrendingUp, Clock } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { cn } from "@/lib/cn";
@@ -10,8 +11,8 @@ const statusStyles: Record<Opportunity["status"], string> = {
 
 export default function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
   return (
-    <a
-      href={`#${opportunity.id}`}
+    <Link
+      href={`/opportunity/${opportunity.slug}`}
       className="group flex flex-col bg-white rounded-2xl ring-1 ring-navy-900/[0.06] overflow-hidden hover:shadow-xl hover:shadow-navy-900/10 hover:-translate-y-0.5 transition-all duration-200"
     >
       <div className={cn("relative h-40 md:h-44", opportunity.gradient)}>
@@ -78,6 +79,6 @@ export default function OpportunityCard({ opportunity }: { opportunity: Opportun
           </span>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
