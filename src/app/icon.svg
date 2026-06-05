@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100">
+  <title>Capital Circle</title>
+  <desc>Interlocking double C monogram. Gold on dark navy.</desc>
+
+  <!-- Navy disc -->
+  <circle cx="50" cy="50" r="50" fill="#0A1628"/>
+
+  <!-- Subtle gold inner ring for premium accent -->
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#D4AF37" stroke-width="0.5" opacity="0.32"/>
+
+  <!--
+    Geometry:
+      Left C  center (35, 50), radius 22, gap ±35° (mouth opens right).
+      Right C center (65, 50), radius 22, gap ±35° (mouth opens left).
+      Arcs cross at (50, 33.91) and (50, 66.09).
+      Each C's tips extend ~3px past the crossings, so the two C's are
+      visibly distinct and interlock through the crossings.
+  -->
+
+  <!-- Left C tips at (53.02, 37.38) and (53.02, 62.62) -->
+  <path d="M 53.02 37.38 A 22 22 0 1 0 53.02 62.62"
+        fill="none" stroke="#D4AF37" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Right C tips at (46.98, 37.38) and (46.98, 62.62) -->
+  <path d="M 46.98 37.38 A 22 22 0 1 1 46.98 62.62"
+        fill="none" stroke="#D4AF37" stroke-width="7" stroke-linecap="round"/>
+</svg>
