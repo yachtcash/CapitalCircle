@@ -44,9 +44,12 @@ export type Opportunity = {
   currentStage: string;
   timeline: string;
   projectStatus: string;
-  gradient: string;
   postedBy: string;
   postedAgo: string;
+  postedAt: string;
+  images: string[];
+  featured: boolean;
+  trending: boolean;
   sponsor: Sponsor;
   documents: OpportunityDocument[];
 };
@@ -79,9 +82,17 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Operating · Expansion shovel-ready",
     timeline: "5-year hold · construction Q2 next year",
     projectStatus: "Permits secured, GMP contract priced",
-    gradient: "card-gradient-1",
     postedBy: "Pacific Coast Holdings",
     postedAgo: "2 days ago",
+    postedAt: "2026-06-02",
+    images: [
+      "/listings/beachfront-boutique-hotel/1.jpg",
+      "/listings/beachfront-boutique-hotel/2.jpg",
+      "/listings/beachfront-boutique-hotel/3.jpg",
+      "/listings/beachfront-boutique-hotel/4.jpg",
+    ],
+    featured: true,
+    trending: false,
     sponsor: {
       name: "Pacific Coast Holdings",
       description:
@@ -124,9 +135,17 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Pre-construction · 41% pre-sold",
     timeline: "30-month build · 18-month sell-out",
     projectStatus: "Permits issued, GMP signed, foundation Q3 next year",
-    gradient: "card-gradient-2",
     postedBy: "Aurora Capital Partners",
     postedAgo: "5 days ago",
+    postedAt: "2026-05-30",
+    images: [
+      "/listings/mixed-use-tower-development/1.jpg",
+      "/listings/mixed-use-tower-development/2.jpg",
+      "/listings/mixed-use-tower-development/3.jpg",
+      "/listings/mixed-use-tower-development/4.jpg",
+    ],
+    featured: true,
+    trending: true,
     sponsor: {
       name: "Aurora Capital Partners",
       description:
@@ -169,9 +188,17 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Entitled, surveyed, marketed",
     timeline: "Close within 90 days",
     projectStatus: "Zoning amendment in process, utility stub at boundary",
-    gradient: "card-gradient-3",
     postedBy: "Riviera Land Group",
     postedAgo: "1 week ago",
+    postedAt: "2026-05-28",
+    images: [
+      "/listings/coastal-development-land/1.jpg",
+      "/listings/coastal-development-land/2.jpg",
+      "/listings/coastal-development-land/3.jpg",
+      "/listings/coastal-development-land/4.jpg",
+    ],
+    featured: false,
+    trending: true,
     sponsor: {
       name: "Riviera Land Group",
       description:
@@ -214,9 +241,17 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Operating · seller transition planned",
     timeline: "Close within 60 days · LOI exclusivity available",
     projectStatus: "QofE complete, SBA term sheet in hand",
-    gradient: "card-gradient-4",
     postedBy: "Confidential Seller",
     postedAgo: "3 days ago",
+    postedAt: "2026-06-01",
+    images: [
+      "/listings/regional-logistics-acquisition/1.jpg",
+      "/listings/regional-logistics-acquisition/2.jpg",
+      "/listings/regional-logistics-acquisition/3.jpg",
+      "/listings/regional-logistics-acquisition/4.jpg",
+    ],
+    featured: false,
+    trending: false,
     sponsor: {
       name: "Apex Transition Advisors",
       description:
@@ -259,9 +294,17 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Construction begins next quarter",
     timeline: "18-month build · 20-year asset life",
     projectStatus: "PPAs executed, interconnection awarded, NTP imminent",
-    gradient: "card-gradient-5",
     postedBy: "Helios Infrastructure",
     postedAgo: "1 day ago",
+    postedAt: "2026-06-03",
+    images: [
+      "/listings/sonora-solar-storage-portfolio/1.jpg",
+      "/listings/sonora-solar-storage-portfolio/2.jpg",
+      "/listings/sonora-solar-storage-portfolio/3.jpg",
+      "/listings/sonora-solar-storage-portfolio/4.jpg",
+    ],
+    featured: true,
+    trending: true,
     sponsor: {
       name: "Helios Infrastructure",
       description:
@@ -304,9 +347,17 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Pre-construction · brand license executed",
     timeline: "Vertical Q4 next year · 36-month sell-out",
     projectStatus: "Brand license executed, residential pre-marketing underway",
-    gradient: "card-gradient-6",
     postedBy: "Yucatán Development Co.",
     postedAgo: "6 days ago",
+    postedAt: "2026-05-29",
+    images: [
+      "/listings/branded-residences-tulum-jv/1.jpg",
+      "/listings/branded-residences-tulum-jv/2.jpg",
+      "/listings/branded-residences-tulum-jv/3.jpg",
+      "/listings/branded-residences-tulum-jv/4.jpg",
+    ],
+    featured: true,
+    trending: false,
     sponsor: {
       name: "Yucatán Development Co.",
       description:
@@ -324,6 +375,8 @@ export const featuredOpportunities: Opportunity[] = [
   },
 ];
 
+// ---- Helpers ----
+
 export function getOpportunityBySlug(slug: string): Opportunity | undefined {
   return featuredOpportunities.find((o) => o.slug === slug);
 }
@@ -340,4 +393,21 @@ export function getRelatedOpportunities(slug: string, limit = 3): Opportunity[] 
     (o) => o.slug !== slug && o.category !== current.category
   );
   return [...sameCategory, ...others].slice(0, limit);
+}
+
+export function getFeaturedOpportunities(limit?: number): Opportunity[] {
+  const featured = featuredOpportunities.filter((o) => o.featured);
+  return typeof limit === "number" ? featured.slice(0, limit) : featured;
+}
+
+export function getRecentlyAddedOpportunities(limit?: number): Opportunity[] {
+  const sorted = [...featuredOpportunities].sort((a, b) =>
+    b.postedAt.localeCompare(a.postedAt)
+  );
+  return typeof limit === "number" ? sorted.slice(0, limit) : sorted;
+}
+
+export function getTrendingOpportunities(limit?: number): Opportunity[] {
+  const trending = featuredOpportunities.filter((o) => o.trending);
+  return typeof limit === "number" ? trending.slice(0, limit) : trending;
 }

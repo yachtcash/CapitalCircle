@@ -1,15 +1,62 @@
 import Hero from "@/components/Hero";
 import SearchBar from "@/components/SearchBar";
 import CategoryGrid from "@/components/CategoryGrid";
-import FeaturedOpportunities from "@/components/FeaturedOpportunities";
+import MarketplaceSection from "@/components/MarketplaceSection";
+import { Star, Sparkles, Flame } from "lucide-react";
+import {
+  getFeaturedOpportunities,
+  getRecentlyAddedOpportunities,
+  getTrendingOpportunities,
+} from "@/data/opportunities";
 
 export default function Home() {
+  const featured = getFeaturedOpportunities(3);
+  const recentlyAdded = getRecentlyAddedOpportunities(3);
+  const trending = getTrendingOpportunities(3);
+
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" id="opportunities">
       <Hero />
       <SearchBar />
       <CategoryGrid />
-      <FeaturedOpportunities />
+
+      <MarketplaceSection
+        eyebrow="Featured This Week"
+        title="Hand-picked opportunities"
+        description="Editor's selection of standout deals — sponsor-vetted and ready for serious capital."
+        opportunities={featured}
+        ribbon="Featured"
+        icon={Star}
+        bg="white"
+        ctaLabel="See all featured"
+        ctaHref="#featured"
+        priorityFirstImage
+      />
+
+      <MarketplaceSection
+        eyebrow="Just Listed"
+        title="Recently added"
+        description="Fresh deal flow from the past week — be among the first to engage."
+        opportunities={recentlyAdded}
+        ribbon="New"
+        icon={Sparkles}
+        bg="cream"
+        ctaLabel="Browse all new"
+        ctaHref="#recently-added"
+      />
+
+      <MarketplaceSection
+        eyebrow="Heating Up"
+        title="Trending opportunities"
+        description="Listings drawing the most member attention right now."
+        opportunities={trending}
+        ribbon="Trending"
+        icon={Flame}
+        bg="white"
+        ctaLabel="See all trending"
+        ctaHref="#trending"
+      />
+
       <ClosingBanner />
     </div>
   );

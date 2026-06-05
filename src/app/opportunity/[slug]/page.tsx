@@ -6,6 +6,7 @@ import {
   getRelatedOpportunities,
 } from "@/data/opportunities";
 import DetailHero from "@/components/DetailHero";
+import ImageGallery from "@/components/ImageGallery";
 import InvestmentDetailsBlock from "@/components/InvestmentDetailsBlock";
 import ProjectInfoBlock from "@/components/ProjectInfoBlock";
 import SponsorBlock from "@/components/SponsorBlock";
@@ -52,6 +53,8 @@ export default async function OpportunityDetailPage({
   return (
     <div className="bg-cream">
       <DetailHero opportunity={opportunity} />
+
+      <ImageGallery images={opportunity.images} title={opportunity.title} />
 
       <div className="max-w-6xl mx-auto px-5 md:px-10 py-10 md:py-14">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">

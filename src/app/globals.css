@@ -47,13 +47,6 @@ body {
     linear-gradient(180deg, #050D1A 0%, #0A1628 60%, #112344 100%);
 }
 
-.card-gradient-1 { background: linear-gradient(135deg, #1A3160 0%, #294378 100%); }
-.card-gradient-2 { background: linear-gradient(135deg, #112344 0%, #1A3160 100%); }
-.card-gradient-3 { background: linear-gradient(135deg, #294378 0%, #4B6CA8 100%); }
-.card-gradient-4 { background: linear-gradient(135deg, #0A1628 0%, #294378 100%); }
-.card-gradient-5 { background: linear-gradient(135deg, #1A3160 0%, #8C6F14 100%); }
-.card-gradient-6 { background: linear-gradient(135deg, #112344 0%, #B8941F 100%); }
-
 ::selection {
   background: rgba(212, 175, 55, 0.35);
   color: #0A1628;
