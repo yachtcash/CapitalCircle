@@ -2,6 +2,7 @@ import Hero from "@/components/Hero";
 import SearchBar from "@/components/SearchBar";
 import CategoryGrid from "@/components/CategoryGrid";
 import MarketplaceSection from "@/components/MarketplaceSection";
+import PopularSearches from "@/components/search/PopularSearches";
 import { Star, Sparkles, Flame } from "lucide-react";
 import {
   getFeaturedOpportunities,
@@ -18,6 +19,7 @@ export default function Home() {
     <div className="flex flex-col" id="opportunities">
       <Hero />
       <SearchBar />
+      <PopularSearches />
       <CategoryGrid />
 
       <MarketplaceSection
@@ -29,7 +31,7 @@ export default function Home() {
         icon={Star}
         bg="white"
         ctaLabel="See all featured"
-        ctaHref="#featured"
+        ctaHref="/search?sort=featured"
         priorityFirstImage
       />
 
@@ -42,7 +44,7 @@ export default function Home() {
         icon={Sparkles}
         bg="cream"
         ctaLabel="Browse all new"
-        ctaHref="#recently-added"
+        ctaHref="/search"
       />
 
       <MarketplaceSection
@@ -54,7 +56,7 @@ export default function Home() {
         icon={Flame}
         bg="white"
         ctaLabel="See all trending"
-        ctaHref="#trending"
+        ctaHref="/search?sort=trending"
       />
 
       <ClosingBanner />

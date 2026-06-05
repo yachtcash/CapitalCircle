@@ -6,8 +6,10 @@ import { cn } from "@/lib/cn";
 
 const statusStyles: Record<Opportunity["status"], string> = {
   Open: "bg-emerald-500 text-white",
-  Funding: "bg-gold-500 text-navy-900",
-  "Closing Soon": "bg-rose-500 text-white",
+  "Seeking Capital": "bg-gold-500 text-navy-900",
+  Negotiating: "bg-amber-500 text-white",
+  "Under Contract": "bg-rose-500 text-white",
+  Closed: "bg-navy-700 text-white",
 };
 
 export default function DetailHero({ opportunity }: { opportunity: Opportunity }) {

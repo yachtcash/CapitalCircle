@@ -1,11 +1,33 @@
-export type OpportunityStatus = "Open" | "Funding" | "Closing Soon";
+export type OpportunityStatus =
+  | "Open"
+  | "Seeking Capital"
+  | "Negotiating"
+  | "Under Contract"
+  | "Closed";
+
 export type DealType =
-  | "Equity"
-  | "Preferred Equity"
+  | "Seeking Investor"
   | "Joint Venture"
+  | "Land For Sale"
+  | "Business For Sale"
   | "Acquisition"
-  | "Project Finance"
-  | "Land Sale / JV";
+  | "Financing Needed"
+  | "Supplier Offering"
+  | "Strategic Partnership"
+  | "Development Project"
+  | "Franchise Opportunity"
+  | "Licensing Opportunity"
+  | "Service Offering"
+  | "Contact For Details";
+
+export type ListingType = "Opportunity" | "Product" | "Service";
+
+export type Place = {
+  country: string;
+  state?: string;
+  city: string;
+  coordinates?: { lat: number; lng: number };
+};
 
 export type Sponsor = {
   name: string;
@@ -29,9 +51,12 @@ export type Opportunity = {
   title: string;
   category: string;
   industry: string;
+  listingType: ListingType;
   dealType: DealType;
   location: string;
+  place: Place;
   investmentRange: string;
+  fundingAmount: number;
   expectedReturn: string;
   status: OpportunityStatus;
   description: string;
@@ -61,11 +86,18 @@ export const featuredOpportunities: Opportunity[] = [
     title: "Beachfront Boutique Hotel — 42 Keys",
     category: "Hotels & Resorts",
     industry: "Luxury Hospitality",
-    dealType: "Equity",
+    listingType: "Opportunity",
+    dealType: "Seeking Investor",
     location: "Cabo San Lucas, Mexico",
+    place: {
+      country: "Mexico",
+      state: "Baja California Sur",
+      city: "Cabo San Lucas",
+    },
     investmentRange: "$8M – $12M",
+    fundingAmount: 10_500_000,
     expectedReturn: "18% IRR",
-    status: "Funding",
+    status: "Seeking Capital",
     description:
       "Established cash-flowing boutique with expansion entitlements for 18 additional keys and a beach club.",
     executiveSummary:
@@ -114,9 +146,16 @@ export const featuredOpportunities: Opportunity[] = [
     title: "Mixed-Use Tower Development",
     category: "Real Estate Development",
     industry: "Urban Mixed-Use",
-    dealType: "Preferred Equity",
+    listingType: "Opportunity",
+    dealType: "Seeking Investor",
     location: "Miami, FL",
+    place: {
+      country: "United States",
+      state: "Florida",
+      city: "Miami",
+    },
     investmentRange: "$45M – $60M",
+    fundingAmount: 52_000_000,
     expectedReturn: "22% IRR",
     status: "Open",
     description:
@@ -167,9 +206,16 @@ export const featuredOpportunities: Opportunity[] = [
     title: "Coastal Development Land — 84 Acres",
     category: "Land Opportunities",
     industry: "Master-Planned Resort Land",
-    dealType: "Land Sale / JV",
+    listingType: "Opportunity",
+    dealType: "Land For Sale",
     location: "Punta Mita, Mexico",
+    place: {
+      country: "Mexico",
+      state: "Nayarit",
+      city: "Punta Mita",
+    },
     investmentRange: "$14M",
+    fundingAmount: 14_000_000,
     expectedReturn: "Sale + JV options",
     status: "Open",
     description:
@@ -220,11 +266,18 @@ export const featuredOpportunities: Opportunity[] = [
     title: "Regional Logistics Operator Acquisition",
     category: "Business Acquisitions",
     industry: "Freight & Logistics",
-    dealType: "Acquisition",
+    listingType: "Opportunity",
+    dealType: "Business For Sale",
     location: "Dallas, TX",
+    place: {
+      country: "United States",
+      state: "Texas",
+      city: "Dallas",
+    },
     investmentRange: "$22M – $28M",
+    fundingAmount: 28_500_000,
     expectedReturn: "4.2x EBITDA",
-    status: "Closing Soon",
+    status: "Under Contract",
     description:
       "Profitable 28-truck fleet servicing Fortune 500 manufacturers. Owner retiring, clean books.",
     executiveSummary:
@@ -273,11 +326,18 @@ export const featuredOpportunities: Opportunity[] = [
     title: "Solar + Storage Portfolio — 120 MW",
     category: "Energy",
     industry: "Utility-Scale Renewables",
-    dealType: "Project Finance",
+    listingType: "Opportunity",
+    dealType: "Financing Needed",
     location: "Sonora, Mexico",
+    place: {
+      country: "Mexico",
+      state: "Sonora",
+      city: "Hermosillo",
+    },
     investmentRange: "$95M",
+    fundingAmount: 95_000_000,
     expectedReturn: "14% IRR",
-    status: "Funding",
+    status: "Negotiating",
     description:
       "Three interconnected utility-scale sites with signed PPAs and grid interconnection in place.",
     executiveSummary:
@@ -326,9 +386,16 @@ export const featuredOpportunities: Opportunity[] = [
     title: "Joint Venture — Branded Residences",
     category: "Joint Ventures",
     industry: "Branded Residential",
+    listingType: "Opportunity",
     dealType: "Joint Venture",
     location: "Tulum, Mexico",
+    place: {
+      country: "Mexico",
+      state: "Quintana Roo",
+      city: "Tulum",
+    },
     investmentRange: "$30M LP",
+    fundingAmount: 30_000_000,
     expectedReturn: "2.4x MOIC",
     status: "Open",
     description:
