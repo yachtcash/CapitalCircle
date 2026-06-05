@@ -31,10 +31,10 @@ export default function Hero() {
 
         <div className="mt-7 md:mt-9 flex flex-col sm:flex-row gap-3">
           <Link
-            href="/post"
+            href="/create-listing"
             className="group inline-flex items-center justify-center gap-2 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-6 py-3 text-sm transition-colors"
           >
-            Post an Opportunity
+            Create a Listing
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2.5} />
           </Link>
           <Link

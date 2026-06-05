@@ -24,14 +24,14 @@ function ClosingBanner() {
             Have a deal worth circulating?
           </div>
           <h3 className="mt-2 text-2xl md:text-3xl font-semibold tracking-tight max-w-2xl">
-            Post your opportunity in front of 1,200+ vetted members.
+            Create a listing in front of 1,200+ vetted members.
           </h3>
         </div>
         <a
-          href="/post"
+          href="/create-listing"
           className="inline-flex items-center justify-center rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-6 py-3 text-sm transition-colors whitespace-nowrap"
         >
-          Post an Opportunity
+          Create a Listing
         </a>
       </div>
     </section>
