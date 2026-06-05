@@ -5,6 +5,7 @@ import {
   getOpportunityBySlug,
   getRelatedOpportunities,
 } from "@/data/opportunities";
+import { getCompanyById } from "@/data/companies";
 import DetailHero from "@/components/DetailHero";
 import ImageGallery from "@/components/ImageGallery";
 import InvestmentDetailsBlock from "@/components/InvestmentDetailsBlock";
@@ -49,6 +50,7 @@ export default async function OpportunityDetailPage({
   }
 
   const related = getRelatedOpportunities(slug, 3);
+  const company = getCompanyById(opportunity.companyId);
 
   return (
     <div className="bg-cream">
@@ -83,7 +85,7 @@ export default async function OpportunityDetailPage({
 
             <InvestmentDetailsBlock opportunity={opportunity} />
             <ProjectInfoBlock opportunity={opportunity} />
-            <SponsorBlock sponsor={opportunity.sponsor} />
+            {company ? <SponsorBlock company={company} /> : null}
             <DocumentsBlock documents={opportunity.documents} />
           </div>
 

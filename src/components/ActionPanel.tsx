@@ -60,7 +60,7 @@ export default function ActionPanel({ opportunity }: { opportunity: Opportunity 
       <div className="border-t border-white/5 px-5 md:px-6 py-4 flex items-start gap-2.5 text-[11px] text-white/55 leading-relaxed">
         <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0 text-gold-400" strokeWidth={2.2} />
         <span>
-          All conversations are private between you and {opportunity.sponsor.name}. Documents
+          All conversations are private between you and {opportunity.postedBy}. Documents
           unlock after NDA is countersigned.
         </span>
       </div>

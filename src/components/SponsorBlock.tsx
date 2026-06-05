@@ -1,53 +1,100 @@
-import { ShieldCheck, MapPin, CalendarDays, Award } from "lucide-react";
-import type { Sponsor } from "@/data/opportunities";
+import Link from "next/link";
+import {
+  ShieldCheck,
+  MapPin,
+  CalendarDays,
+  Award,
+  ArrowRight,
+  Users,
+  Globe2,
+} from "lucide-react";
+import type { Company } from "@/data/companies";
+import { cn } from "@/lib/cn";
 
-export default function SponsorBlock({ sponsor }: { sponsor: Sponsor }) {
-  const initials = sponsor.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+const verificationBadgeStyle: Record<Company["verification"], string> = {
+  Pending: "bg-navy-900/[0.06] text-navy-700 ring-navy-900/10",
+  Verified: "bg-gold-500/15 text-gold-700 ring-gold-500/40",
+  "Premium Verified": "bg-navy-900 text-gold-400 ring-navy-900",
+};
+
+export default function SponsorBlock({ company }: { company: Company }) {
+  const headquarters = [company.headquarters.city, company.headquarters.state, company.headquarters.country]
+    .filter((x): x is string => Boolean(x && x.trim()))
+    .join(", ");
 
   return (
     <section>
       <SectionHeader eyebrow="Sponsor" title="Sponsor Information" />
       <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-5 md:p-7">
         <div className="flex flex-col sm:flex-row items-start gap-5">
-          <div className="shrink-0 h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-navy-900 text-gold-500 ring-1 ring-navy-900/5 flex items-center justify-center text-xl md:text-2xl font-semibold tracking-wide">
-            {initials}
-          </div>
+          <Link
+            href={`/company/${company.slug}`}
+            aria-label={`View ${company.name} profile`}
+            className="shrink-0 h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-navy-900 text-gold-500 ring-1 ring-navy-900/5 hover:bg-navy-800 flex items-center justify-center text-xl md:text-2xl font-semibold tracking-wide transition-colors"
+          >
+            {initialsFor(company.name)}
+          </Link>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg md:text-xl font-semibold text-navy-900">{sponsor.name}</h3>
-              {sponsor.verified ? (
-                <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-bold bg-gold-500/15 text-gold-700 ring-1 ring-gold-500/40 rounded-full px-2 py-0.5">
-                  <ShieldCheck className="h-3 w-3" strokeWidth={2.5} />
-                  Verified
-                </span>
-              ) : null}
+              <Link
+                href={`/company/${company.slug}`}
+                className="text-lg md:text-xl font-semibold text-navy-900 hover:text-gold-700 transition-colors"
+              >
+                {company.name}
+              </Link>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-bold ring-1 rounded-full px-2 py-0.5",
+                  verificationBadgeStyle[company.verification]
+                )}
+              >
+                <ShieldCheck className="h-3 w-3" strokeWidth={2.5} />
+                {company.verification}
+              </span>
             </div>
 
             <p className="mt-3 text-sm md:text-[15px] text-navy-700/85 leading-relaxed">
-              {sponsor.description}
+              {company.tagline}
             </p>
 
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <Meta icon={MapPin} label="Location" value={sponsor.location} />
-              <Meta icon={CalendarDays} label="Founded" value={String(sponsor.foundedYear)} />
+              <Meta icon={MapPin} label="Headquarters" value={headquarters || "—"} />
+              <Meta icon={CalendarDays} label="Founded" value={String(company.foundedYear)} />
+              <Meta icon={Users} label="Employees" value={company.employees} />
+              <Meta icon={Globe2} label="Industry" value={company.industry} />
               <Meta
                 icon={Award}
                 label="Track record"
-                value={sponsor.trackRecord}
+                value={company.about.trackRecord}
                 className="sm:col-span-2"
               />
             </div>
+
+            <Link
+              href={`/company/${company.slug}`}
+              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-navy-900 hover:text-gold-700 transition-colors group"
+            >
+              View company profile
+              <ArrowRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                strokeWidth={2.2}
+              />
+            </Link>
           </div>
         </div>
       </div>
     </section>
   );
+}
+
+function initialsFor(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 function Meta({

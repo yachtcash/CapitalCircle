@@ -29,15 +29,6 @@ export type Place = {
   coordinates?: { lat: number; lng: number };
 };
 
-export type Sponsor = {
-  name: string;
-  description: string;
-  location: string;
-  verified: boolean;
-  foundedYear: number;
-  trackRecord: string;
-};
-
 export type OpportunityDocument = {
   name: string;
   type: "Pitch Deck" | "Financial Summary" | "Project Overview";
@@ -75,7 +66,7 @@ export type Opportunity = {
   images: string[];
   featured: boolean;
   trending: boolean;
-  sponsor: Sponsor;
+  companyId: string;
   documents: OpportunityDocument[];
 };
 
@@ -114,7 +105,7 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Operating · Expansion shovel-ready",
     timeline: "5-year hold · construction Q2 next year",
     projectStatus: "Permits secured, GMP contract priced",
-    postedBy: "Pacific Coast Holdings",
+    postedBy: "Pacific Coast Development Group",
     postedAgo: "2 days ago",
     postedAt: "2026-06-02",
     images: [
@@ -125,15 +116,7 @@ export const featuredOpportunities: Opportunity[] = [
     ],
     featured: true,
     trending: false,
-    sponsor: {
-      name: "Pacific Coast Holdings",
-      description:
-        "Owner-operator of boutique hospitality assets across the Sea of Cortez and Pacific coast of Mexico. Vertically integrated with in-house design, construction, and F&B teams.",
-      location: "Cabo San Lucas, Mexico",
-      verified: true,
-      foundedYear: 2013,
-      trackRecord: "$420M deployed across 11 hospitality assets · 2 full-cycle exits at 2.6x and 2.9x MOIC",
-    },
+    companyId: "COMP-000001",
     documents: [
       { name: "Pacific Coast — Cabo Hotel Pitch Deck", type: "Pitch Deck", pages: 34, updated: "3 days ago" },
       { name: "Five-Year Financial Model & Sensitivity", type: "Financial Summary", pages: 18, updated: "1 week ago" },
@@ -185,15 +168,7 @@ export const featuredOpportunities: Opportunity[] = [
     ],
     featured: true,
     trending: true,
-    sponsor: {
-      name: "Aurora Capital Partners",
-      description:
-        "Vertically integrated developer focused on for-sale high-rise residential in South Florida. In-house entitlement, construction, sales, and capital markets teams.",
-      location: "Miami, FL",
-      verified: true,
-      foundedYear: 2007,
-      trackRecord: "$2.1B of completed development · 6 towers delivered · zero principal losses",
-    },
+    companyId: "COMP-000002",
     documents: [
       { name: "Edgewater Tower — Investor Deck", type: "Pitch Deck", pages: 41, updated: "1 week ago" },
       { name: "Capital Stack & Returns Model", type: "Financial Summary", pages: 24, updated: "2 weeks ago" },
@@ -245,15 +220,7 @@ export const featuredOpportunities: Opportunity[] = [
     ],
     featured: false,
     trending: true,
-    sponsor: {
-      name: "Riviera Land Group",
-      description:
-        "Specialist land aggregator and broker active across the Riviera Nayarit and Costa Alegre. Focused on entitled and pre-entitled coastal parcels of 20+ acres.",
-      location: "Punta Mita, Mexico",
-      verified: true,
-      foundedYear: 2011,
-      trackRecord: "$310M of land transactions closed · 14 master-planned parcels assembled",
-    },
+    companyId: "COMP-000003",
     documents: [
       { name: "Punta Mita Parcel — Information Memorandum", type: "Pitch Deck", pages: 26, updated: "4 days ago" },
       { name: "Land Basis, Title & Comparables", type: "Financial Summary", pages: 12, updated: "1 week ago" },
@@ -294,7 +261,7 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Operating · seller transition planned",
     timeline: "Close within 60 days · LOI exclusivity available",
     projectStatus: "QofE complete, SBA term sheet in hand",
-    postedBy: "Confidential Seller",
+    postedBy: "Global Logistics Holdings",
     postedAgo: "3 days ago",
     postedAt: "2026-06-01",
     images: [
@@ -305,15 +272,7 @@ export const featuredOpportunities: Opportunity[] = [
     ],
     featured: false,
     trending: false,
-    sponsor: {
-      name: "Apex Transition Advisors",
-      description:
-        "M&A advisory representing the seller. Specialists in lower-middle-market industrial and logistics transitions across the South-Central US.",
-      location: "Dallas, TX",
-      verified: true,
-      foundedYear: 2009,
-      trackRecord: "62 closed transactions · $1.4B aggregate enterprise value",
-    },
+    companyId: "COMP-000004",
     documents: [
       { name: "Confidential Information Memorandum", type: "Pitch Deck", pages: 48, updated: "5 days ago" },
       { name: "Quality of Earnings Report (Summary)", type: "Financial Summary", pages: 32, updated: "2 weeks ago" },
@@ -354,7 +313,7 @@ export const featuredOpportunities: Opportunity[] = [
     currentStage: "Construction begins next quarter",
     timeline: "18-month build · 20-year asset life",
     projectStatus: "PPAs executed, interconnection awarded, NTP imminent",
-    postedBy: "Helios Infrastructure",
+    postedBy: "Sonora Energy Partners",
     postedAgo: "1 day ago",
     postedAt: "2026-06-03",
     images: [
@@ -365,15 +324,7 @@ export const featuredOpportunities: Opportunity[] = [
     ],
     featured: true,
     trending: true,
-    sponsor: {
-      name: "Helios Infrastructure",
-      description:
-        "Independent power producer developing, financing, and operating utility-scale renewables across Mexico and Central America. Long-term hold orientation.",
-      location: "Hermosillo, Mexico",
-      verified: true,
-      foundedYear: 2016,
-      trackRecord: "780 MW developed · 410 MW operating · 100% project completion on schedule",
-    },
+    companyId: "COMP-000005",
     documents: [
       { name: "Sonora Portfolio — Investor Deck", type: "Pitch Deck", pages: 52, updated: "2 days ago" },
       { name: "Capital Structure & DSCR Model", type: "Financial Summary", pages: 28, updated: "1 week ago" },
@@ -425,15 +376,7 @@ export const featuredOpportunities: Opportunity[] = [
     ],
     featured: true,
     trending: false,
-    sponsor: {
-      name: "Yucatán Development Co.",
-      description:
-        "Branded residence developer across the Riviera Maya and the Caribbean basin. Track record of partnering with global hospitality flags on luxury coastal resorts.",
-      location: "Tulum, Mexico",
-      verified: true,
-      foundedYear: 2015,
-      trackRecord: "5 branded projects delivered · $1.1B aggregate residential sell-out · 100% brand renewal",
-    },
+    companyId: "COMP-000006",
     documents: [
       { name: "Tulum Branded Residences — LP Deck", type: "Pitch Deck", pages: 38, updated: "6 days ago" },
       { name: "JV Waterfall, Promote & Returns", type: "Financial Summary", pages: 22, updated: "1 week ago" },
