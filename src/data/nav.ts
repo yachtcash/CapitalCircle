@@ -1,4 +1,11 @@
-import { Home, PlusCircle, MessageSquare, User, type LucideIcon } from "lucide-react";
+import {
+  Home,
+  LayoutDashboard,
+  PlusCircle,
+  MessageSquare,
+  User,
+  type LucideIcon,
+} from "lucide-react";
 
 export type NavItem = {
   label: string;
@@ -9,6 +16,7 @@ export type NavItem = {
 
 export const navItems: NavItem[] = [
   { label: "Home", shortLabel: "Home", href: "/", icon: Home },
+  { label: "Dashboard", shortLabel: "Dash", href: "/dashboard", icon: LayoutDashboard },
   { label: "Create Listing", shortLabel: "Create", href: "/create-listing", icon: PlusCircle },
   { label: "Messages", shortLabel: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Profile", shortLabel: "Profile", href: "/profile", icon: User },
