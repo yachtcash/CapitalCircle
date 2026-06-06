@@ -1,5 +1,6 @@
 import PageShell from "@/components/PageShell";
 import { MapPin, Briefcase, Globe2, Mail, ShieldCheck, Pencil } from "lucide-react";
+import SavedSections from "@/components/profile/SavedSections";
 
 const stats = [
   { label: "Opportunities posted", value: "7" },
@@ -111,6 +112,8 @@ export default function ProfilePage() {
               ))}
             </ul>
           </section>
+
+          <SavedSections />
         </div>
 
         <aside className="space-y-4">

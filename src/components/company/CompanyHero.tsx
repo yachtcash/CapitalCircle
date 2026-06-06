@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronRight, Globe2, MapPin, Briefcase, CalendarDays } from "lucide-react";
 import type { Company } from "@/data/companies";
 import VerificationBadge from "./VerificationBadge";
+import SaveCompanyButton from "@/components/profile/SaveCompanyButton";
 
 function initialsFor(name: string): string {
   return name
@@ -68,7 +69,10 @@ export default function CompanyHero({ company }: { company: Company }) {
                   {company.name}
                 </h1>
               </div>
-              <VerificationBadge status={company.verification} size="md" />
+              <div className="flex items-center gap-2 flex-wrap">
+                <VerificationBadge status={company.verification} size="md" />
+                <SaveCompanyButton companyId={company.id} />
+              </div>
             </div>
 
             <p className="mt-3 text-sm md:text-[15px] text-navy-700/80 leading-relaxed max-w-3xl">
