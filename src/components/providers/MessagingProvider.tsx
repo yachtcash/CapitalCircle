@@ -29,12 +29,24 @@ import {
   type ListingStatus,
 } from "@/data/listings";
 import { featuredOpportunities } from "@/data/opportunities";
+import {
+  SEED_ACCESS_REQUESTS,
+  SEED_DOCUMENTS,
+  SEED_DOCUMENT_ACTIVITY,
+  type AccessRequest,
+  type DataRoomDocument,
+  type DocumentActivity,
+  type DocumentActivityKind,
+} from "@/data/documents";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
 const KEY_NOTIFICATIONS = "cc:notifications:v1";
 const KEY_SAVED_OPPS = "cc:saved-opps:v1";
 const KEY_SAVED_COMPANIES = "cc:saved-companies:v1";
 const KEY_LISTINGS = "cc:listings:v1";
+const KEY_DOCUMENTS = "cc:documents:v1";
+const KEY_ACCESS_REQUESTS = "cc:access-requests:v1";
+const KEY_DOCUMENT_ACTIVITY = "cc:document-activity:v1";
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -103,6 +115,20 @@ type MessagingValue = {
   updateListingStatus: (id: string, status: ListingStatus) => void;
   saveListingDraft: (id: string, draftPayload: unknown) => void;
   getListing: (id: string) => ListingRecord | undefined;
+
+  documents: DataRoomDocument[];
+  accessRequests: AccessRequest[];
+  documentActivity: DocumentActivity[];
+
+  totalPendingAccessRequests: number;
+
+  requestDocumentAccess: (listingId: string, message?: string) => string;
+  approveAccessRequest: (requestId: string) => void;
+  denyAccessRequest: (requestId: string) => void;
+  markDocumentViewed: (documentId: string) => void;
+  markDocumentDownloaded: (documentId: string) => void;
+  hasApprovedAccess: (listingId: string) => boolean;
+  hasPendingAccess: (listingId: string) => boolean;
 };
 
 const Ctx = createContext<MessagingValue | null>(null);
@@ -128,6 +154,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     SEED_SAVED_COMPANIES
   );
   const [listings, setListings] = useState<ListingRecord[]>(SEED_LISTINGS);
+  const [documents, setDocuments] =
+    useState<DataRoomDocument[]>(SEED_DOCUMENTS);
+  const [accessRequests, setAccessRequests] = useState<AccessRequest[]>(
+    SEED_ACCESS_REQUESTS
+  );
+  const [documentActivity, setDocumentActivity] = useState<DocumentActivity[]>(
+    SEED_DOCUMENT_ACTIVITY
+  );
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -149,6 +183,21 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       null
     );
     if (storedListings) setListings(storedListings);
+    const storedDocs = readStored<DataRoomDocument[] | null>(
+      KEY_DOCUMENTS,
+      null
+    );
+    if (storedDocs) setDocuments(storedDocs);
+    const storedReqs = readStored<AccessRequest[] | null>(
+      KEY_ACCESS_REQUESTS,
+      null
+    );
+    if (storedReqs) setAccessRequests(storedReqs);
+    const storedActivity = readStored<DocumentActivity[] | null>(
+      KEY_DOCUMENT_ACTIVITY,
+      null
+    );
+    if (storedActivity) setDocumentActivity(storedActivity);
     setHydrated(true);
   }, []);
 
@@ -173,6 +222,18 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_LISTINGS, listings);
   }, [listings, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_DOCUMENTS, documents);
+  }, [documents, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_ACCESS_REQUESTS, accessRequests);
+  }, [accessRequests, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_DOCUMENT_ACTIVITY, documentActivity);
+  }, [documentActivity, hydrated]);
 
   const upsertConversation = useCallback(
     (
@@ -642,6 +703,208 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     [listings]
   );
 
+  // ---- Document / Access Request actions ----
+
+  function nextRequestId(existing: AccessRequest[]): string {
+    let maxNum = 0;
+    for (const r of existing) {
+      const match = /^REQ-(\d+)$/.exec(r.id);
+      if (match) {
+        const value = parseInt(match[1], 10);
+        if (!Number.isNaN(value) && value > maxNum) maxNum = value;
+      }
+    }
+    return `REQ-${String(maxNum + 1).padStart(6, "0")}`;
+  }
+
+  function nextDocActivityId(existing: DocumentActivity[]): string {
+    let maxNum = 0;
+    for (const a of existing) {
+      const match = /^DACT-(\d+)$/.exec(a.id);
+      if (match) {
+        const value = parseInt(match[1], 10);
+        if (!Number.isNaN(value) && value > maxNum) maxNum = value;
+      }
+    }
+    return `DACT-${String(maxNum + 1).padStart(6, "0")}`;
+  }
+
+  const pushDocActivity = useCallback(
+    (
+      listingId: string,
+      kind: DocumentActivityKind,
+      title: string,
+      body: string,
+      actor: string,
+      documentId?: string
+    ) => {
+      setDocumentActivity((prev) => {
+        const id = nextDocActivityId(prev);
+        const entry: DocumentActivity = {
+          id,
+          listingId,
+          documentId,
+          kind,
+          title,
+          body,
+          actor,
+          createdAt: new Date().toISOString(),
+        };
+        return [entry, ...prev];
+      });
+    },
+    []
+  );
+
+  const requestDocumentAccess = useCallback(
+    (listingId: string, message?: string): string => {
+      let id = "";
+      setAccessRequests((prev) => {
+        id = nextRequestId(prev);
+        const request: AccessRequest = {
+          id,
+          listingId,
+          requesterId: ME.authorId,
+          requesterName: ME.authorName,
+          requesterInitials: ME.authorInitials,
+          requesterCompany: "Pacific Coast Development Group",
+          message: message?.trim() || undefined,
+          status: "Requested",
+          requestedAt: new Date().toISOString(),
+        };
+        return [request, ...prev];
+      });
+      pushDocActivity(
+        listingId,
+        "access_requested",
+        "Access requested",
+        message?.trim()
+          ? `${ME.authorName} requested data room access — “${message.trim()}”`
+          : `${ME.authorName} requested data room access.`,
+        ME.authorName
+      );
+      return id;
+    },
+    [pushDocActivity]
+  );
+
+  const approveAccessRequest = useCallback(
+    (requestId: string) => {
+      let listingId = "";
+      let requesterName = "";
+      setAccessRequests((prev) =>
+        prev.map((r) => {
+          if (r.id !== requestId) return r;
+          listingId = r.listingId;
+          requesterName = r.requesterName;
+          return {
+            ...r,
+            status: "Approved",
+            decidedAt: new Date().toISOString(),
+          };
+        })
+      );
+      if (listingId) {
+        pushDocActivity(
+          listingId,
+          "access_approved",
+          "Access approved",
+          `${requesterName} has been approved for private documents.`,
+          ME.authorName
+        );
+      }
+    },
+    [pushDocActivity]
+  );
+
+  const denyAccessRequest = useCallback(
+    (requestId: string) => {
+      let listingId = "";
+      let requesterName = "";
+      setAccessRequests((prev) =>
+        prev.map((r) => {
+          if (r.id !== requestId) return r;
+          listingId = r.listingId;
+          requesterName = r.requesterName;
+          return {
+            ...r,
+            status: "Denied",
+            decidedAt: new Date().toISOString(),
+          };
+        })
+      );
+      if (listingId) {
+        pushDocActivity(
+          listingId,
+          "access_denied",
+          "Access denied",
+          `${requesterName} was not approved at this time.`,
+          ME.authorName
+        );
+      }
+    },
+    [pushDocActivity]
+  );
+
+  const markDocumentViewed = useCallback(
+    (documentId: string) => {
+      const doc = documents.find((d) => d.id === documentId);
+      if (!doc) return;
+      pushDocActivity(
+        doc.listingId,
+        "viewed",
+        "Document viewed",
+        `${ME.authorName} opened “${doc.name}”.`,
+        ME.authorName,
+        doc.id
+      );
+    },
+    [documents, pushDocActivity]
+  );
+
+  const markDocumentDownloaded = useCallback(
+    (documentId: string) => {
+      const doc = documents.find((d) => d.id === documentId);
+      if (!doc) return;
+      pushDocActivity(
+        doc.listingId,
+        "downloaded",
+        "Document downloaded",
+        `${ME.authorName} downloaded “${doc.name}”.`,
+        ME.authorName,
+        doc.id
+      );
+    },
+    [documents, pushDocActivity]
+  );
+
+  const hasApprovedAccess = useCallback(
+    (listingId: string): boolean =>
+      accessRequests.some(
+        (r) =>
+          r.listingId === listingId &&
+          r.requesterId === ME.authorId &&
+          r.status === "Approved"
+      ),
+    [accessRequests]
+  );
+
+  const hasPendingAccess = useCallback(
+    (listingId: string): boolean =>
+      accessRequests.some(
+        (r) =>
+          r.listingId === listingId &&
+          r.requesterId === ME.authorId &&
+          r.status === "Requested"
+      ),
+    [accessRequests]
+  );
+
+  const totalPendingAccessRequests = useMemo(
+    () => accessRequests.filter((r) => r.status === "Requested").length,
+    [accessRequests]
+  );
+
   const totalUnreadConversations = useMemo(
     () => conversations.reduce((sum, c) => sum + (c.unreadCount > 0 ? 1 : 0), 0),
     [conversations]
@@ -680,6 +943,17 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     updateListingStatus,
     saveListingDraft,
     getListing,
+    documents,
+    accessRequests,
+    documentActivity,
+    totalPendingAccessRequests,
+    requestDocumentAccess,
+    approveAccessRequest,
+    denyAccessRequest,
+    markDocumentViewed,
+    markDocumentDownloaded,
+    hasApprovedAccess,
+    hasPendingAccess,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

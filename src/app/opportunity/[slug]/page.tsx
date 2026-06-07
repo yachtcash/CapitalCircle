@@ -12,6 +12,7 @@ import InvestmentDetailsBlock from "@/components/InvestmentDetailsBlock";
 import ProjectInfoBlock from "@/components/ProjectInfoBlock";
 import SponsorBlock from "@/components/SponsorBlock";
 import DocumentsBlock from "@/components/DocumentsBlock";
+import OpportunityDataRoomBlock from "@/components/dataroom/OpportunityDataRoomBlock";
 import ActionPanel from "@/components/ActionPanel";
 import RelatedOpportunities from "@/components/RelatedOpportunities";
 
@@ -86,6 +87,10 @@ export default async function OpportunityDetailPage({
             <InvestmentDetailsBlock opportunity={opportunity} />
             <ProjectInfoBlock opportunity={opportunity} />
             {company ? <SponsorBlock company={company} /> : null}
+            <OpportunityDataRoomBlock
+              opportunity={opportunity}
+              companyName={company?.name ?? opportunity.postedBy}
+            />
             <DocumentsBlock documents={opportunity.documents} />
           </div>
 

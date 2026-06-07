@@ -6,6 +6,9 @@ import MyNegotiations from "@/components/dashboard/MyNegotiations";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import SavedItemsCompact from "@/components/dashboard/SavedItemsCompact";
 import MyListingsPreview from "@/components/dashboard/MyListingsPreview";
+import DocumentCenterCard from "@/components/dashboard/DocumentCenterCard";
+import DataRoomsPanel from "@/components/dashboard/DataRoomsPanel";
+import PendingRequestsPanel from "@/components/dashboard/PendingRequestsPanel";
 
 export const metadata = {
   title: "Dashboard",
@@ -21,14 +24,18 @@ export default function DashboardPage() {
 
         <DashboardStats />
 
+        <DocumentCenterCard />
+
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 md:gap-8">
           <div className="space-y-6 md:space-y-8 min-w-0">
             <MyListingsPreview />
+            <PendingRequestsPanel />
             <MyNegotiations />
             <RecentActivity />
           </div>
 
           <aside className="space-y-4">
+            <DataRoomsPanel />
             <SavedItemsCompact />
 
             <div className="bg-gold-500/10 ring-1 ring-gold-500/30 rounded-2xl p-5">
