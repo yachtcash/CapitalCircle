@@ -6,6 +6,9 @@ export const SORT_KEYS = [
   "featured",
   "trending",
   "alphabetical",
+  "most_viewed",
+  "most_saved",
+  "most_interested",
 ] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 

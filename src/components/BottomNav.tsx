@@ -9,11 +9,12 @@ import { useMessaging } from "@/components/providers/MessagingProvider";
 export default function BottomNav() {
   const pathname = usePathname();
   const { totalUnreadConversations, hydrated } = useMessaging();
+  const mobileItems = navItems.filter((i) => !i.hideOnMobile);
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-navy-900/95 backdrop-blur-lg border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-4">
-        {navItems.map((item) => {
+      <div className="grid grid-cols-5">
+        {mobileItems.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
           const isMessages = item.href === "/messages";

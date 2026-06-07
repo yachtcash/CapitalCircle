@@ -50,6 +50,9 @@ export const SORT_LABELS: Record<string, string> = {
   featured: "Featured",
   trending: "Trending",
   alphabetical: "Alphabetical",
+  most_viewed: "Most Viewed",
+  most_saved: "Most Saved",
+  most_interested: "Most Interest",
 };
 
 export const POPULAR_SEARCHES: { label: string; href: string }[] = [

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Clock } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
+import { publicOpportunityId } from "@/lib/opportunities/id";
 import { cn } from "@/lib/cn";
 
 const statusStyles: Record<Opportunity["status"], string> = {
@@ -16,10 +17,17 @@ type Props = {
   opportunity: Opportunity;
   priority?: boolean;
   ribbon?: "Featured" | "Trending" | "New" | null;
+  showPublicId?: boolean;
 };
 
-export default function OpportunityCard({ opportunity, priority = false, ribbon = null }: Props) {
+export default function OpportunityCard({
+  opportunity,
+  priority = false,
+  ribbon = null,
+  showPublicId = false,
+}: Props) {
   const cover = opportunity.images[0];
+  const publicId = publicOpportunityId(opportunity);
 
   return (
     <Link
@@ -72,8 +80,15 @@ export default function OpportunityCard({ opportunity, priority = false, ribbon 
 
       {/* Content */}
       <div className="flex-1 p-5 flex flex-col">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-gold-600 font-semibold">
-          {opportunity.category}
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-gold-600 font-semibold">
+            {opportunity.category}
+          </div>
+          {showPublicId ? (
+            <span className="text-[10px] uppercase tracking-[0.14em] font-semibold text-navy-700/55 tabular-nums">
+              {publicId}
+            </span>
+          ) : null}
         </div>
         <h3 className="mt-1.5 font-semibold text-navy-900 text-[15px] md:text-base leading-snug group-hover:text-gold-700 transition-colors line-clamp-2">
           {opportunity.title}

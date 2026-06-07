@@ -94,6 +94,13 @@ export function sortResults(opportunities: Opportunity[], sort: SortKey): Opport
       });
     case "alphabetical":
       return arr.sort((a, b) => a.title.localeCompare(b.title));
+    case "most_viewed":
+    case "most_saved":
+    case "most_interested":
+      // Metric-based sorts need listing data. The directory's
+      // sortDirectoryResults() handles them; in pure search we fall back
+      // to newest to keep behaviour predictable.
+      return arr.sort((a, b) => b.postedAt.localeCompare(a.postedAt));
     default:
       return arr;
   }
