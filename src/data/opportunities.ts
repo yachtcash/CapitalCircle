@@ -70,7 +70,9 @@ export type Opportunity = {
   documents: OpportunityDocument[];
 };
 
-export const featuredOpportunities: Opportunity[] = [
+import { EXTRA_OPPORTUNITIES } from "./opportunities-extra";
+
+const CORE_OPPORTUNITIES: Opportunity[] = [
   {
     id: "cc-001",
     slug: "beachfront-boutique-hotel",
@@ -389,6 +391,11 @@ export const featuredOpportunities: Opportunity[] = [
       { name: "Site, Brand Agreement & Comparables", type: "Project Overview", pages: 29, updated: "2 weeks ago" },
     ],
   },
+];
+
+export const featuredOpportunities: Opportunity[] = [
+  ...CORE_OPPORTUNITIES,
+  ...EXTRA_OPPORTUNITIES,
 ];
 
 // ---- Helpers ----

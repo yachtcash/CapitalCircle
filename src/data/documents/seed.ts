@@ -76,6 +76,58 @@ export const SEED_DOCUMENTS: DataRoomDocument[] = [
   { id: "DOC-000046", listingId: "LST-000006", name: "Coastal Site Plans.zip", fileType: "zip", category: "Architectural Plans", visibility: "Private", sizeBytes: MB(18.4), uploadedAt: isoAt(17), updatedAt: isoAt(17) },
   { id: "DOC-000047", listingId: "LST-000006", name: "Comparable Branded Comps.xlsx", fileType: "xlsx", category: "Operations", visibility: "Private", sizeBytes: KB(284), uploadedAt: isoAt(14), updatedAt: isoAt(14) },
   { id: "DOC-000048", listingId: "LST-000006", name: "Federal Concession & Coastal Setback.pdf", fileType: "pdf", category: "Legal", visibility: "Private", sizeBytes: MB(1.8), pages: 22, uploadedAt: isoAt(19), updatedAt: isoAt(19) },
+
+  // ============== LST-000009 — Pacific Bluff Resort (8 docs)
+  { id: "DOC-000049", listingId: "LST-000009", name: "Pacific Bluff — Project Overview.pdf", fileType: "pdf", category: "Project Overview", visibility: "Public", sizeBytes: MB(3.8), pages: 18, uploadedAt: isoAt(10), updatedAt: isoAt(2) },
+  { id: "DOC-000050", listingId: "LST-000009", name: "Brand Operator LOI — Cover Letter.pdf", fileType: "pdf", category: "Marketing Brochure", visibility: "Public", sizeBytes: MB(2.2), pages: 6, uploadedAt: isoAt(8), updatedAt: isoAt(4) },
+  { id: "DOC-000051", listingId: "LST-000009", name: "Site Renderings.zip", fileType: "zip", category: "Photos & Renderings", visibility: "Public", sizeBytes: MB(82.4), uploadedAt: isoAt(9), updatedAt: isoAt(9) },
+  { id: "DOC-000052", listingId: "LST-000009", name: "Pacific Bluff — Investor Deck.pdf", fileType: "pdf", category: "Investor Deck", visibility: "Private", sizeBytes: MB(14.2), pages: 42, uploadedAt: isoAt(6), updatedAt: isoAt(2) },
+  { id: "DOC-000053", listingId: "LST-000009", name: "Capital Stack & Stabilization Model.xlsx", fileType: "xlsx", category: "Financial Model", visibility: "Private", sizeBytes: MB(1.1), uploadedAt: isoAt(5), updatedAt: isoAt(2) },
+  { id: "DOC-000054", listingId: "LST-000009", name: "Feasibility Study — Cliffside Site.pdf", fileType: "pdf", category: "Feasibility Study", visibility: "Private", sizeBytes: MB(8.2), pages: 56, uploadedAt: isoAt(11), updatedAt: isoAt(11) },
+  { id: "DOC-000055", listingId: "LST-000009", name: "Geotechnical Survey.pdf", fileType: "pdf", category: "Survey", visibility: "Private", sizeBytes: MB(6.4), pages: 28, uploadedAt: isoAt(12), updatedAt: isoAt(12) },
+  { id: "DOC-000056", listingId: "LST-000009", name: "Brand Operator LOI — Full.pdf", fileType: "pdf", category: "Contracts", visibility: "Private", sizeBytes: MB(2.8), pages: 14, uploadedAt: isoAt(7), updatedAt: isoAt(7) },
+
+  // ============== LST-000010 — Tiny Home Factory (7 docs)
+  { id: "DOC-000057", listingId: "LST-000010", name: "Tiny Home Factory — Project Overview.pdf", fileType: "pdf", category: "Project Overview", visibility: "Public", sizeBytes: MB(2.6), pages: 12, uploadedAt: isoAt(8), updatedAt: isoAt(2) },
+  { id: "DOC-000058", listingId: "LST-000010", name: "Production Showcase.zip", fileType: "zip", category: "Photos & Renderings", visibility: "Public", sizeBytes: MB(46.2), uploadedAt: isoAt(10), updatedAt: isoAt(10) },
+  { id: "DOC-000059", listingId: "LST-000010", name: "Tiny Home Factory — Growth Equity Deck.pdf", fileType: "pdf", category: "Investor Deck", visibility: "Private", sizeBytes: MB(10.2), pages: 34, uploadedAt: isoAt(5), updatedAt: isoAt(2) },
+  { id: "DOC-000060", listingId: "LST-000010", name: "Production & Margin Model.xlsx", fileType: "xlsx", category: "Financial Model", visibility: "Private", sizeBytes: KB(820), uploadedAt: isoAt(4), updatedAt: isoAt(2) },
+  { id: "DOC-000061", listingId: "LST-000010", name: "Order Backlog — Detailed.xlsx", fileType: "xlsx", category: "Operations", visibility: "Private", sizeBytes: KB(412), uploadedAt: isoAt(6), updatedAt: isoAt(3) },
+  { id: "DOC-000062", listingId: "LST-000010", name: "Facility Expansion Plan.pdf", fileType: "pdf", category: "Architectural Plans", visibility: "Private", sizeBytes: MB(8.4), pages: 18, uploadedAt: isoAt(7), updatedAt: isoAt(7) },
+  { id: "DOC-000063", listingId: "LST-000010", name: "Quality of Earnings — Series.pdf", fileType: "pdf", category: "Financial Model", visibility: "Private", sizeBytes: MB(3.6), pages: 28, uploadedAt: isoAt(9), updatedAt: isoAt(9) },
+
+  // ============== LST-000011 — Solar Farm 80 MW (7 docs)
+  { id: "DOC-000064", listingId: "LST-000011", name: "Bakersfield Solar — Project Overview.pdf", fileType: "pdf", category: "Project Overview", visibility: "Public", sizeBytes: MB(2.9), pages: 14, uploadedAt: isoAt(6), updatedAt: isoAt(1) },
+  { id: "DOC-000065", listingId: "LST-000011", name: "Aerial Site Photo.png", fileType: "png", category: "Photos & Renderings", visibility: "Public", sizeBytes: MB(6.4), uploadedAt: isoAt(8), updatedAt: isoAt(8) },
+  { id: "DOC-000066", listingId: "LST-000011", name: "Bakersfield Solar — Investor Deck.pdf", fileType: "pdf", category: "Investor Deck", visibility: "Private", sizeBytes: MB(11.4), pages: 38, uploadedAt: isoAt(4), updatedAt: isoAt(1) },
+  { id: "DOC-000067", listingId: "LST-000011", name: "DSCR & Resource Model.xlsx", fileType: "xlsx", category: "Financial Model", visibility: "Private", sizeBytes: KB(940), uploadedAt: isoAt(3), updatedAt: isoAt(1) },
+  { id: "DOC-000068", listingId: "LST-000011", name: "PPA — Investment-Grade Utility (Executed).pdf", fileType: "pdf", category: "Contracts", visibility: "Private", sizeBytes: MB(3.4), pages: 78, uploadedAt: isoAt(5), updatedAt: isoAt(5) },
+  { id: "DOC-000069", listingId: "LST-000011", name: "Interconnection & Land Brief.pdf", fileType: "pdf", category: "Feasibility Study", visibility: "Private", sizeBytes: MB(4.8), pages: 26, uploadedAt: isoAt(7), updatedAt: isoAt(7) },
+  { id: "DOC-000070", listingId: "LST-000011", name: "EPC Contract — Draft.pdf", fileType: "pdf", category: "Contracts", visibility: "Private", sizeBytes: MB(2.2), pages: 56, uploadedAt: isoAt(8), updatedAt: isoAt(8) },
+
+  // ============== LST-000012 — Marble Supplier (6 docs)
+  { id: "DOC-000071", listingId: "LST-000012", name: "Carrara Marble — Product Catalog.pdf", fileType: "pdf", category: "Marketing Brochure", visibility: "Public", sizeBytes: MB(18.6), pages: 56, uploadedAt: isoAt(12), updatedAt: isoAt(4) },
+  { id: "DOC-000072", listingId: "LST-000012", name: "Quarry & Warehouse Tour.zip", fileType: "zip", category: "Photos & Renderings", visibility: "Public", sizeBytes: MB(98.4), uploadedAt: isoAt(14), updatedAt: isoAt(14) },
+  { id: "DOC-000073", listingId: "LST-000012", name: "Volume Pricing — Per Project.xlsx", fileType: "xlsx", category: "Financial Model", visibility: "Private", sizeBytes: KB(184), uploadedAt: isoAt(8), updatedAt: isoAt(4) },
+  { id: "DOC-000074", listingId: "LST-000012", name: "Quarry & Finishing Capability Brief.pdf", fileType: "pdf", category: "Project Overview", visibility: "Public", sizeBytes: MB(3.6), pages: 22, uploadedAt: isoAt(10), updatedAt: isoAt(10) },
+  { id: "DOC-000075", listingId: "LST-000012", name: "Master Supply Agreement Template.pdf", fileType: "pdf", category: "Contracts", visibility: "Private", sizeBytes: MB(1.4), pages: 18, uploadedAt: isoAt(9), updatedAt: isoAt(9) },
+  { id: "DOC-000076", listingId: "LST-000012", name: "Logistics Capability Brief.pdf", fileType: "pdf", category: "Operations", visibility: "Public", sizeBytes: MB(1.8), pages: 10, uploadedAt: isoAt(11), updatedAt: isoAt(11) },
+
+  // ============== LST-000013 — Highway Expansion (6 docs)
+  { id: "DOC-000077", listingId: "LST-000013", name: "Toll Road — Project Overview.pdf", fileType: "pdf", category: "Project Overview", visibility: "Public", sizeBytes: MB(4.2), pages: 22, uploadedAt: isoAt(12), updatedAt: isoAt(4) },
+  { id: "DOC-000078", listingId: "LST-000013", name: "Toll Road — Investor Deck.pdf", fileType: "pdf", category: "Investor Deck", visibility: "Private", sizeBytes: MB(16.4), pages: 48, uploadedAt: isoAt(6), updatedAt: isoAt(4) },
+  { id: "DOC-000079", listingId: "LST-000013", name: "DSCR & Traffic Model.xlsx", fileType: "xlsx", category: "Financial Model", visibility: "Private", sizeBytes: MB(1.4), uploadedAt: isoAt(5), updatedAt: isoAt(4) },
+  { id: "DOC-000080", listingId: "LST-000013", name: "Concession Award & Schedule.pdf", fileType: "pdf", category: "Contracts", visibility: "Private", sizeBytes: MB(2.6), pages: 38, uploadedAt: isoAt(10), updatedAt: isoAt(10) },
+  { id: "DOC-000081", listingId: "LST-000013", name: "Environmental Impact Assessment.pdf", fileType: "pdf", category: "Feasibility Study", visibility: "Private", sizeBytes: MB(11.2), pages: 84, uploadedAt: isoAt(14), updatedAt: isoAt(14) },
+  { id: "DOC-000082", listingId: "LST-000013", name: "Engineering Report — Highway Design.pdf", fileType: "pdf", category: "Architectural Plans", visibility: "Private", sizeBytes: MB(28.4), pages: 120, uploadedAt: isoAt(16), updatedAt: isoAt(16) },
+
+  // ============== LST-000014 — Roofing Contractor Acquisition (6 docs)
+  { id: "DOC-000083", listingId: "LST-000014", name: "Roofing Contractor — Project Overview.pdf", fileType: "pdf", category: "Project Overview", visibility: "Public", sizeBytes: MB(2.4), pages: 14, uploadedAt: isoAt(8), updatedAt: isoAt(3) },
+  { id: "DOC-000084", listingId: "LST-000014", name: "Roofing Contractor — CIM.pdf", fileType: "pdf", category: "Investor Deck", visibility: "Private", sizeBytes: MB(9.8), pages: 36, uploadedAt: isoAt(5), updatedAt: isoAt(3) },
+  { id: "DOC-000085", listingId: "LST-000014", name: "Quality of Earnings — Summary.pdf", fileType: "pdf", category: "Financial Model", visibility: "Private", sizeBytes: MB(2.8), pages: 28, uploadedAt: isoAt(6), updatedAt: isoAt(4) },
+  { id: "DOC-000086", listingId: "LST-000014", name: "TTM Financials Detailed.xlsx", fileType: "xlsx", category: "Financial Model", visibility: "Private", sizeBytes: KB(820), uploadedAt: isoAt(7), updatedAt: isoAt(4) },
+  { id: "DOC-000087", listingId: "LST-000014", name: "Operations Overview.pptx", fileType: "pptx", category: "Operations", visibility: "Private", sizeBytes: MB(8.4), pages: 22, uploadedAt: isoAt(9), updatedAt: isoAt(9) },
+  { id: "DOC-000088", listingId: "LST-000014", name: "Customer Contracts Summary.xlsx", fileType: "xlsx", category: "Contracts", visibility: "Private", sizeBytes: KB(248), uploadedAt: isoAt(11), updatedAt: isoAt(11) },
 ];
 
 export const SEED_ACCESS_REQUESTS: AccessRequest[] = [
@@ -149,6 +201,52 @@ export const SEED_ACCESS_REQUESTS: AccessRequest[] = [
     requestedAt: isoAt(12),
     decidedAt: isoAt(11, 2),
   },
+  {
+    id: "REQ-000007",
+    listingId: "LST-000009",
+    requesterId: "user-meridian-2",
+    requesterName: "Helena Park",
+    requesterCompany: "Meridian Investment Partners",
+    requesterInitials: "HP",
+    status: "Requested",
+    message: "Reviewing for our hospitality private credit thesis. Need feasibility + capital stack.",
+    requestedAt: isoAt(2, 4),
+  },
+  {
+    id: "REQ-000008",
+    listingId: "LST-000010",
+    requesterId: "user-aurora-2",
+    requesterName: "Marcus Chen",
+    requesterCompany: "Aurora Capital Partners",
+    requesterInitials: "MC",
+    status: "Approved",
+    message: "Growth equity sleeve interest. Need production economics + facility plan.",
+    requestedAt: isoAt(5),
+    decidedAt: isoAt(4, 6),
+  },
+  {
+    id: "REQ-000009",
+    listingId: "LST-000012",
+    requesterId: "user-yucatan-2",
+    requesterName: "Marco Ferreira",
+    requesterCompany: "Yucatán Development Co.",
+    requesterInitials: "MF",
+    status: "Approved",
+    message: "Branded residence project — marble specification phase. Pricing + lead times.",
+    requestedAt: isoAt(6),
+    decidedAt: isoAt(5, 4),
+  },
+  {
+    id: "REQ-000010",
+    listingId: "LST-000011",
+    requesterId: "user-cerro-2",
+    requesterName: "Patricia Solano",
+    requesterCompany: "Cerro Ventures",
+    requesterInitials: "PS",
+    status: "Requested",
+    message: "Equity tranche allocation. Need DSCR and PPA pack.",
+    requestedAt: isoAt(0, 6),
+  },
 ];
 
 export const SEED_DOCUMENT_ACTIVITY: DocumentActivity[] = [
@@ -181,4 +279,18 @@ export const SEED_DOCUMENT_ACTIVITY: DocumentActivity[] = [
   { id: "DACT-000016", listingId: "LST-000006", documentId: "DOC-000043", kind: "uploaded", title: "LP deck uploaded", body: "Tulum branded residences LP deck added.", actor: "Stevie Cabrera", createdAt: isoAt(18) },
   { id: "DACT-000017", listingId: "LST-000006", kind: "access_approved", title: "Access approved", body: "Baja Norte Capital approved for private documents.", actor: "Stevie Cabrera", createdAt: isoAt(11, 2) },
   { id: "DACT-000018", listingId: "LST-000006", documentId: "DOC-000043", kind: "downloaded", title: "LP deck downloaded", body: "Roberto Castellanos downloaded the LP deck.", actor: "Roberto Castellanos", createdAt: isoAt(10) },
+
+  // LST-000009 Pacific Bluff
+  { id: "DACT-000019", listingId: "LST-000009", documentId: "DOC-000052", kind: "uploaded", title: "Investor deck uploaded", body: "Pacific Bluff investor deck v2.", actor: "Alexander Sterling", createdAt: isoAt(6) },
+  { id: "DACT-000020", listingId: "LST-000009", kind: "access_requested", title: "Access requested", body: "Meridian Investment Partners requested data room access.", actor: "Helena Park", createdAt: isoAt(2, 4) },
+  { id: "DACT-000021", listingId: "LST-000009", documentId: "DOC-000050", kind: "viewed", title: "Brand operator LOI viewed", body: "9 unique members viewed the brand operator LOI this week.", actor: "Multiple members", createdAt: isoAt(1, 2) },
+
+  // LST-000010 Tiny Home Factory
+  { id: "DACT-000022", listingId: "LST-000010", documentId: "DOC-000059", kind: "uploaded", title: "Growth equity deck uploaded", body: "Tiny home factory growth equity deck.", actor: "Jonas Berg", createdAt: isoAt(5) },
+  { id: "DACT-000023", listingId: "LST-000010", kind: "access_approved", title: "Access approved", body: "Aurora Capital Partners approved for the data room.", actor: "Jonas Berg", createdAt: isoAt(4, 6) },
+  { id: "DACT-000024", listingId: "LST-000010", documentId: "DOC-000060", kind: "downloaded", title: "Production model downloaded", body: "Marcus Chen downloaded the production & margin model.", actor: "Marcus Chen", createdAt: isoAt(3, 2) },
+
+  // LST-000012 Marble Supplier
+  { id: "DACT-000025", listingId: "LST-000012", documentId: "DOC-000071", kind: "viewed", title: "Product catalog viewed", body: "32 buyers viewed the marble product catalog this week.", actor: "Multiple buyers", createdAt: isoAt(1, 4) },
+  { id: "DACT-000026", listingId: "LST-000012", kind: "access_approved", title: "Access approved", body: "Yucatán Development Co. approved for private pricing.", actor: "Vittorio Verde Jr.", createdAt: isoAt(5, 4) },
 ];

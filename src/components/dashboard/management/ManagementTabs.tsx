@@ -12,13 +12,13 @@ import {
 import type { ListingRecord } from "@/data/listings";
 import type { Opportunity } from "@/data/opportunities";
 import type { Company } from "@/data/companies";
-import ImageGallery from "@/components/ImageGallery";
 import { cn } from "@/lib/cn";
 
 import ListingInformationBlock from "./ListingInformationBlock";
 import ListingDocumentsBlock from "./ListingDocumentsBlock";
 import ListingAnalyticsDetail from "./ListingAnalyticsDetail";
 import ListingActivityFeed from "./ListingActivityFeed";
+import ImageManager from "./ImageManager";
 
 type TabKey = "overview" | "gallery" | "documents" | "analytics" | "activity";
 
@@ -80,19 +80,10 @@ export default function ManagementTabs({ listing, opportunity }: Props) {
           <ListingInformationBlock listing={listing} opportunity={opportunity} />
         ) : null}
         {active === "gallery" ? (
-          opportunity && opportunity.images.length > 0 ? (
-            <div className="-mx-5 md:-mx-10">
-              <ImageGallery
-                images={opportunity.images}
-                title={listing.title}
-              />
-            </div>
-          ) : (
-            <EmptyState
-              title="No gallery yet"
-              body="This listing doesn't have any photos attached. Add photos when editing the listing to showcase your project."
-            />
-          )
+          <ImageManager
+            initialImages={opportunity?.images ?? []}
+            title={listing.title}
+          />
         ) : null}
         {active === "documents" ? (
           <ListingDocumentsBlock
@@ -108,11 +99,3 @@ export default function ManagementTabs({ listing, opportunity }: Props) {
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-8 md:p-12 text-center">
-      <h3 className="text-lg font-semibold text-navy-900">{title}</h3>
-      <p className="mt-2 text-sm text-navy-700/70 max-w-md mx-auto">{body}</p>
-    </div>
-  );
-}

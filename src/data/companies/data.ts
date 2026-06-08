@@ -1,4 +1,5 @@
 import type { Company } from "./types";
+import { EXTRA_COMPANIES } from "./extra";
 
 // Helper to make 4-image gallery from a listing folder, with category labels.
 function listingGallery(
@@ -13,7 +14,7 @@ function listingGallery(
   }));
 }
 
-export const companies: Company[] = [
+const CORE_COMPANIES: Company[] = [
   {
     id: "COMP-000001",
     slug: "pacific-coast-development-group",
@@ -610,3 +611,5 @@ export const companies: Company[] = [
     addedAt: "2026-02-28T08:30:00.000Z",
   },
 ];
+
+export const companies: Company[] = [...CORE_COMPANIES, ...EXTRA_COMPANIES];

@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import { Images } from "lucide-react";
 import type { GalleryImage } from "@/data/companies";
+import Lightbox, { useLightbox } from "@/components/common/Lightbox";
 
 const categoryStyles: Record<GalleryImage["category"], string> = {
   Project: "bg-gold-500 text-navy-900",
@@ -10,6 +13,10 @@ const categoryStyles: Record<GalleryImage["category"], string> = {
 };
 
 export default function CompanyGallery({ gallery }: { gallery: GalleryImage[] }) {
+  const lb = useLightbox(
+    gallery.map((g) => ({ src: g.src, alt: g.alt, caption: g.caption }))
+  );
+
   if (gallery.length === 0) return null;
   return (
     <section>
@@ -20,9 +27,12 @@ export default function CompanyGallery({ gallery }: { gallery: GalleryImage[] })
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {gallery.map((image, i) => (
-          <figure
+          <button
             key={image.src + i}
-            className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-navy-900/5 ring-1 ring-navy-900/[0.06] group"
+            type="button"
+            onClick={() => lb.openAt(i)}
+            className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-navy-900/5 ring-1 ring-navy-900/[0.06] group text-left"
+            aria-label={`Open ${image.caption ?? image.alt} in gallery`}
           >
             <Image
               src={image.src}
@@ -30,6 +40,7 @@ export default function CompanyGallery({ gallery }: { gallery: GalleryImage[] })
               fill
               sizes="(min-width: 1024px) 300px, (min-width: 640px) 50vw, 100vw"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
+              unoptimized
             />
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-navy-900/85 to-transparent pointer-events-none" />
             <span
@@ -38,13 +49,19 @@ export default function CompanyGallery({ gallery }: { gallery: GalleryImage[] })
               {image.category}
             </span>
             {image.caption ? (
-              <figcaption className="absolute inset-x-3 bottom-3 text-white text-xs font-medium drop-shadow">
+              <span className="absolute inset-x-3 bottom-3 text-white text-xs font-medium drop-shadow">
                 {image.caption}
-              </figcaption>
+              </span>
             ) : null}
-          </figure>
+          </button>
         ))}
       </div>
+      <Lightbox
+        images={lb.images}
+        initialIndex={lb.index}
+        open={lb.open}
+        onClose={lb.close}
+      />
     </section>
   );
 }

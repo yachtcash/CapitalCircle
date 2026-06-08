@@ -478,4 +478,108 @@ export const SEED_LISTINGS: ListingRecord[] = [
       ),
     ],
   },
+  // ---- Expanded sponsor listings — link to new opportunities ----
+  // LST-000009 → cc-007 Pacific Bluff Resort Development
+  {
+    id: "LST-000009",
+    opportunityId: "cc-007",
+    opportunitySlug: "pacific-bluff-resort-development",
+    title: "Pacific Bluff Resort Development — 88 Keys",
+    category: "Hotels & Resorts",
+    dealType: "Seeking Investor",
+    status: "Seeking Capital",
+    views: 1320, saves: 102, interests: 17, negotiations: 2, messages: 4,
+    lastUpdatedAt: isoAt(3), createdAt: isoAt(38),
+    analyticsSeries: buildAnalyticsSeries(48, 4, 1, 0, 26),
+    activity: [
+      makeActivity("LST-000009", 1, "interest", "Interest from Meridian Investment Partners", "Reviewing LP allocation in our hospitality private credit thesis.", 2, 4, { opportunitySlug: "pacific-bluff-resort-development", companyId: "COMP-000016" }),
+      makeActivity("LST-000009", 2, "saved", "Saved by 9 new investors this week", "Strong inflow from the Hotels & Resorts category.", 4, 0, { opportunitySlug: "pacific-bluff-resort-development" }),
+    ],
+  },
+  // LST-000010 → cc-019 Tiny Home Factory
+  {
+    id: "LST-000010",
+    opportunityId: "cc-019",
+    opportunitySlug: "tiny-home-factory",
+    title: "Tiny Home Factory — 80 Units/Year",
+    category: "Manufacturing & Materials",
+    dealType: "Seeking Investor",
+    status: "Seeking Capital",
+    views: 1810, saves: 144, interests: 24, negotiations: 3, messages: 7,
+    lastUpdatedAt: isoAt(2), createdAt: isoAt(34),
+    analyticsSeries: buildAnalyticsSeries(64, 5, 1, 1, 26),
+    activity: [
+      makeActivity("LST-000010", 1, "interest", "Interest from Sunrise Land Holdings", "Looking at growth equity exposure in modular manufacturing.", 1, 5, { opportunitySlug: "tiny-home-factory", companyId: "COMP-000018" }),
+      makeActivity("LST-000010", 2, "company_view", "Aurora Capital Partners viewed your company page", "Reviewed your sponsor profile after the deck download.", 3, 1, { opportunitySlug: "tiny-home-factory", companyId: "COMP-000002" }),
+      makeActivity("LST-000010", 3, "saved", "Saved by 14 new investors this week", "Modular manufacturing seeing renewed LP interest.", 5, 0, { opportunitySlug: "tiny-home-factory" }),
+    ],
+  },
+  // LST-000011 → cc-025 Solar Farm 80 MW
+  {
+    id: "LST-000011",
+    opportunityId: "cc-025",
+    opportunitySlug: "solar-farm-80mw",
+    title: "Solar Farm — 80 MW",
+    category: "Energy",
+    dealType: "Financing Needed",
+    status: "Active",
+    views: 1124, saves: 78, interests: 12, negotiations: 1, messages: 3,
+    lastUpdatedAt: isoAt(1), createdAt: isoAt(28),
+    analyticsSeries: buildAnalyticsSeries(48, 3, 1, 0, 22),
+    activity: [
+      makeActivity("LST-000011", 1, "interest", "Interest from Cerro Ventures", "Renewables LP looking at the equity tranche.", 1, 6, { opportunitySlug: "solar-farm-80mw" }),
+      makeActivity("LST-000011", 2, "document_request", "DSCR model requested", "Investor requested the DSCR model and PPA structures.", 3, 4, { opportunitySlug: "solar-farm-80mw" }),
+    ],
+  },
+  // LST-000012 → cc-028 Marble Supplier
+  {
+    id: "LST-000012",
+    opportunityId: "cc-028",
+    opportunitySlug: "marble-supplier-carrara",
+    title: "Marble Supplier — Carrara Direct",
+    category: "Suppliers & Logistics",
+    dealType: "Supplier Offering",
+    status: "Active",
+    views: 2240, saves: 168, interests: 31, negotiations: 6, messages: 12,
+    lastUpdatedAt: isoAt(3), createdAt: isoAt(45),
+    analyticsSeries: buildAnalyticsSeries(72, 5, 2, 1, 32),
+    activity: [
+      makeActivity("LST-000012", 1, "interest", "Interest from Aurora Capital Partners", "Hotel-tower supply contract sought.", 2, 3, { opportunitySlug: "marble-supplier-carrara", companyId: "COMP-000002" }),
+      makeActivity("LST-000012", 2, "interest", "Interest from Yucatán Development Co.", "Branded residence project — marble specification phase.", 5, 1, { opportunitySlug: "marble-supplier-carrara", companyId: "COMP-000006" }),
+      makeActivity("LST-000012", 3, "saved", "Saved by 22 new buyers this week", "Strong inflow from hospitality developers.", 7, 0, { opportunitySlug: "marble-supplier-carrara" }),
+    ],
+  },
+  // LST-000013 → cc-022 Highway Expansion
+  {
+    id: "LST-000013",
+    opportunityId: "cc-022",
+    opportunitySlug: "highway-expansion-38km",
+    title: "Highway Expansion — 38 km Toll Road",
+    category: "Infrastructure",
+    dealType: "Financing Needed",
+    status: "Negotiating",
+    views: 980, saves: 64, interests: 9, negotiations: 2, messages: 5,
+    lastUpdatedAt: isoAt(5), createdAt: isoAt(42),
+    analyticsSeries: buildAnalyticsSeries(38, 2, 0, 0, 18),
+    activity: [
+      makeActivity("LST-000013", 1, "negotiation_start", "Negotiation opened with Meridian Investment Partners", "Project debt structure under negotiation.", 5, 2, { opportunitySlug: "highway-expansion-38km", companyId: "COMP-000016" }),
+      makeActivity("LST-000013", 2, "document_request", "Traffic model requested", "Investor requested the traffic model and DSCR sensitivity.", 8, 4, { opportunitySlug: "highway-expansion-38km" }),
+    ],
+  },
+  // LST-000014 → cc-039 Roofing Contractor
+  {
+    id: "LST-000014",
+    opportunityId: "cc-039",
+    opportunitySlug: "roofing-contractor-founder-exit",
+    title: "Roofing Contractor — Founder Exit",
+    category: "Business Acquisitions",
+    dealType: "Business For Sale",
+    status: "Active",
+    views: 642, saves: 38, interests: 7, negotiations: 1, messages: 2,
+    lastUpdatedAt: isoAt(4), createdAt: isoAt(30),
+    analyticsSeries: buildAnalyticsSeries(28, 2, 0, 0, 14),
+    activity: [
+      makeActivity("LST-000014", 1, "interest", "Interest from Global Logistics Holdings", "Reviewing as a roll-up opportunity.", 3, 6, { opportunitySlug: "roofing-contractor-founder-exit", companyId: "COMP-000004" }),
+    ],
+  },
 ];

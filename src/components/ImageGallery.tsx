@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import { Images, Maximize2 } from "lucide-react";
+import Lightbox, { useLightbox } from "@/components/common/Lightbox";
 
 type Props = {
   images: string[];
@@ -7,6 +10,10 @@ type Props = {
 };
 
 export default function ImageGallery({ images, title }: Props) {
+  const lb = useLightbox(
+    images.map((src, i) => ({ src, alt: `${title} — Photo ${i + 1}` }))
+  );
+
   if (!images.length) return null;
 
   return (
@@ -24,6 +31,7 @@ export default function ImageGallery({ images, title }: Props) {
           </div>
           <button
             type="button"
+            onClick={() => lb.openAt(0)}
             className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-navy-900 bg-white hover:bg-bone ring-1 ring-navy-900/10 rounded-full px-4 py-2 transition-colors"
           >
             <Maximize2 className="h-3.5 w-3.5" strokeWidth={2.4} />
@@ -33,14 +41,21 @@ export default function ImageGallery({ images, title }: Props) {
 
         {/* Airbnb-style mosaic: large left + 2x2 grid right (desktop), single + scroll row (mobile) */}
         <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2.5 h-[480px] rounded-2xl overflow-hidden">
-          <Tile src={images[0]} alt={`${title} — Photo 1`} className="col-span-2 row-span-2" />
+          <Tile
+            src={images[0]}
+            alt={`${title} — Photo 1`}
+            onClick={() => lb.openAt(0)}
+            className="col-span-2 row-span-2"
+          />
           {[1, 2, 3, 4].map((i) => {
             const src = images[i] ?? images[i % images.length];
+            const lightboxIndex = i < images.length ? i : i % images.length;
             return (
               <Tile
                 key={i}
                 src={src}
                 alt={`${title} — Photo ${i + 1}`}
+                onClick={() => lb.openAt(lightboxIndex)}
                 className="col-span-1 row-span-1"
               />
             );
@@ -52,12 +67,15 @@ export default function ImageGallery({ images, title }: Props) {
           <Tile
             src={images[0]}
             alt={`${title} — Photo 1`}
+            onClick={() => lb.openAt(0)}
             className="aspect-[4/3] rounded-2xl"
           />
           <div className="mt-2.5 flex gap-2.5 overflow-x-auto snap-x snap-mandatory pb-1 -mx-5 px-5">
             {images.slice(1).map((src, i) => (
-              <div
+              <button
                 key={src + i}
+                type="button"
+                onClick={() => lb.openAt(i + 1)}
                 className="relative shrink-0 w-2/3 aspect-[4/3] rounded-xl overflow-hidden snap-start bg-navy-900/5"
               >
                 <Image
@@ -66,26 +84,51 @@ export default function ImageGallery({ images, title }: Props) {
                   fill
                   sizes="66vw"
                   className="object-cover"
+                  unoptimized
                 />
-              </div>
+              </button>
             ))}
           </div>
         </div>
       </div>
+
+      <Lightbox
+        images={lb.images}
+        initialIndex={lb.index}
+        open={lb.open}
+        onClose={lb.close}
+      />
     </section>
   );
 }
 
-function Tile({ src, alt, className }: { src: string; alt: string; className?: string }) {
+function Tile({
+  src,
+  alt,
+  className,
+  onClick,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  onClick?: () => void;
+}) {
   return (
-    <div className={`relative overflow-hidden bg-navy-900/5 ${className ?? ""}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative overflow-hidden bg-navy-900/5 group ${className ?? ""}`}
+      aria-label={`Open ${alt} in gallery`}
+    >
       <Image
         src={src}
         alt={alt}
         fill
         sizes="(min-width: 1024px) 600px, (min-width: 768px) 50vw, 100vw"
-        className="object-cover hover:scale-105 transition-transform duration-700"
+        className="object-cover group-hover:scale-105 transition-transform duration-700"
+        unoptimized
       />
-    </div>
+      <div className="absolute inset-0 bg-navy-900/0 group-hover:bg-navy-900/10 transition-colors" />
+    </button>
   );
 }
