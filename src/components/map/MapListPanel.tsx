@@ -2,13 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Search,
-  MapPin,
-  Building2,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Search, MapPin, Building2, X } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { getCompanyById } from "@/data/companies";
 import { publicOpportunityId } from "@/lib/opportunities/id";

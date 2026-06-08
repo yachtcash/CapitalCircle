@@ -8,7 +8,6 @@ import type {
   CompanyPlace,
   GalleryCategory,
   PastProject,
-  TeamMember,
   TeamRole,
   VerificationStatus,
 } from "./types";

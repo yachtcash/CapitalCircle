@@ -128,8 +128,7 @@ export function computeFacetCounts(
 
   const countIn = (
     key: keyof FacetCounts,
-    value: string | null | undefined,
-    pool: Opportunity[]
+    value: string | null | undefined
   ) => {
     if (!value) return;
     facets[key][value] = (facets[key][value] ?? 0) + 1;
@@ -142,26 +141,26 @@ export function computeFacetCounts(
 
   // category counts: ignore current category selection
   for (const o of applyFilters(opportunities, without("category"))) {
-    countIn("category", o.category, opportunities);
+    countIn("category", o.category);
   }
   for (const o of applyFilters(opportunities, without("listingType"))) {
-    countIn("listingType", o.listingType, opportunities);
+    countIn("listingType", o.listingType);
   }
   for (const o of applyFilters(opportunities, without("dealType"))) {
-    countIn("dealType", o.dealType, opportunities);
+    countIn("dealType", o.dealType);
   }
   for (const o of applyFilters(opportunities, without("country"))) {
-    countIn("country", o.place?.country, opportunities);
+    countIn("country", o.place?.country);
   }
   for (const o of applyFilters(opportunities, without("city"))) {
-    countIn("city", o.place?.city, opportunities);
+    countIn("city", o.place?.city);
   }
   for (const o of applyFilters(opportunities, without("funding"))) {
     const bucket = fundingRangeFor(o.fundingAmount ?? 0);
-    countIn("funding", bucket, opportunities);
+    countIn("funding", bucket);
   }
   for (const o of applyFilters(opportunities, without("status"))) {
-    countIn("status", o.status, opportunities);
+    countIn("status", o.status);
   }
 
   return facets;

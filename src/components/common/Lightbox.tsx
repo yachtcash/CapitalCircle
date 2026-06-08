@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X, Expand } from "lucide-react";
 
@@ -255,32 +248,5 @@ export function useLightbox(images: LightboxImage[]) {
   return useMemo(
     () => ({ open, index, openAt, close, images }),
     [open, index, openAt, close, images]
-  );
-}
-
-/**
- * Tiny click-target wrapper. Pass `children` (a thumbnail), and it'll open
- * the lightbox at the given index when clicked.
- */
-export function LightboxTrigger({
-  children,
-  onClick,
-  className,
-  ariaLabel,
-}: {
-  children: ReactNode;
-  onClick: () => void;
-  className?: string;
-  ariaLabel?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel ?? "Open in lightbox"}
-      className={className}
-    >
-      {children}
-    </button>
   );
 }

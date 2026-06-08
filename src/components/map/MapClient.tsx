@@ -7,7 +7,7 @@ import type { Opportunity } from "@/data/opportunities";
 import { applyFilters } from "@/lib/search/filter";
 import { serializeFilters } from "@/lib/search/params";
 import type { SearchFilters } from "@/lib/search/types";
-import { markerStyleFor, MARKER_STYLES, type MarkerStyleKey } from "@/lib/map/types";
+import { markerStyleFor, type MarkerStyleKey } from "@/lib/map/types";
 import { MAP_REGIONS } from "@/data/map/regions";
 import MapListPanel from "./MapListPanel";
 import MapView from "./MapView";
