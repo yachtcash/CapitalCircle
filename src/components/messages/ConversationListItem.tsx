@@ -1,5 +1,6 @@
 "use client";
 
+import { Paperclip, FileText, Image as ImageIcon } from "lucide-react";
 import { formatRelative, type Conversation } from "@/data/messages";
 import { STAGE_META } from "@/data/negotiations";
 import { cn } from "@/lib/cn";
@@ -12,6 +13,26 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
+function lastAttachmentSummary(conversation: Conversation): {
+  hasAttachments: boolean;
+  count: number;
+  variant: "image" | "pdf" | "file";
+} {
+  let count = 0;
+  let variant: "image" | "pdf" | "file" = "file";
+  for (let i = conversation.messages.length - 1; i >= 0; i--) {
+    const m = conversation.messages[i];
+    if (m.kind !== "text" || !m.attachments?.length) continue;
+    count = m.attachments.length;
+    const first = m.attachments[0];
+    if (first.type === "jpg" || first.type === "png") variant = "image";
+    else if (first.type === "pdf") variant = "pdf";
+    else variant = "file";
+    return { hasAttachments: true, count, variant };
+  }
+  return { hasAttachments: false, count: 0, variant: "file" };
+}
+
 export default function ConversationListItem({
   conversation,
   companyName,
@@ -21,6 +42,8 @@ export default function ConversationListItem({
 }: Props) {
   const unread = conversation.unreadCount > 0;
   const stage = STAGE_META[conversation.stage];
+  const att = lastAttachmentSummary(conversation);
+  const AttIcon = att.variant === "image" ? ImageIcon : att.variant === "pdf" ? FileText : Paperclip;
 
   return (
     <button
@@ -79,13 +102,19 @@ export default function ConversationListItem({
           {conversation.lastMessagePreview}
         </p>
 
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center text-[10px] uppercase tracking-[0.14em] font-semibold text-navy-700/70 bg-navy-900/[0.04] rounded-full px-2 py-0.5">
             {stage.shortLabel}
           </span>
+          {att.hasAttachments ? (
+            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] font-semibold text-navy-700/60">
+              <AttIcon className="h-3 w-3 text-gold-600" strokeWidth={2.4} />
+              {att.count} {att.count === 1 ? "file" : "files"}
+            </span>
+          ) : null}
           {unread ? (
             <span
-              className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gold-500 text-navy-900 text-[10px] font-bold"
+              className="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gold-500 text-navy-900 text-[10px] font-bold shadow-sm"
               aria-label={`${conversation.unreadCount} unread messages`}
             >
               {conversation.unreadCount}

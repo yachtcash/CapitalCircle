@@ -1,18 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { getCompanyById } from "@/data/companies";
-import type { Conversation, Message } from "@/data/messages";
+import type { Conversation, Message, TextMessage } from "@/data/messages";
 import { STAGE_META } from "@/data/negotiations";
 
 import MessageBubble from "./MessageBubble";
 import SystemMessage from "./SystemMessage";
 import OpportunitySummaryCard from "./OpportunitySummaryCard";
 import MessageComposer from "./MessageComposer";
+import DateSeparator from "./DateSeparator";
 import NegotiationTimeline from "@/components/negotiations/NegotiationTimeline";
+
+function dateKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function sameAuthorWithinWindow(a: TextMessage, b: TextMessage, ms = 5 * 60 * 1000): boolean {
+  if (a.authorId !== b.authorId) return false;
+  return Math.abs(new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) <= ms;
+}
 
 function initialsForName(name: string): string {
   return name
@@ -59,6 +70,34 @@ export default function ConversationThread({
       ),
     [conversation.messages]
   );
+
+  /** Annotate each text message with compact (top-of-group) and isGroupEnd (bottom-of-group) flags. */
+  const rendered = useMemo(() => {
+    return ordered.map((m, i) => {
+      const prev = ordered[i - 1];
+      const next = ordered[i + 1];
+
+      const newDay =
+        !prev ||
+        dateKey(m.createdAt) !== dateKey(prev.createdAt);
+
+      let compact = false;
+      let isGroupEnd = true;
+      if (m.kind === "text") {
+        if (prev && prev.kind === "text" && !newDay && sameAuthorWithinWindow(prev, m)) {
+          compact = true;
+        }
+        if (next && next.kind === "text") {
+          const nextNewDay = dateKey(m.createdAt) !== dateKey(next.createdAt);
+          if (!nextNewDay && sameAuthorWithinWindow(m, next)) {
+            isGroupEnd = false;
+          }
+        }
+      }
+
+      return { message: m, newDay, compact, isGroupEnd };
+    });
+  }, [ordered]);
 
   const stageMeta = STAGE_META[conversation.stage];
 
@@ -117,19 +156,26 @@ export default function ConversationThread({
       </header>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 space-y-5">
+      <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 space-y-5">
         <NegotiationTimeline current={conversation.stage} />
 
         <OpportunitySummaryCard conversation={conversation} companyName={companyName} />
 
-        <div className="space-y-5">
-          {ordered.map((message) =>
-            message.kind === "system" ? (
-              <SystemMessage key={message.id} message={message} />
-            ) : (
-              <MessageBubble key={message.id} message={message} />
-            )
-          )}
+        <div>
+          {rendered.map(({ message, newDay, compact, isGroupEnd }) => (
+            <Fragment key={message.id}>
+              {newDay ? <DateSeparator iso={message.createdAt} /> : null}
+              {message.kind === "system" ? (
+                <SystemMessage message={message} />
+              ) : (
+                <MessageBubble
+                  message={message}
+                  compact={compact}
+                  isGroupEnd={isGroupEnd}
+                />
+              )}
+            </Fragment>
+          ))}
           <div ref={messagesEndRef} />
         </div>
       </div>

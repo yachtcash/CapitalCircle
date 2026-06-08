@@ -38,6 +38,7 @@ import {
   type DocumentActivity,
   type DocumentActivityKind,
 } from "@/data/documents";
+import { SEED_PROFILE, type UserProfile } from "@/data/profile";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
 const KEY_NOTIFICATIONS = "cc:notifications:v1";
@@ -47,6 +48,7 @@ const KEY_LISTINGS = "cc:listings:v1";
 const KEY_DOCUMENTS = "cc:documents:v1";
 const KEY_ACCESS_REQUESTS = "cc:access-requests:v1";
 const KEY_DOCUMENT_ACTIVITY = "cc:document-activity:v1";
+const KEY_PROFILE = "cc:profile:v1";
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -129,6 +131,10 @@ type MessagingValue = {
   markDocumentDownloaded: (documentId: string) => void;
   hasApprovedAccess: (listingId: string) => boolean;
   hasPendingAccess: (listingId: string) => boolean;
+
+  profile: UserProfile;
+  updateProfile: (partial: Partial<UserProfile>) => void;
+  resetProfile: () => void;
 };
 
 const Ctx = createContext<MessagingValue | null>(null);
@@ -162,6 +168,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [documentActivity, setDocumentActivity] = useState<DocumentActivity[]>(
     SEED_DOCUMENT_ACTIVITY
   );
+  const [profile, setProfile] = useState<UserProfile>(SEED_PROFILE);
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -198,6 +205,8 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       null
     );
     if (storedActivity) setDocumentActivity(storedActivity);
+    const storedProfile = readStored<UserProfile | null>(KEY_PROFILE, null);
+    if (storedProfile) setProfile(storedProfile);
     setHydrated(true);
   }, []);
 
@@ -234,6 +243,18 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_DOCUMENT_ACTIVITY, documentActivity);
   }, [documentActivity, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_PROFILE, profile);
+  }, [profile, hydrated]);
+
+  const updateProfile = useCallback((partial: Partial<UserProfile>) => {
+    setProfile((prev) => ({ ...prev, ...partial }));
+  }, []);
+
+  const resetProfile = useCallback(() => {
+    setProfile(SEED_PROFILE);
+  }, []);
 
   const upsertConversation = useCallback(
     (
@@ -954,6 +975,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     markDocumentDownloaded,
     hasApprovedAccess,
     hasPendingAccess,
+    profile,
+    updateProfile,
+    resetProfile,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

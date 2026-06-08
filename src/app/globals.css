@@ -47,6 +47,29 @@ body {
     linear-gradient(180deg, #050D1A 0%, #0A1628 60%, #112344 100%);
 }
 
+/* Profile cover gradient presets — keyed off UserProfile.coverGradient. */
+.cover-navy-gold {
+  background:
+    radial-gradient(ellipse at 85% 20%, rgba(212, 175, 55, 0.45), transparent 55%),
+    radial-gradient(ellipse at 15% 80%, rgba(74, 108, 168, 0.35), transparent 60%),
+    linear-gradient(135deg, #0A1628 0%, #112344 60%, #1A3160 100%);
+}
+.cover-navy-deep {
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(212, 175, 55, 0.20), transparent 50%),
+    linear-gradient(135deg, #050D1A 0%, #0A1628 50%, #112344 100%);
+}
+.cover-twilight {
+  background:
+    radial-gradient(ellipse at 100% 100%, rgba(232, 203, 115, 0.25), transparent 55%),
+    linear-gradient(135deg, #1A3160 0%, #294378 50%, #4B6CA8 100%);
+}
+.cover-sunrise {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(232, 203, 115, 0.55), transparent 60%),
+    linear-gradient(180deg, #B8941F 0%, #8C6F14 50%, #0A1628 100%);
+}
+
 ::selection {
   background: rgba(212, 175, 55, 0.35);
   color: #0A1628;
