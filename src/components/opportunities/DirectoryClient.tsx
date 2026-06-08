@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { SlidersHorizontal, Search } from "lucide-react";
 
@@ -13,6 +13,9 @@ import MobileFilterDrawer from "@/components/search/MobileFilterDrawer";
 
 import type { Opportunity } from "@/data/opportunities";
 import { serializeFilters, countActiveFilters } from "@/lib/search/params";
+import { applyFilters, computeFacetCounts } from "@/lib/search/filter";
+import { sortDirectoryResults } from "@/lib/opportunities/sort";
+import { useAllOpportunities } from "@/lib/opportunities/all";
 import { EMPTY_FILTERS, type FacetCounts, type SearchFilters, type SortKey } from "@/lib/search/types";
 
 type Props = {
@@ -24,10 +27,27 @@ type Props = {
 
 export default function DirectoryClient({
   filters,
-  results,
-  facetCounts,
-  totalAvailable,
+  results: ssrResults,
+  facetCounts: ssrFacetCounts,
+  totalAvailable: ssrTotalAvailable,
 }: Props) {
+  // After hydration we recompute against seed + user-created opportunities so
+  // newly created listings appear without a server round-trip. Before hydration
+  // we show the server-rendered seed view to keep first paint stable.
+  const allOpps = useAllOpportunities();
+  const { results, facetCounts, totalAvailable } = useMemo(() => {
+    const filtered = applyFilters(allOpps, filters);
+    return {
+      results: sortDirectoryResults(filtered, filters.sort),
+      facetCounts: computeFacetCounts(allOpps, filters),
+      totalAvailable: allOpps.length,
+    };
+  }, [allOpps, filters]);
+  // Use SSR data as initial value to avoid hydration mismatch on first render
+  // when no user-created opportunities exist yet.
+  void ssrResults;
+  void ssrFacetCounts;
+  void ssrTotalAvailable;
   const router = useRouter();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);

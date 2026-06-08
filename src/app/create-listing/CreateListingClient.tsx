@@ -29,6 +29,10 @@ import {
   FileUp,
   CloudUpload,
   Info,
+  Save,
+  Pencil,
+  LayoutGrid,
+  ExternalLink,
 } from "lucide-react";
 
 import ProgressBar from "@/components/wizard/ProgressBar";
@@ -251,13 +255,16 @@ function isFormStatePayload(value: unknown): value is FormState {
 
 // -------- Main wizard --------
 
+type CreatedIds = { listingId: string; slug: string };
+
 export default function CreateListingClient({
   initialListingId,
 }: {
   initialListingId?: string;
 }) {
   const listingId = initialListingId ?? null;
-  const { getListing, saveListingDraft } = useMessaging();
+  const { getListing, createListing, commitListingEdit } = useMessaging();
+  const [createdIds, setCreatedIds] = useState<CreatedIds | null>(null);
 
   const [step, setStep] = useState<number>(1);
   const [formData, setFormData] = useState<FormState>(() => {
@@ -326,7 +333,17 @@ export default function CreateListingClient({
     if (!canProceed) return;
     if (step === 9) {
       if (listingId) {
-        saveListingDraft(listingId, formData);
+        // Edit flow: persist edits and reuse the existing listing's slug.
+        commitListingEdit(listingId, formData);
+        const existing = getListing(listingId);
+        setCreatedIds({
+          listingId,
+          slug: existing?.opportunitySlug ?? "",
+        });
+      } else {
+        // New listing → create + publish + capture ids for the success screen.
+        const ids = createListing(formData, { status: "Active" });
+        setCreatedIds({ listingId: ids.listingId, slug: ids.slug });
       }
       setStep(10);
       scrollTop();
@@ -336,6 +353,23 @@ export default function CreateListingClient({
       setStep((s) => s + 1);
       scrollTop();
     }
+  };
+
+  const handleSaveDraft = () => {
+    if (listingId) {
+      // Re-save the draft against the existing record without publishing.
+      commitListingEdit(listingId, formData);
+      const existing = getListing(listingId);
+      setCreatedIds({
+        listingId,
+        slug: existing?.opportunitySlug ?? "",
+      });
+    } else {
+      const ids = createListing(formData, { status: "Draft" });
+      setCreatedIds({ listingId: ids.listingId, slug: ids.slug });
+    }
+    setStep(11); // 11 = "Draft saved" screen
+    scrollTop();
   };
 
   const handleBack = () => {
@@ -353,6 +387,7 @@ export default function CreateListingClient({
   const handleCreateAnother = () => {
     formData.images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
     setFormData(INITIAL_FORM_STATE);
+    setCreatedIds(null);
     setStep(1);
     scrollTop();
   };
@@ -415,10 +450,25 @@ export default function CreateListingClient({
     [formData.documents, update]
   );
 
-  // -------- Step 10 — success layout takes over --------
+  // -------- Step 10 / 11 — success layout takes over --------
 
-  if (step === 10) {
-    return <SuccessScreen onCreateAnother={handleCreateAnother} />;
+  if (step === 10 && createdIds) {
+    return (
+      <SuccessScreen
+        variant="published"
+        createdIds={createdIds}
+        onCreateAnother={handleCreateAnother}
+      />
+    );
+  }
+  if (step === 11 && createdIds) {
+    return (
+      <SuccessScreen
+        variant="draft"
+        createdIds={createdIds}
+        onCreateAnother={handleCreateAnother}
+      />
+    );
   }
 
   // -------- Wizard layout --------
@@ -493,6 +543,8 @@ export default function CreateListingClient({
         canProceed={canProceed}
         onBack={handleBack}
         onNext={handleNext}
+        onSaveDraft={handleSaveDraft}
+        isEditing={!!listingId}
       />
     </div>
   );
@@ -531,23 +583,31 @@ function WizardNav({
   canProceed,
   onBack,
   onNext,
+  onSaveDraft,
+  isEditing,
 }: {
   step: number;
   canProceed: boolean;
   onBack: () => void;
   onNext: () => void;
+  onSaveDraft: () => void;
+  isEditing: boolean;
 }) {
   const isLast = step === 9;
   const isFirst = step === 1;
+  // Draft saving requires at least a category + title so the listing has a
+  // recognizable identity in My Listings. Until then the button stays
+  // disabled but visible.
+  const canSaveDraft = step >= 4;
   return (
     <footer className="bg-white border-t border-navy-900/[0.06] mt-auto">
-      <div className="max-w-3xl mx-auto px-5 md:px-10 py-4 md:py-5 flex items-center justify-between gap-3">
+      <div className="max-w-3xl mx-auto px-5 md:px-10 py-4 md:py-5 flex items-center justify-between gap-2 md:gap-3">
         <button
           type="button"
           onClick={onBack}
           disabled={isFirst}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors",
+            "inline-flex items-center gap-1.5 rounded-full px-4 md:px-5 py-2.5 text-sm font-semibold transition-colors",
             isFirst
               ? "text-navy-700/40 cursor-not-allowed"
               : "text-navy-900 hover:bg-bone"
@@ -557,22 +617,34 @@ function WizardNav({
           Back
         </button>
 
-        <span className="hidden sm:block text-xs text-navy-700/50 italic">
-          Your progress is saved while you move between steps.
-        </span>
+        <button
+          type="button"
+          onClick={onSaveDraft}
+          disabled={!canSaveDraft}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-4 md:px-5 py-2.5 text-sm font-semibold transition-colors",
+            canSaveDraft
+              ? "text-navy-900 bg-white ring-1 ring-navy-900/15 hover:ring-navy-900/35"
+              : "text-navy-700/40 cursor-not-allowed ring-1 ring-navy-900/[0.05]"
+          )}
+          title={canSaveDraft ? "Save progress as a draft in My Listings" : "Complete the basics first"}
+        >
+          <Save className="h-4 w-4" strokeWidth={2.2} />
+          {isEditing ? "Save Draft" : "Save as Draft"}
+        </button>
 
         <button
           type="button"
           onClick={onNext}
           disabled={!canProceed}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-6 py-2.5 text-sm font-semibold transition-colors",
+            "inline-flex items-center gap-1.5 rounded-full px-5 md:px-6 py-2.5 text-sm font-semibold transition-colors",
             canProceed
               ? "bg-gold-500 hover:bg-gold-400 text-navy-900"
               : "bg-navy-900/10 text-navy-700/40 cursor-not-allowed"
           )}
         >
-          {isLast ? "Submit Listing" : "Next"}
+          {isLast ? (isEditing ? "Save Changes" : "Submit Listing") : "Next"}
           {!isLast ? <ArrowRight className="h-4 w-4" strokeWidth={2.4} /> : null}
         </button>
       </div>
@@ -923,44 +995,112 @@ function DocumentsStep({
   );
 }
 
-// -------- Step 10: Success screen --------
+// -------- Step 10 / 11: Success screen --------
 
 function SuccessScreen({
+  variant,
+  createdIds,
   onCreateAnother,
 }: {
+  variant: "published" | "draft";
+  createdIds: CreatedIds;
   onCreateAnother: () => void;
 }) {
+  const isDraft = variant === "draft";
+  const publicHref = createdIds.slug
+    ? `/opportunity/${createdIds.slug}`
+    : `/dashboard/listings/${createdIds.listingId}`;
+  const manageHref = `/dashboard/listings/${createdIds.listingId}`;
+  const editHref = `/create-listing?listingId=${createdIds.listingId}`;
+  const myListingsHref = "/dashboard/listings";
+
   return (
     <div className="bg-cream min-h-[calc(100vh-5rem)] flex items-center">
       <div className="max-w-xl mx-auto px-5 md:px-10 py-16 text-center">
         <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gold-500 text-navy-900 ring-8 ring-gold-500/15">
-          <CheckCircle2 className="h-9 w-9" strokeWidth={2.2} />
+          {isDraft ? (
+            <Save className="h-9 w-9" strokeWidth={2.2} />
+          ) : (
+            <CheckCircle2 className="h-9 w-9" strokeWidth={2.2} />
+          )}
         </span>
         <div className="mt-6 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">
-          Submitted for review
+          {isDraft ? "Draft saved" : "Listing published"}
         </div>
         <h1 className="mt-2 text-3xl md:text-4xl font-semibold text-navy-900 tracking-tight text-balance">
-          Your listing has been submitted successfully.
+          {isDraft
+            ? "Your draft has been saved."
+            : "Your listing is live on Capital Circle."}
         </h1>
         <p className="mt-4 text-base text-navy-700/75 leading-relaxed">
-          Our team reviews new listings within 24 hours. You&apos;ll be notified
-          the moment yours is live on Capital Circle.
+          {isDraft ? (
+            <>
+              You can come back to it anytime from{" "}
+              <span className="font-semibold text-navy-900">My Listings</span>.
+              Publish when you&apos;re ready and it appears across the
+              marketplace, search, and map.
+            </>
+          ) : (
+            <>
+              Your opportunity now appears in the marketplace directory, search
+              results, and (if it has coordinates) the map view. Manage it
+              anytime from{" "}
+              <span className="font-semibold text-navy-900">My Listings</span>.
+            </>
+          )}
         </p>
 
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white ring-1 ring-navy-900/[0.06] px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-navy-700/70 font-semibold">
+          <span>Listing</span>
+          <span className="text-navy-900 tabular-nums">{createdIds.listingId}</span>
+        </div>
+
         <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
+          {!isDraft && createdIds.slug ? (
+            <Link
+              href={publicHref}
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-6 py-3 text-sm transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" strokeWidth={2.4} />
+              View Public Listing
+            </Link>
+          ) : null}
           <Link
-            href="/opportunity/beachfront-boutique-hotel"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-6 py-3 text-sm transition-colors"
+            href={manageHref}
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 rounded-full font-semibold px-6 py-3 text-sm transition-colors",
+              isDraft
+                ? "bg-gold-500 hover:bg-gold-400 text-navy-900"
+                : "bg-navy-900 hover:bg-navy-900/90 text-white"
+            )}
           >
-            View Listing
-            <ArrowRight className="h-4 w-4" strokeWidth={2.4} />
+            <LayoutGrid className="h-4 w-4" strokeWidth={2.4} />
+            Manage Listing
+          </Link>
+        </div>
+
+        <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center text-sm">
+          <Link
+            href={editHref}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/10 hover:ring-navy-900/25 text-navy-900 font-semibold px-5 py-2.5 transition-all"
+          >
+            <Pencil className="h-3.5 w-3.5" strokeWidth={2.4} />
+            Edit Listing
+          </Link>
+          <Link
+            href={myListingsHref}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/10 hover:ring-navy-900/25 text-navy-900 font-semibold px-5 py-2.5 transition-all"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" strokeWidth={2.4} />
+            My Listings
           </Link>
           <button
             type="button"
             onClick={onCreateAnother}
-            className="inline-flex items-center justify-center rounded-full bg-white ring-1 ring-navy-900/10 hover:ring-navy-900/25 text-navy-900 font-semibold px-6 py-3 text-sm transition-all"
+            className="inline-flex items-center justify-center rounded-full bg-white ring-1 ring-navy-900/10 hover:ring-navy-900/25 text-navy-900 font-semibold px-5 py-2.5 transition-all"
           >
-            Create Another Listing
+            <Sparkles className="h-3.5 w-3.5" strokeWidth={2.4} />
+            Create Another
           </button>
         </div>
       </div>

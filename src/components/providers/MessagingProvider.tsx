@@ -28,7 +28,15 @@ import {
   type ListingRecord,
   type ListingStatus,
 } from "@/data/listings";
-import { featuredOpportunities } from "@/data/opportunities";
+import { featuredOpportunities, type Opportunity } from "@/data/opportunities";
+import {
+  formStateToOpportunity,
+  formStateToOpportunityPatch,
+  nextOpportunityId as nextOpportunityIdInternal,
+  slugify as slugifyTitle,
+  uniqueSlug as uniqueSlugInternal,
+  type CreateListingFormState,
+} from "@/lib/listings/create";
 import {
   SEED_ACCESS_REQUESTS,
   SEED_DOCUMENTS,
@@ -49,6 +57,7 @@ const KEY_DOCUMENTS = "cc:documents:v1";
 const KEY_ACCESS_REQUESTS = "cc:access-requests:v1";
 const KEY_DOCUMENT_ACTIVITY = "cc:document-activity:v1";
 const KEY_PROFILE = "cc:profile:v1";
+const KEY_USER_OPPORTUNITIES = "cc:user-opps:v1";
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -118,6 +127,30 @@ type MessagingValue = {
   saveListingDraft: (id: string, draftPayload: unknown) => void;
   getListing: (id: string) => ListingRecord | undefined;
 
+  /** User-created opportunities (persisted to localStorage). */
+  userOpportunities: Opportunity[];
+  /**
+   * Create a new listing AND a backing opportunity from wizard form data.
+   * Returns the newly assigned IDs so the success screen can link to them.
+   * `status: "Draft"` keeps the listing in Drafts (and the opportunity hidden
+   * from public surfaces); `status: "Active"` publishes it.
+   */
+  createListing: (
+    formData: CreateListingFormState,
+    options: { status: "Draft" | "Active" }
+  ) => { listingId: string; opportunityId: string; slug: string };
+  /**
+   * Update a user-created opportunity in place. Seed opportunities (cc-001..)
+   * are static and cannot be patched.
+   */
+  updateUserOpportunity: (opportunityId: string, patch: Partial<Opportunity>) => void;
+  /**
+   * Commit an edit from the wizard: saves the draftPayload AND, when the
+   * listing's opportunity is user-created, syncs the live opportunity record
+   * with the form data so changes appear on the public surfaces immediately.
+   */
+  commitListingEdit: (listingId: string, formData: CreateListingFormState) => void;
+
   documents: DataRoomDocument[];
   accessRequests: AccessRequest[];
   documentActivity: DocumentActivity[];
@@ -169,6 +202,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     SEED_DOCUMENT_ACTIVITY
   );
   const [profile, setProfile] = useState<UserProfile>(SEED_PROFILE);
+  const [userOpportunities, setUserOpportunities] = useState<Opportunity[]>([]);
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -207,6 +241,11 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (storedActivity) setDocumentActivity(storedActivity);
     const storedProfile = readStored<UserProfile | null>(KEY_PROFILE, null);
     if (storedProfile) setProfile(storedProfile);
+    const storedUserOpps = readStored<Opportunity[] | null>(
+      KEY_USER_OPPORTUNITIES,
+      null
+    );
+    if (storedUserOpps) setUserOpportunities(storedUserOpps);
     setHydrated(true);
   }, []);
 
@@ -247,6 +286,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_PROFILE, profile);
   }, [profile, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_USER_OPPORTUNITIES, userOpportunities);
+  }, [userOpportunities, hydrated]);
 
   const updateProfile = useCallback((partial: Partial<UserProfile>) => {
     setProfile((prev) => ({ ...prev, ...partial }));
@@ -718,6 +761,144 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // ---- User-created opportunities (wizard target) ----
+
+  const createListing = useCallback(
+    (
+      formData: CreateListingFormState,
+      options: { status: "Draft" | "Active" }
+    ): { listingId: string; opportunityId: string; slug: string } => {
+      const now = new Date().toISOString();
+      const isDraft = options.status === "Draft";
+
+      // Compute new IDs against ALL known opportunities (seed + user) and
+      // listings to avoid collisions.
+      const allOppIds = [
+        ...featuredOpportunities.map((o) => o.id),
+        ...userOpportunities.map((o) => o.id),
+      ];
+      const takenSlugs = new Set([
+        ...featuredOpportunities.map((o) => o.slug),
+        ...userOpportunities.map((o) => o.slug),
+      ]);
+
+      const opportunityId = nextOpportunityIdInternal(allOppIds);
+      const baseSlug = slugifyTitle(formData.title);
+      const slug = uniqueSlugInternal(baseSlug, takenSlugs);
+      const companyId = profile.id?.startsWith("USER-")
+        ? "COMP-000001"
+        : "COMP-000001";
+      const postedBy =
+        formData.companyName.trim() || profile.company || "Capital Circle Member";
+
+      const newOpportunity: Opportunity = formStateToOpportunity(formData, {
+        opportunityId,
+        slug,
+        companyId,
+        postedBy,
+        nowIso: now,
+      });
+
+      let newListingId = "";
+      setListings((prev) => {
+        newListingId = nextListingId(prev);
+        const initialStatus: ListingStatus = isDraft ? "Draft" : "Active";
+        const activity: ListingActivity[] = [];
+        const record: ListingRecord = {
+          id: newListingId,
+          opportunityId,
+          opportunitySlug: slug,
+          title: newOpportunity.title,
+          category: newOpportunity.category,
+          dealType: newOpportunity.dealType,
+          status: initialStatus,
+          views: 0,
+          saves: 0,
+          interests: 0,
+          negotiations: 0,
+          messages: 0,
+          lastUpdatedAt: now,
+          createdAt: now,
+          analyticsSeries: [],
+          activity,
+          draftPayload: formData,
+        };
+        record.activity.push(
+          makeActivityEntry(
+            newListingId,
+            record.activity,
+            isDraft ? "edit" : "stage_change",
+            isDraft ? "Draft saved" : "Listing created",
+            isDraft
+              ? "Draft was saved and is hidden from public surfaces until published."
+              : "Listing was created and is now live on the marketplace.",
+            { opportunitySlug: slug }
+          )
+        );
+        return [record, ...prev];
+      });
+
+      setUserOpportunities((prev) => {
+        // If a draft, we still insert the opportunity so the edit flow can
+        // resume against a live record. Public surfaces respect the listing's
+        // status when deciding to show it.
+        return [newOpportunity, ...prev];
+      });
+
+      return { listingId: newListingId, opportunityId, slug };
+    },
+    [profile, userOpportunities]
+  );
+
+  const updateUserOpportunity = useCallback(
+    (opportunityId: string, patch: Partial<Opportunity>) => {
+      setUserOpportunities((prev) =>
+        prev.map((o) => (o.id === opportunityId ? { ...o, ...patch } : o))
+      );
+    },
+    []
+  );
+
+  const commitListingEdit = useCallback(
+    (listingId: string, formData: CreateListingFormState) => {
+      const now = new Date().toISOString();
+      setListings((prev) =>
+        prev.map((l) =>
+          l.id === listingId
+            ? {
+                ...l,
+                title: formData.title.trim() || l.title,
+                category: formData.category ?? l.category,
+                dealType: formData.dealType ?? l.dealType,
+                draftPayload: formData,
+                lastUpdatedAt: now,
+                activity: [
+                  ...l.activity,
+                  makeActivityEntry(
+                    l.id,
+                    l.activity,
+                    "edit",
+                    "Listing edited",
+                    "Owner saved an edit to the listing.",
+                    { opportunitySlug: l.opportunitySlug }
+                  ),
+                ],
+              }
+            : l
+        )
+      );
+      const targetListing = listings.find((l) => l.id === listingId);
+      const oppId = targetListing?.opportunityId;
+      if (oppId && userOpportunities.some((o) => o.id === oppId)) {
+        const patch = formStateToOpportunityPatch(formData);
+        setUserOpportunities((prev) =>
+          prev.map((o) => (o.id === oppId ? { ...o, ...patch } : o))
+        );
+      }
+    },
+    [listings, userOpportunities]
+  );
+
   const getListing = useCallback(
     (id: string): ListingRecord | undefined =>
       listings.find((l) => l.id === id),
@@ -964,6 +1145,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     updateListingStatus,
     saveListingDraft,
     getListing,
+    userOpportunities,
+    createListing,
+    updateUserOpportunity,
+    commitListingEdit,
     documents,
     accessRequests,
     documentActivity,

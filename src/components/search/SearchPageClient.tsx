@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
 
@@ -14,6 +14,9 @@ import MobileFilterDrawer from "./MobileFilterDrawer";
 
 import type { Opportunity } from "@/data/opportunities";
 import { serializeFilters, countActiveFilters } from "@/lib/search/params";
+import { applyFilters, computeFacetCounts } from "@/lib/search/filter";
+import { sortDirectoryResults } from "@/lib/opportunities/sort";
+import { useAllOpportunities } from "@/lib/opportunities/all";
 import { EMPTY_FILTERS, type FacetCounts, type SearchFilters, type SortKey } from "@/lib/search/types";
 
 type Props = {
@@ -25,10 +28,24 @@ type Props = {
 
 export default function SearchPageClient({
   filters,
-  results,
-  facetCounts,
-  totalAvailable,
+  results: ssrResults,
+  facetCounts: ssrFacetCounts,
+  totalAvailable: ssrTotalAvailable,
 }: Props) {
+  void ssrResults;
+  void ssrFacetCounts;
+  void ssrTotalAvailable;
+  // Recompute client-side over seed + user-created opps so newly published
+  // listings appear immediately on the marketplace.
+  const allOpps = useAllOpportunities();
+  const { results, facetCounts, totalAvailable } = useMemo(() => {
+    const filtered = applyFilters(allOpps, filters);
+    return {
+      results: sortDirectoryResults(filtered, filters.sort),
+      facetCounts: computeFacetCounts(allOpps, filters),
+      totalAvailable: allOpps.length,
+    };
+  }, [allOpps, filters]);
   const router = useRouter();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);

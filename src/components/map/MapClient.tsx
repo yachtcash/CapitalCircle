@@ -9,6 +9,7 @@ import { serializeFilters } from "@/lib/search/params";
 import type { SearchFilters } from "@/lib/search/types";
 import { markerStyleFor, type MarkerStyleKey } from "@/lib/map/types";
 import { MAP_REGIONS } from "@/data/map/regions";
+import { useAllOpportunities } from "@/lib/opportunities/all";
 import MapListPanel from "./MapListPanel";
 import MapView from "./MapView";
 import { cn } from "@/lib/cn";
@@ -19,12 +20,24 @@ type Props = {
   totalAvailable: number;
 };
 
-export default function MapClient({ filters, opportunities, totalAvailable }: Props) {
+export default function MapClient({ filters, opportunities: ssrOpportunities, totalAvailable: ssrTotalAvailable }: Props) {
   const router = useRouter();
   const pathname = usePathname();
 
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "map">("map");
+
+  // Merge user-created opportunities into the map view so newly published
+  // listings appear immediately. Pre-hydration we use the server-rendered
+  // set to avoid a hydration mismatch.
+  const allOpps = useAllOpportunities();
+  const opportunities = useMemo(
+    () => applyFilters(allOpps, filters),
+    [allOpps, filters]
+  );
+  const totalAvailable = allOpps.length;
+  void ssrOpportunities;
+  void ssrTotalAvailable;
 
   const pushFilters = (next: SearchFilters) => {
     const qs = serializeFilters(next);
