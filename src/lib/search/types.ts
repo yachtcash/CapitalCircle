@@ -31,6 +31,8 @@ export type SearchFilters = {
   city: string[];
   funding: FundingRangeValue[];
   status: string[];
+  /** Filter to opportunities sponsored by these companies (COMP-XXXXXX ids). */
+  company: string[];
   sort: SortKey;
 };
 
@@ -43,6 +45,7 @@ export const EMPTY_FILTERS: SearchFilters = {
   city: [],
   funding: [],
   status: [],
+  company: [],
   sort: "newest",
 };
 

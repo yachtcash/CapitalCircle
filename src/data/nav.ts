@@ -2,6 +2,7 @@ import {
   Home,
   LayoutDashboard,
   Compass,
+  Building2,
   PlusCircle,
   MessageSquare,
   User,
@@ -20,7 +21,8 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { label: "Home", shortLabel: "Home", href: "/", icon: Home },
   { label: "Opportunities", shortLabel: "Browse", href: "/opportunities", icon: Compass },
-  { label: "Dashboard", shortLabel: "Dash", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Companies", shortLabel: "Firms", href: "/companies", icon: Building2 },
+  { label: "Dashboard", shortLabel: "Dash", href: "/dashboard", icon: LayoutDashboard, hideOnMobile: true },
   { label: "Create Listing", shortLabel: "Create", href: "/create-listing", icon: PlusCircle, hideOnMobile: true },
   { label: "Messages", shortLabel: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Profile", shortLabel: "Profile", href: "/profile", icon: User },

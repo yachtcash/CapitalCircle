@@ -111,6 +111,8 @@ export const companies: Company[] = [
       "resort",
       "coastal",
     ],
+    featured: true,
+    addedAt: "2024-03-15T10:00:00.000Z",
   },
   {
     id: "COMP-000002",
@@ -208,6 +210,8 @@ export const companies: Company[] = [
       "residential",
       "mixed-use",
     ],
+    featured: true,
+    addedAt: "2023-09-22T14:30:00.000Z",
   },
   {
     id: "COMP-000003",
@@ -305,6 +309,8 @@ export const companies: Company[] = [
       "title",
       "entitlement",
     ],
+    featured: false,
+    addedAt: "2025-01-10T09:15:00.000Z",
   },
   {
     id: "COMP-000004",
@@ -402,6 +408,8 @@ export const companies: Company[] = [
       "Texas",
       "industrial",
     ],
+    featured: false,
+    addedAt: "2025-04-18T11:45:00.000Z",
   },
   {
     id: "COMP-000005",
@@ -499,6 +507,8 @@ export const companies: Company[] = [
       "PPA",
       "utility",
     ],
+    featured: true,
+    addedAt: "2024-11-05T16:00:00.000Z",
   },
   {
     id: "COMP-000006",
@@ -596,5 +606,7 @@ export const companies: Company[] = [
       "beachfront",
       "Caribbean",
     ],
+    featured: false,
+    addedAt: "2026-02-28T08:30:00.000Z",
   },
 ];

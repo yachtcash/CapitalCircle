@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { FUNDING_RANGES, type SearchFilters } from "@/lib/search/types";
+import { getCompanyById } from "@/data/companies";
 import { cn } from "@/lib/cn";
 
 type Chip = { id: string; label: string; remove: () => void };
@@ -14,6 +15,11 @@ type Props = {
 
 function fundingLabel(value: string): string {
   return FUNDING_RANGES.find((r) => r.value === value)?.label ?? value;
+}
+
+function companyLabel(value: string): string {
+  const c = getCompanyById(value);
+  return c ? `Sponsor: ${c.name}` : `Sponsor: ${value}`;
 }
 
 export default function ActiveFilterChips({ filters, onUpdate, onClearAll }: Props) {
@@ -43,6 +49,7 @@ export default function ActiveFilterChips({ filters, onUpdate, onClearAll }: Pro
     { key: "city" },
     { key: "funding", labelFor: fundingLabel },
     { key: "status" },
+    { key: "company", labelFor: companyLabel },
   ];
 
   for (const group of multiGroups) {

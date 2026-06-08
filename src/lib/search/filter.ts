@@ -65,6 +65,8 @@ function passes(opportunity: Opportunity, filters: SearchFilters): boolean {
   if (filters.city.length > 0 && !filters.city.includes(opportunity.place?.city ?? "")) return false;
   if (!fundingMatches(opportunity.fundingAmount ?? 0, filters.funding)) return false;
   if (filters.status.length > 0 && !filters.status.includes(opportunity.status)) return false;
+  if (filters.company.length > 0 && !filters.company.includes(opportunity.companyId))
+    return false;
   return true;
 }
 

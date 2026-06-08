@@ -22,6 +22,7 @@ const MULTI_KEYS: (keyof SearchFilters)[] = [
   "city",
   "funding",
   "status",
+  "company",
 ];
 
 function splitMulti(value: string | null | undefined): string[] {
@@ -74,6 +75,7 @@ export function parseSearchParams(
     city: collectMulti(sp, "city"),
     funding,
     status: collectMulti(sp, "status"),
+    company: collectMulti(sp, "company"),
     sort,
   };
 }

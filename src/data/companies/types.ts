@@ -77,4 +77,8 @@ export type Company = {
   // Search integration prep — not yet surfaced in UI but kept on the model
   // so the future search index has a clean keyword set per company.
   searchKeywords: string[];
+
+  // Directory-only metadata (used by the /companies marketplace).
+  featured?: boolean;
+  addedAt: string; // ISO timestamp the company joined Capital Circle
 };
