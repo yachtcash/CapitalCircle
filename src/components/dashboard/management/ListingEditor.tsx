@@ -11,7 +11,6 @@ import {
   Save,
   RotateCcw,
   AlertTriangle,
-  Info,
   Lock,
   Eye,
   Globe,
@@ -128,12 +127,8 @@ function buildDraft(listing: ListingRecord, opp: Opportunity | undefined): Draft
     listingType: opp?.listingType ?? "Opportunity",
     postedBy: opp?.postedBy ?? "",
     industry: opp?.industry ?? "",
-    companyDescription:
-      // Stored in `listing.subtitle` is the listing tagline; the company's
-      // own one-line description lives on the opportunity as `description`
-      // for now (no dedicated company field exists on the model).
-      "",
-    website: "",
+    companyDescription: opp?.companyDescription ?? "",
+    website: opp?.website ?? "",
     country: opp?.place?.country ?? "",
     state: opp?.place?.state ?? "",
     city: opp?.place?.city ?? "",
@@ -169,11 +164,16 @@ type Props = {
 };
 
 export default function ListingEditor({ listing, opportunity }: Props) {
-  const { updateListingFields, userOpportunities } = useMessaging();
+  const { updateListingFields, getOpportunity } = useMessaging();
+  // Prefer the overlay-applied live record so the editor opens with the
+  // latest saved values (across both seed-backed and user-created opps).
+  const liveOpportunity =
+    (listing.opportunityId ? getOpportunity(listing.opportunityId) : undefined) ??
+    opportunity;
 
   const initial = useMemo(
-    () => buildDraft(listing, opportunity),
-    [listing, opportunity]
+    () => buildDraft(listing, liveOpportunity),
+    [listing, liveOpportunity]
   );
 
   const [draft, setDraft] = useState<Draft>(initial);
@@ -201,16 +201,6 @@ export default function ListingEditor({ listing, opportunity }: Props) {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
-
-  // The listing is "live-backed" when its opportunity is user-created and
-  // therefore patchable. Seed-backed listings can still update their listing
-  // fields (title/category/dealType/status/visibility/etc) but
-  // opportunity-level fields (description / financial / location) won't
-  // propagate to the public surfaces — we surface that clearly.
-  const isLive = useMemo(() => {
-    if (!listing.opportunityId) return false;
-    return userOpportunities.some((o) => o.id === listing.opportunityId);
-  }, [listing.opportunityId, userOpportunities]);
 
   const set = useCallback(<K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -255,6 +245,8 @@ export default function ListingEditor({ listing, opportunity }: Props) {
         ? Math.round(parsedAmount)
         : opportunity?.fundingAmount,
       expectedReturn: draft.expectedReturn.trim() || undefined,
+      website: draft.website.trim() || undefined,
+      companyDescription: draft.companyDescription.trim() || undefined,
       fundingRequired: draft.fundingRequired.trim() || undefined,
       equityAvailable: draft.equityAvailable.trim() || undefined,
       minimumInvestment: draft.minimumInvestment.trim() || undefined,
@@ -311,26 +303,6 @@ export default function ListingEditor({ listing, opportunity }: Props) {
           onCancel={handleCancel}
         />
       </header>
-
-      {!isLive ? (
-        <div className="rounded-2xl bg-gold-500/10 ring-1 ring-gold-500/30 p-4 md:p-5 flex gap-3">
-          <Info
-            className="h-5 w-5 text-gold-700 shrink-0 mt-0.5"
-            strokeWidth={2}
-          />
-          <div className="text-sm text-navy-900/90 leading-relaxed">
-            <div className="font-semibold">Seed-backed listing</div>
-            <p className="mt-1 text-navy-700/85">
-              Listing-level fields (title, category, deal type, status,
-              visibility, contact preferences) save immediately. Opportunity
-              fields (description, financial, location, posted by) won&apos;t
-              propagate to the public marketplace — they&apos;re anchored to
-              the seed catalog. Create a new listing from the wizard for a
-              fully editable record.
-            </p>
-          </div>
-        </div>
-      ) : null}
 
       {/* Basic Information */}
       <Section title="Basic Information" eyebrow="Section 1">

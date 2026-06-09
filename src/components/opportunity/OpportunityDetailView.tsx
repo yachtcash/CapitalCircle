@@ -24,13 +24,21 @@ import OwnerControlsPanel from "./OwnerControlsPanel";
  * Used by both the server-rendered seed path (which passes a pre-fetched
  * `opportunity`) and the client fallback for user-created opportunities
  * (which resolves the opportunity from MessagingProvider state).
+ *
+ * The view resolves the LIVE opportunity from the provider's overlay so
+ * edits made in the Listing Editor (or Image Manager) propagate to this
+ * page automatically, including for seed-backed listings.
  */
 export default function OpportunityDetailView({
-  opportunity,
+  opportunity: seedOpportunity,
 }: {
   opportunity: Opportunity;
 }) {
-  const { userOpportunities } = useMessaging();
+  const { userOpportunities, getOpportunityBySlug, hydrated } = useMessaging();
+  const liveOpportunity = hydrated
+    ? getOpportunityBySlug(seedOpportunity.slug) ?? seedOpportunity
+    : seedOpportunity;
+  const opportunity = liveOpportunity;
   const listing = getListingByOpportunitySlug(opportunity.slug);
   const [docsBlockRequestOpen, setDocsBlockRequestOpen] = useState(false);
 

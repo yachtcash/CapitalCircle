@@ -59,6 +59,7 @@ const KEY_ACCESS_REQUESTS = "cc:access-requests:v1";
 const KEY_DOCUMENT_ACTIVITY = "cc:document-activity:v1";
 const KEY_PROFILE = "cc:profile:v1";
 const KEY_USER_OPPORTUNITIES = "cc:user-opps:v1";
+const KEY_OPPORTUNITY_PATCHES = "cc:opp-patches:v1";
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -189,6 +190,23 @@ type MessagingValue = {
   /** User-created opportunities (persisted to localStorage). */
   userOpportunities: Opportunity[];
   /**
+   * Overlay patches keyed by opportunity id. Applied on top of the seed
+   * catalog AND user-created opportunities at read time so edits to any
+   * listing (seed-backed or user-created) propagate to every public surface.
+   */
+  opportunityPatches: Record<string, Partial<Opportunity>>;
+  /**
+   * Returns the live (overlay-applied) opportunity for an id, looking at the
+   * seed catalog first and then user-created opportunities. Returns undefined
+   * if no underlying record exists.
+   */
+  getOpportunity: (opportunityId: string) => Opportunity | undefined;
+  /**
+   * Returns the live (overlay-applied) opportunity for a slug. Slugs are
+   * unique across seed + user catalogs.
+   */
+  getOpportunityBySlug: (slug: string) => Opportunity | undefined;
+  /**
    * Create a new listing AND a backing opportunity from wizard form data.
    * Returns the newly assigned IDs so the success screen can link to them.
    * `status: "Draft"` keeps the listing in Drafts (and the opportunity hidden
@@ -262,6 +280,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   );
   const [profile, setProfile] = useState<UserProfile>(SEED_PROFILE);
   const [userOpportunities, setUserOpportunities] = useState<Opportunity[]>([]);
+  const [opportunityPatches, setOpportunityPatches] = useState<
+    Record<string, Partial<Opportunity>>
+  >({});
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -305,6 +326,11 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       null
     );
     if (storedUserOpps) setUserOpportunities(storedUserOpps);
+    const storedPatches = readStored<Record<string, Partial<Opportunity>> | null>(
+      KEY_OPPORTUNITY_PATCHES,
+      null
+    );
+    if (storedPatches) setOpportunityPatches(storedPatches);
     setHydrated(true);
   }, []);
 
@@ -349,6 +375,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_USER_OPPORTUNITIES, userOpportunities);
   }, [userOpportunities, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_OPPORTUNITY_PATCHES, opportunityPatches);
+  }, [opportunityPatches, hydrated]);
 
   const updateProfile = useCallback((partial: Partial<UserProfile>) => {
     setProfile((prev) => ({ ...prev, ...partial }));
@@ -945,18 +975,29 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           };
         })
       );
-      if (
-        patch.opportunity &&
-        targetOpportunityId &&
-        userOpportunities.some((o) => o.id === targetOpportunityId)
-      ) {
-        setUserOpportunities((prev) =>
-          prev.map((o) =>
-            o.id === targetOpportunityId
-              ? { ...o, ...(patch.opportunity ?? {}) }
-              : o
-          )
-        );
+      if (patch.opportunity && targetOpportunityId) {
+        // Write to userOpportunities only when the opp is user-created — keeps
+        // the in-memory list mutation consistent for those.
+        if (userOpportunities.some((o) => o.id === targetOpportunityId)) {
+          setUserOpportunities((prev) =>
+            prev.map((o) =>
+              o.id === targetOpportunityId
+                ? { ...o, ...(patch.opportunity ?? {}) }
+                : o
+            )
+          );
+        }
+        // Always record the patch in the overlay. Public readers merge the
+        // overlay on top of the seed catalog AND user opportunities, so this
+        // is the path that makes seed-backed listings editable end-to-end.
+        const oppId = targetOpportunityId;
+        setOpportunityPatches((prev) => ({
+          ...prev,
+          [oppId]: {
+            ...(prev[oppId] ?? {}),
+            ...(patch.opportunity ?? {}),
+          },
+        }));
       }
     },
     [userOpportunities]
@@ -989,11 +1030,22 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         })
       );
       if (targetOpportunityId) {
+        // Keep user opportunities consistent when the opp is user-created.
         setUserOpportunities((prev) =>
           prev.map((o) =>
             o.id === targetOpportunityId ? { ...o, images } : o
           )
         );
+        // Always write the new image set to the overlay so seed-backed
+        // listings' galleries actually propagate to public surfaces.
+        const oppId = targetOpportunityId;
+        setOpportunityPatches((prev) => ({
+          ...prev,
+          [oppId]: {
+            ...(prev[oppId] ?? {}),
+            images,
+          },
+        }));
       }
     },
     []
@@ -1127,11 +1179,21 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       );
       const targetListing = listings.find((l) => l.id === listingId);
       const oppId = targetListing?.opportunityId;
-      if (oppId && userOpportunities.some((o) => o.id === oppId)) {
+      if (oppId) {
         const patch = formStateToOpportunityPatch(formData);
-        setUserOpportunities((prev) =>
-          prev.map((o) => (o.id === oppId ? { ...o, ...patch } : o))
-        );
+        if (userOpportunities.some((o) => o.id === oppId)) {
+          setUserOpportunities((prev) =>
+            prev.map((o) => (o.id === oppId ? { ...o, ...patch } : o))
+          );
+        }
+        // Persist via overlay regardless of seed-vs-user origin.
+        setOpportunityPatches((prev) => ({
+          ...prev,
+          [oppId]: {
+            ...(prev[oppId] ?? {}),
+            ...patch,
+          },
+        }));
       }
     },
     [listings, userOpportunities]
@@ -1141,6 +1203,35 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     (id: string): ListingRecord | undefined =>
       listings.find((l) => l.id === id),
     [listings]
+  );
+
+  // Returns the live opportunity for an id by merging seed catalog (or user
+  // catalog) with the overlay patch. The overlay is the source of truth for
+  // every Edit Details / Image Manager mutation.
+  const getOpportunity = useCallback(
+    (opportunityId: string): Opportunity | undefined => {
+      const seed = featuredOpportunities.find((o) => o.id === opportunityId);
+      const userOpp = userOpportunities.find((o) => o.id === opportunityId);
+      const base = userOpp ?? seed;
+      if (!base) return undefined;
+      const patch = opportunityPatches[opportunityId];
+      if (!patch) return base;
+      return { ...base, ...patch };
+    },
+    [userOpportunities, opportunityPatches]
+  );
+
+  const getOpportunityBySlug = useCallback(
+    (slug: string): Opportunity | undefined => {
+      const userOpp = userOpportunities.find((o) => o.slug === slug);
+      const seed = featuredOpportunities.find((o) => o.slug === slug);
+      const base = userOpp ?? seed;
+      if (!base) return undefined;
+      const patch = opportunityPatches[base.id];
+      if (!patch) return base;
+      return { ...base, ...patch };
+    },
+    [userOpportunities, opportunityPatches]
   );
 
   // ---- Document / Access Request actions ----
@@ -1524,6 +1615,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     deleteDocument,
     replaceDocument,
     userOpportunities,
+    opportunityPatches,
+    getOpportunity,
+    getOpportunityBySlug,
     createListing,
     updateUserOpportunity,
     commitListingEdit,

@@ -68,6 +68,10 @@ export type Opportunity = {
   trending: boolean;
   companyId: string;
   documents: OpportunityDocument[];
+  /** Optional one-paragraph background on the sponsor entity. Editable from the Listing Editor. */
+  companyDescription?: string;
+  /** Optional public website for the sponsor. Editable from the Listing Editor. */
+  website?: string;
 };
 
 import { EXTRA_OPPORTUNITIES } from "./opportunities-extra";

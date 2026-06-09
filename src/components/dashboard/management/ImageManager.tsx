@@ -56,21 +56,12 @@ export default function ImageManager({
   title = "Listing",
   listingId,
 }: Props) {
-  const { updateListingImages, userOpportunities, listings } = useMessaging();
+  const { updateListingImages } = useMessaging();
   const [images, setImages] = useState<string[]>(initialImages);
   const objectUrls = useRef<Set<string>>(new Set());
   const fileInput = useRef<HTMLInputElement>(null);
   const replaceTargetRef = useRef<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
-
-  // Detect whether this listing is backed by a user-created opportunity so we
-  // can label the persistence story correctly.
-  const isLive = useMemo(() => {
-    if (!listingId) return false;
-    const listing = listings.find((l) => l.id === listingId);
-    if (!listing?.opportunityId) return false;
-    return userOpportunities.some((o) => o.id === listing.opportunityId);
-  }, [listingId, listings, userOpportunities]);
 
   useEffect(() => {
     return () => {
@@ -394,18 +385,11 @@ export default function ImageManager({
       )}
 
       <p className="mt-4 text-xs text-navy-700/55">
-        {isLive ? (
-          <>
-            Changes persist immediately to your listing&apos;s gallery and
-            update the public marketplace, search, and map views.
-          </>
-        ) : (
-          <>
-            Local only — refreshing the page will reset to the seed photos.
-            (This listing is backed by the seed catalog and isn&apos;t patchable
-            without a backend.)
-          </>
-        )}
+        Changes persist immediately to your listing&apos;s gallery and update
+        the public marketplace, search, and map views. Uploaded images are
+        kept as in-browser blob URLs — they survive within this browser
+        session but will not display after a hard refresh until a real upload
+        backend is wired up.
       </p>
 
       <Lightbox

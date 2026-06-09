@@ -38,12 +38,26 @@ function isPublicallyVisible(listing: ListingRecord | undefined): boolean {
 }
 
 /**
+ * Apply the overlay patch map to an opportunity, returning the patched copy
+ * if a patch exists, otherwise the original record unchanged.
+ */
+function applyOverlay(
+  opp: Opportunity,
+  patches: Record<string, Partial<Opportunity>>
+): Opportunity {
+  const patch = patches[opp.id];
+  return patch ? { ...opp, ...patch } : opp;
+}
+
+/**
  * Hook returning every opportunity the current user can see on public
  * surfaces: seed catalog + their own user-created opportunities whose
- * listings are in an active, public status.
+ * listings are in an active, public status. Each record is merged with the
+ * provider's overlay patch so edits to seed-backed listings appear here too.
  */
 export function useAllOpportunities(): Opportunity[] {
-  const { userOpportunities, listings, hydrated } = useMessaging();
+  const { userOpportunities, listings, opportunityPatches, hydrated } =
+    useMessaging();
   return useMemo(() => {
     // Pre-hydration we render only the seed catalog so the server-rendered
     // HTML matches the client's first paint.
@@ -53,29 +67,42 @@ export function useAllOpportunities(): Opportunity[] {
     for (const l of listings) {
       if (l.opportunityId) listingByOppId.set(l.opportunityId, l);
     }
-    const visibleUserOpps = userOpportunities.filter((o) =>
-      isPublicallyVisible(listingByOppId.get(o.id))
+    const visibleUserOpps = userOpportunities
+      .filter((o) => isPublicallyVisible(listingByOppId.get(o.id)))
+      .map((o) => applyOverlay(o, opportunityPatches));
+    const patchedSeed = featuredOpportunities.map((o) =>
+      applyOverlay(o, opportunityPatches)
     );
-    if (visibleUserOpps.length === 0) return featuredOpportunities;
-    return [...visibleUserOpps, ...featuredOpportunities];
-  }, [userOpportunities, listings, hydrated]);
+    if (visibleUserOpps.length === 0) return patchedSeed;
+    return [...visibleUserOpps, ...patchedSeed];
+  }, [userOpportunities, listings, opportunityPatches, hydrated]);
 }
 
 /**
  * Same as `useAllOpportunities` but also exposes the user's draft / archived
  * / closed opportunities. Used by surfaces the owner can see — Profile,
- * Dashboard's listing-management views.
+ * Dashboard's listing-management views. Overlay applied.
  */
 export function useAllOpportunitiesOwnerView(): Opportunity[] {
-  const { userOpportunities, hydrated } = useMessaging();
+  const { userOpportunities, opportunityPatches, hydrated } = useMessaging();
   return useMemo(() => {
     if (!hydrated) return featuredOpportunities;
-    if (userOpportunities.length === 0) return featuredOpportunities;
-    return [...userOpportunities, ...featuredOpportunities];
-  }, [userOpportunities, hydrated]);
+    const patchedSeed = featuredOpportunities.map((o) =>
+      applyOverlay(o, opportunityPatches)
+    );
+    if (userOpportunities.length === 0) return patchedSeed;
+    const patchedUser = userOpportunities.map((o) =>
+      applyOverlay(o, opportunityPatches)
+    );
+    return [...patchedUser, ...patchedSeed];
+  }, [userOpportunities, opportunityPatches, hydrated]);
 }
 
-/** Find an opportunity by slug across seed + user catalog. */
+/**
+ * Find an opportunity by slug across seed + user catalog. Does NOT apply
+ * overlay — callers that need the live record should use
+ * `getOpportunityBySlug` from MessagingProvider instead.
+ */
 export function findOpportunityBySlug(
   slug: string,
   userOpps: Opportunity[]
