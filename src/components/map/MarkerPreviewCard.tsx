@@ -7,6 +7,7 @@ import type { Opportunity } from "@/data/opportunities";
 import { getCompanyById } from "@/data/companies";
 import { publicOpportunityId } from "@/lib/opportunities/id";
 import { markerStyleFor, MARKER_STYLES } from "@/lib/map/types";
+import MessageOpportunityButton from "@/components/common/MessageOpportunityButton";
 
 type Props = {
   opportunity: Opportunity;
@@ -82,9 +83,14 @@ export default function MarkerPreviewCard({ opportunity, onClose }: Props) {
             href={`/opportunity/${opportunity.slug}`}
             className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
           >
-            View opportunity
+            View
             <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.4} />
           </Link>
+          <MessageOpportunityButton
+            opportunity={opportunity}
+            variant="full"
+            className="shrink-0"
+          />
         </div>
       </div>
     </article>

@@ -1016,7 +1016,7 @@ function SuccessScreen({
     ? `/opportunity/${createdIds.slug}`
     : `/dashboard/listings/${createdIds.listingId}`;
   const manageHref = `/dashboard/listings/${createdIds.listingId}`;
-  const editHref = `/create-listing?listingId=${createdIds.listingId}`;
+  const editHref = `/dashboard/listings/${createdIds.listingId}?tab=edit`;
   const myListingsHref = "/dashboard/listings";
 
   return (

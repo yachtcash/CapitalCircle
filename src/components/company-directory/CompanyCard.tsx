@@ -11,6 +11,7 @@ import {
 import type { Company } from "@/data/companies";
 import { getActiveOpportunitiesForCompany } from "@/data/companies";
 import VerificationBadge from "@/components/company/VerificationBadge";
+import MessageCompanyButton from "@/components/common/MessageCompanyButton";
 import { cn } from "@/lib/cn";
 
 function initialsFor(name: string): string {
@@ -65,6 +66,9 @@ export default function CompanyCard({ company, priority = false }: Props) {
             Featured
           </span>
         ) : null}
+        <div className="absolute top-3 right-3">
+          <MessageCompanyButton company={company} variant="icon" />
+        </div>
       </Link>
 
       {/* Identity row overlapping the cover */}

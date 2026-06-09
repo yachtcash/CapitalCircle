@@ -139,7 +139,15 @@ export default function ConversationThread({
               </span>
             </div>
             <div className="text-[11px] uppercase tracking-[0.12em] text-navy-700/55 font-semibold mt-0.5 truncate">
-              Stage · {stageMeta.shortLabel} — {stageMeta.description}
+              {conversation.opportunityTitle ? (
+                <span>
+                  <span className="text-gold-700">Re:</span>{" "}
+                  {conversation.opportunityTitle} ·{" "}
+                  <span className="text-navy-700/70">{stageMeta.shortLabel}</span>
+                </span>
+              ) : (
+                <>Stage · {stageMeta.shortLabel} — {stageMeta.description}</>
+              )}
             </div>
           </div>
 

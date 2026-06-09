@@ -77,9 +77,9 @@ export default function ListingActionsMenu({
     },
     {
       key: "edit",
-      label: "Edit Listing",
+      label: "Edit Details",
       icon: Pencil,
-      href: `/create-listing?listingId=${listing.id}`,
+      href: `/dashboard/listings/${listing.id}?tab=edit`,
     },
     {
       key: "duplicate",

@@ -17,7 +17,21 @@ export default function ProfileHero({ profile, onEdit }: Props) {
   return (
     <section className="bg-white">
       {/* Cover */}
-      <div className={cn("relative h-40 md:h-56", `cover-${profile.coverGradient}`)}>
+      <div
+        className={cn(
+          "relative h-40 md:h-56",
+          !profile.coverUrl && `cover-${profile.coverGradient}`
+        )}
+        style={
+          profile.coverUrl
+            ? {
+                backgroundImage: `url(${profile.coverUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
+      >
         <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
           style={{
             backgroundImage:
@@ -30,9 +44,21 @@ export default function ProfileHero({ profile, onEdit }: Props) {
       {/* Identity card overlapping cover */}
       <div className="max-w-6xl mx-auto px-5 md:px-10">
         <div className="relative -mt-14 md:-mt-20 bg-white rounded-3xl ring-1 ring-navy-900/[0.06] shadow-sm p-5 md:p-7 flex flex-col md:flex-row items-start gap-5">
-          <div className="shrink-0 h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-navy-900 text-gold-500 ring-4 ring-white shadow flex items-center justify-center text-3xl md:text-4xl font-semibold tracking-wide">
-            {profile.initials}
-          </div>
+          {profile.avatarUrl ? (
+            <div
+              className="shrink-0 h-24 w-24 md:h-28 md:w-28 rounded-2xl ring-4 ring-white shadow overflow-hidden bg-navy-900"
+              style={{
+                backgroundImage: `url(${profile.avatarUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+              aria-label={profile.name}
+            />
+          ) : (
+            <div className="shrink-0 h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-navy-900 text-gold-500 ring-4 ring-white shadow flex items-center justify-center text-3xl md:text-4xl font-semibold tracking-wide">
+              {profile.initials}
+            </div>
+          )}
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3 flex-wrap">

@@ -215,11 +215,11 @@ export default function ManagementHero({ listing, opportunity }: Props) {
             {/* Action buttons */}
             <div className="flex flex-wrap items-center gap-2 lg:shrink-0">
               <Link
-                href={`/create-listing?listingId=${listing.id}`}
+                href={`/dashboard/listings/${listing.id}?tab=edit`}
                 className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-4 py-2 text-xs transition-colors"
               >
                 <Pencil className="h-3.5 w-3.5" strokeWidth={2.4} />
-                Edit
+                Edit Details
               </Link>
               <button
                 type="button"

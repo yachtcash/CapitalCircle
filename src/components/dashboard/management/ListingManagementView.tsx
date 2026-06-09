@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import type { ListingRecord } from "@/data/listings";
@@ -39,11 +39,19 @@ export default function ListingManagementView({
         opportunity={opportunity}
         company={company}
       />
-      <ManagementTabs
-        listing={listing}
-        opportunity={opportunity}
-        company={company}
-      />
+      <Suspense
+        fallback={
+          <div className="max-w-7xl mx-auto px-5 md:px-8 py-10">
+            <div className="h-10 w-64 rounded-lg bg-navy-900/[0.06] animate-pulse" />
+          </div>
+        }
+      >
+        <ManagementTabs
+          listing={listing}
+          opportunity={opportunity}
+          company={company}
+        />
+      </Suspense>
     </div>
   );
 }

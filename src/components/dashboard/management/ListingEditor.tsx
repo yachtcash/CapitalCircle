@@ -95,12 +95,21 @@ type Draft = {
   listingType: ListingType;
   postedBy: string;
   industry: string;
+  companyDescription: string;
+  website: string;
   country: string;
   state: string;
   city: string;
   investmentRange: string;
   fundingAmount: string;
   expectedReturn: string;
+  fundingRequired: string;
+  equityAvailable: string;
+  minimumInvestment: string;
+  expectedReturns: string;
+  currentStage: string;
+  timeline: string;
+  projectStatus: string;
   oppStatus: OpportunityStatus;
   executiveSummary: string;
   fullDescription: string;
@@ -119,6 +128,12 @@ function buildDraft(listing: ListingRecord, opp: Opportunity | undefined): Draft
     listingType: opp?.listingType ?? "Opportunity",
     postedBy: opp?.postedBy ?? "",
     industry: opp?.industry ?? "",
+    companyDescription:
+      // Stored in `listing.subtitle` is the listing tagline; the company's
+      // own one-line description lives on the opportunity as `description`
+      // for now (no dedicated company field exists on the model).
+      "",
+    website: "",
     country: opp?.place?.country ?? "",
     state: opp?.place?.state ?? "",
     city: opp?.place?.city ?? "",
@@ -128,6 +143,13 @@ function buildDraft(listing: ListingRecord, opp: Opportunity | undefined): Draft
         ? String(opp.fundingAmount)
         : "",
     expectedReturn: opp?.expectedReturn ?? "",
+    fundingRequired: opp?.fundingRequired ?? "",
+    equityAvailable: opp?.equityAvailable ?? "",
+    minimumInvestment: opp?.minimumInvestment ?? "",
+    expectedReturns: opp?.expectedReturns ?? "",
+    currentStage: opp?.currentStage ?? "",
+    timeline: opp?.timeline ?? "",
+    projectStatus: opp?.projectStatus ?? "",
     oppStatus: opp?.status ?? "Open",
     executiveSummary: opp?.executiveSummary ?? "",
     fullDescription: (opp?.fullDescription ?? []).join("\n\n"),
@@ -233,6 +255,13 @@ export default function ListingEditor({ listing, opportunity }: Props) {
         ? Math.round(parsedAmount)
         : opportunity?.fundingAmount,
       expectedReturn: draft.expectedReturn.trim() || undefined,
+      fundingRequired: draft.fundingRequired.trim() || undefined,
+      equityAvailable: draft.equityAvailable.trim() || undefined,
+      minimumInvestment: draft.minimumInvestment.trim() || undefined,
+      expectedReturns: draft.expectedReturns.trim() || undefined,
+      currentStage: draft.currentStage.trim() || undefined,
+      timeline: draft.timeline.trim() || undefined,
+      projectStatus: draft.projectStatus.trim() || undefined,
       status: draft.oppStatus,
       location:
         [draft.city, draft.country].filter(Boolean).join(", ") ||
@@ -344,6 +373,32 @@ export default function ListingEditor({ listing, opportunity }: Props) {
               className={inputClass}
             />
           </Field>
+          <Field
+            label="Website"
+            hint="Public link investors can verify the sponsor against."
+            full
+          >
+            <input
+              type="url"
+              value={draft.website}
+              onChange={(e) => set("website", e.target.value)}
+              placeholder="https://"
+              className={inputClass}
+            />
+          </Field>
+          <Field
+            label="Company description"
+            hint="A one-paragraph background on the sponsor entity behind the listing."
+            full
+          >
+            <textarea
+              value={draft.companyDescription}
+              onChange={(e) => set("companyDescription", e.target.value)}
+              rows={3}
+              maxLength={500}
+              className={textareaClass}
+            />
+          </Field>
           <Field label="Listing type">
             <Select
               value={draft.listingType}
@@ -432,12 +487,88 @@ export default function ListingEditor({ listing, opportunity }: Props) {
               className={inputClass}
             />
           </Field>
-          <Field label="Expected return" full>
+          <Field label="Funding required">
+            <input
+              type="text"
+              value={draft.fundingRequired}
+              onChange={(e) => set("fundingRequired", e.target.value)}
+              placeholder="$10.5M total · $4M LP"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Equity available">
+            <input
+              type="text"
+              value={draft.equityAvailable}
+              onChange={(e) => set("equityAvailable", e.target.value)}
+              placeholder="32% LP"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Minimum investment">
+            <input
+              type="text"
+              value={draft.minimumInvestment}
+              onChange={(e) => set("minimumInvestment", e.target.value)}
+              placeholder="$250,000"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Expected return (short)">
             <input
               type="text"
               value={draft.expectedReturn}
               onChange={(e) => set("expectedReturn", e.target.value)}
-              placeholder="18% IRR · 2.3x MOIC"
+              placeholder="18% IRR"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Expected returns (detail)" full>
+            <input
+              type="text"
+              value={draft.expectedReturns}
+              onChange={(e) => set("expectedReturns", e.target.value)}
+              placeholder="18% IRR · 2.3x MOIC · 5-year hold"
+              className={inputClass}
+            />
+          </Field>
+        </Grid>
+      </Section>
+
+      {/* Deal Mechanics */}
+      <Section title="Deal Mechanics" eyebrow="Section 3a">
+        <Grid>
+          <Field
+            label="Current stage"
+            hint="Where the deal sits today — e.g. “Operating · expansion shovel-ready”."
+          >
+            <input
+              type="text"
+              value={draft.currentStage}
+              onChange={(e) => set("currentStage", e.target.value)}
+              className={inputClass}
+            />
+          </Field>
+          <Field
+            label="Timeline"
+            hint="Hold or build window — e.g. “5-year hold · construction Q2 next year”."
+          >
+            <input
+              type="text"
+              value={draft.timeline}
+              onChange={(e) => set("timeline", e.target.value)}
+              className={inputClass}
+            />
+          </Field>
+          <Field
+            label="Project status"
+            hint="Operational detail — e.g. “Permits secured, GMP contract priced”."
+            full
+          >
+            <input
+              type="text"
+              value={draft.projectStatus}
+              onChange={(e) => set("projectStatus", e.target.value)}
               className={inputClass}
             />
           </Field>

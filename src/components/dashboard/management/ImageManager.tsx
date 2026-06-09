@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import Image from "next/image";
 import {
   ArrowDown,
   ArrowUp,
   ChevronsUp,
   ChevronsDown,
+  CloudUpload,
   Image as ImageIcon,
   Plus,
   RefreshCw,
@@ -153,32 +154,59 @@ export default function ImageManager({
     fileInput.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
+  const acceptFiles = (files: File[], targetIndex: number | null) => {
     if (files.length === 0) return;
-    const urls = files.map((f) => {
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+    const urls = images.map((f) => {
       const u = URL.createObjectURL(f);
       objectUrls.current.add(u);
       return u;
     });
     updateAndPersist((prev) => {
-      const target = replaceTargetRef.current;
-      if (target != null && urls.length > 0) {
-        // Replace ONE image, preserve its index. Extra files (if user picked
-        // multiple) append at the end.
+      if (targetIndex != null && urls.length > 0) {
+        // Replace ONE image at the target index. Position preserved.
+        // Extra files (if multi-select on Replace) append at the end.
         const next = [...prev];
-        if (objectUrls.current.has(next[target])) {
-          URL.revokeObjectURL(next[target]);
-          objectUrls.current.delete(next[target]);
+        if (objectUrls.current.has(next[targetIndex])) {
+          URL.revokeObjectURL(next[targetIndex]);
+          objectUrls.current.delete(next[targetIndex]);
         }
-        next[target] = urls[0];
+        next[targetIndex] = urls[0];
         return next.concat(urls.slice(1));
       }
       return prev.concat(urls);
     });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    acceptFiles(files, replaceTargetRef.current);
     replaceTargetRef.current = null;
     // Reset value so picking the same file again still triggers onChange.
     e.target.value = "";
+  };
+
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    acceptFiles(files, null);
   };
 
   const coverIndex = useMemo(() => (images.length > 0 ? 0 : -1), [images.length]);
@@ -215,6 +243,37 @@ export default function ImageManager({
           onChange={handleFileChange}
         />
       </header>
+
+      {/* Drag-and-drop bulk upload zone — sits above the grid. */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={handleAdd}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleAdd();
+          }
+        }}
+        aria-label="Bulk upload images — drop files or click to browse"
+        className={cn(
+          "mb-5 rounded-2xl ring-2 ring-dashed transition-all p-5 md:p-6 text-center cursor-pointer focus:outline-none focus-visible:ring-gold-500",
+          dragOver
+            ? "ring-gold-500 bg-gold-500/10"
+            : "ring-navy-900/15 hover:ring-gold-500/60 hover:bg-bone/40 bg-white"
+        )}
+      >
+        <div className="inline-flex items-center gap-2 text-sm font-semibold text-navy-900">
+          <CloudUpload className="h-4 w-4 text-gold-600" strokeWidth={2.2} />
+          {dragOver ? "Drop to upload" : "Drop images here or click to browse"}
+        </div>
+        <div className="mt-1 text-[11px] text-navy-700/65">
+          Bulk upload supported · JPG · PNG · WEBP · multi-select OK
+        </div>
+      </div>
 
       {images.length === 0 ? (
         <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-10 text-center">

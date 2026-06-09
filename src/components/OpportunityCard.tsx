@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MapPin, Clock } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { publicOpportunityId } from "@/lib/opportunities/id";
+import MessageOpportunityButton from "@/components/common/MessageOpportunityButton";
 import { cn } from "@/lib/cn";
 
 const statusStyles: Record<Opportunity["status"], string> = {
@@ -56,15 +57,21 @@ export default function OpportunityCard({
           </span>
         ) : null}
 
-        {/* Top-right: status pill */}
-        <span
-          className={cn(
-            "absolute top-3 right-3 inline-flex items-center text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 shadow-sm",
-            statusStyles[opportunity.status]
-          )}
-        >
-          {opportunity.status}
-        </span>
+        {/* Top-right: status pill + message icon */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <span
+            className={cn(
+              "inline-flex items-center text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 shadow-sm",
+              statusStyles[opportunity.status]
+            )}
+          >
+            {opportunity.status}
+          </span>
+          <MessageOpportunityButton
+            opportunity={opportunity}
+            variant="icon"
+          />
+        </div>
 
         {/* Bottom: location + deal type */}
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 text-white">

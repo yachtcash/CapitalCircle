@@ -49,6 +49,10 @@ export type UserProfile = {
   /** Reference key to a named cover gradient (rendered in CSS). */
   coverGradient: "navy-gold" | "navy-deep" | "twilight" | "sunrise";
   initials: string;
+  /** Optional data-URL avatar image. When present overrides initials. */
+  avatarUrl?: string;
+  /** Optional data-URL cover image. When present overrides coverGradient. */
+  coverUrl?: string;
 
   joinedYear: number;
   memberTier: MemberTier;

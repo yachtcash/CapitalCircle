@@ -16,6 +16,7 @@ import OpportunityDataRoomBlock from "@/components/dataroom/OpportunityDataRoomB
 import ActionPanel from "@/components/ActionPanel";
 import RelatedOpportunities from "@/components/RelatedOpportunities";
 import RequestAccessModal from "@/components/documents/RequestAccessModal";
+import OwnerControlsPanel from "./OwnerControlsPanel";
 
 /**
  * Shared client view rendering the full opportunity detail page.
@@ -92,7 +93,8 @@ export default function OpportunityDetailView({
             />
           </div>
 
-          <aside className="order-1 lg:order-2 lg:w-[360px]">
+          <aside className="order-1 lg:order-2 lg:w-[360px] space-y-5">
+            <OwnerControlsPanel opportunity={opportunity} />
             <div className="lg:sticky lg:top-6">
               <ActionPanel opportunity={opportunity} />
             </div>

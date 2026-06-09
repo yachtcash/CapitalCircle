@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   LayoutGrid,
   Pencil,
@@ -39,6 +40,8 @@ const TABS: { key: TabKey; label: string; Icon: typeof LayoutGrid }[] = [
   { key: "activity", label: "Activity", Icon: Activity },
 ];
 
+const VALID_TABS = new Set<TabKey>(TABS.map((t) => t.key));
+
 type Props = {
   listing: ListingRecord;
   opportunity?: Opportunity;
@@ -46,7 +49,24 @@ type Props = {
 };
 
 export default function ManagementTabs({ listing, opportunity }: Props) {
-  const [active, setActive] = useState<TabKey>("overview");
+  const searchParams = useSearchParams();
+  // Honor `?tab=edit` (and similar) so deep links from the Edit / Manage
+  // CTAs across the app land on the right surface. Falls back to overview.
+  const initialTab = (() => {
+    const raw = searchParams?.get("tab");
+    return raw && VALID_TABS.has(raw as TabKey) ? (raw as TabKey) : "overview";
+  })();
+  const [active, setActive] = useState<TabKey>(initialTab);
+
+  // If the URL param changes after mount (e.g. user clicks an in-app link),
+  // sync the active tab. We deliberately don't push back to the URL on tab
+  // change to keep navigation cheap.
+  useEffect(() => {
+    const raw = searchParams?.get("tab");
+    if (raw && VALID_TABS.has(raw as TabKey)) {
+      setActive(raw as TabKey);
+    }
+  }, [searchParams]);
 
   return (
     <section>
@@ -112,4 +132,3 @@ export default function ManagementTabs({ listing, opportunity }: Props) {
     </section>
   );
 }
-

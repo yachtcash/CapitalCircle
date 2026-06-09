@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Save, Sparkles, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Save, Sparkles, Plus, Trash2, Upload, X, Image as ImageIcon } from "lucide-react";
 import Modal from "@/components/negotiations/Modal";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import {
@@ -33,6 +33,24 @@ function deriveInitials(name: string): string {
   );
 }
 
+const COVER_GRADIENTS: { value: UserProfile["coverGradient"]; label: string }[] = [
+  { value: "navy-gold", label: "Navy & Gold" },
+  { value: "navy-deep", label: "Deep Navy" },
+  { value: "twilight", label: "Twilight" },
+  { value: "sunrise", label: "Sunrise" },
+];
+
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsDataURL(file);
+  });
+}
+
 function nextExperienceId(existing: ProfileExperience[]): string {
   let maxNum = 0;
   for (const e of existing) {
@@ -49,13 +67,64 @@ export default function EditProfileModal({ open, onClose }: Props) {
   const { profile, updateProfile } = useMessaging();
   const [draft, setDraft] = useState<UserProfile>(profile);
   const [initialsTouched, setInitialsTouched] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setDraft(profile);
       setInitialsTouched(false);
+      setUploadError(null);
     }
   }, [open, profile]);
+
+  const handleAvatarPick = async (file: File | null | undefined) => {
+    setUploadError(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Avatar must be an image file.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setUploadError("Avatar must be under 4MB.");
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setDraft((prev) => ({ ...prev, avatarUrl: dataUrl }));
+    } catch {
+      setUploadError("Could not read avatar file.");
+    }
+  };
+
+  const handleCoverPick = async (file: File | null | undefined) => {
+    setUploadError(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Cover must be an image file.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setUploadError("Cover must be under 4MB.");
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setDraft((prev) => ({ ...prev, coverUrl: dataUrl }));
+    } catch {
+      setUploadError("Could not read cover file.");
+    }
+  };
+
+  const clearAvatar = () => {
+    setDraft((prev) => ({ ...prev, avatarUrl: undefined }));
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  };
+  const clearCover = () => {
+    setDraft((prev) => ({ ...prev, coverUrl: undefined }));
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  };
 
   const set = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -167,25 +236,168 @@ export default function EditProfileModal({ open, onClose }: Props) {
       }
     >
       <div className="space-y-6">
-        {/* Identity */}
-        <Section title="Identity">
-          <div className="flex items-center gap-4">
-            <div className="shrink-0 h-16 w-16 rounded-2xl bg-navy-900 text-gold-500 ring-4 ring-white shadow flex items-center justify-center text-xl font-semibold tracking-wide">
-              {draft.initials || deriveInitials(draft.name)}
+        {/* Appearance — avatar + cover image */}
+        <Section title="Appearance">
+          {/* Cover preview */}
+          <div>
+            <div className="text-xs uppercase tracking-[0.14em] text-navy-700/70 font-semibold mb-1.5">
+              Cover image
             </div>
+            <div
+              className={cn(
+                "relative h-28 md:h-32 rounded-xl ring-1 ring-navy-900/[0.08] overflow-hidden",
+                !draft.coverUrl && `cover-${draft.coverGradient}`
+              )}
+              style={
+                draft.coverUrl
+                  ? {
+                      backgroundImage: `url(${draft.coverUrl})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }
+                  : undefined
+              }
+            >
+              <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/95 hover:bg-white text-navy-900 text-[11px] uppercase tracking-[0.12em] font-semibold px-2.5 py-1 ring-1 ring-navy-900/[0.08] transition-colors"
+                >
+                  <Upload className="h-3 w-3" strokeWidth={2.4} />
+                  {draft.coverUrl ? "Replace" : "Upload"}
+                </button>
+                {draft.coverUrl ? (
+                  <button
+                    type="button"
+                    onClick={clearCover}
+                    className="inline-flex items-center gap-1 rounded-full bg-white/95 hover:bg-white text-rose-700 text-[11px] uppercase tracking-[0.12em] font-semibold px-2.5 py-1 ring-1 ring-rose-500/30 transition-colors"
+                  >
+                    <X className="h-3 w-3" strokeWidth={2.4} />
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => void handleCoverPick(e.target.files?.[0])}
+            />
+            {!draft.coverUrl ? (
+              <div className="mt-2">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-navy-700/55 font-semibold mb-1.5">
+                  Or pick a gradient
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {COVER_GRADIENTS.map((g) => {
+                    const active = draft.coverGradient === g.value;
+                    return (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => set("coverGradient", g.value)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-3 py-1.5 ring-1 transition-colors",
+                          active
+                            ? "bg-gold-500 text-navy-900 ring-gold-500"
+                            : "bg-white text-navy-700 ring-navy-900/[0.08] hover:ring-gold-500"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-3 w-3 rounded-full",
+                            `cover-${g.value}`
+                          )}
+                        />
+                        {g.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Avatar preview */}
+          <div className="flex items-center gap-4 pt-3">
+            {draft.avatarUrl ? (
+              <div
+                className="shrink-0 h-16 w-16 rounded-2xl ring-4 ring-white shadow overflow-hidden bg-navy-900"
+                style={{
+                  backgroundImage: `url(${draft.avatarUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+                aria-label="Avatar preview"
+              />
+            ) : (
+              <div className="shrink-0 h-16 w-16 rounded-2xl bg-navy-900 text-gold-500 ring-4 ring-white shadow flex items-center justify-center text-xl font-semibold tracking-wide">
+                {draft.initials || deriveInitials(draft.name)}
+              </div>
+            )}
             <div className="flex-1">
-              <Field label="Initials (avatar text)">
-                <input
-                  type="text"
-                  value={draft.initials}
-                  onChange={(e) => setInitials(e.target.value)}
-                  maxLength={3}
-                  placeholder={deriveInitials(draft.name)}
-                  className={cn(inputClass, "uppercase tracking-widest")}
-                />
-              </Field>
+              <div className="text-xs uppercase tracking-[0.14em] text-navy-700/70 font-semibold mb-1.5">
+                Avatar image
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="inline-flex items-center gap-1 rounded-full bg-white ring-1 ring-navy-900/[0.08] hover:ring-gold-500 text-navy-900 text-[11px] uppercase tracking-[0.12em] font-semibold px-2.5 py-1 transition-colors"
+                >
+                  <Upload className="h-3 w-3" strokeWidth={2.4} />
+                  {draft.avatarUrl ? "Replace" : "Upload"}
+                </button>
+                {draft.avatarUrl ? (
+                  <button
+                    type="button"
+                    onClick={clearAvatar}
+                    className="inline-flex items-center gap-1 rounded-full bg-white ring-1 ring-rose-500/30 hover:ring-rose-500 text-rose-700 text-[11px] uppercase tracking-[0.12em] font-semibold px-2.5 py-1 transition-colors"
+                  >
+                    <X className="h-3 w-3" strokeWidth={2.4} />
+                    Remove
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-navy-700/55">
+                    <ImageIcon className="h-3 w-3" strokeWidth={2.2} />
+                    Falls back to initials
+                  </span>
+                )}
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void handleAvatarPick(e.target.files?.[0])}
+              />
             </div>
           </div>
+
+          {uploadError ? (
+            <p className="text-xs text-rose-700 bg-rose-500/10 rounded-lg px-3 py-2 ring-1 ring-rose-500/30">
+              {uploadError}
+            </p>
+          ) : null}
+        </Section>
+
+        {/* Identity */}
+        <Section title="Identity">
+          <Grid>
+            <Field label="Initials (avatar fallback)" full>
+              <input
+                type="text"
+                value={draft.initials}
+                onChange={(e) => setInitials(e.target.value)}
+                maxLength={3}
+                placeholder={deriveInitials(draft.name)}
+                className={cn(inputClass, "uppercase tracking-widest")}
+              />
+            </Field>
+          </Grid>
           <Grid>
             <Field label="Full name">
               <input
