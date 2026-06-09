@@ -27,7 +27,14 @@ const PUBLIC_LISTING_STATUSES: ListingStatus[] = [
 
 function isPublicallyVisible(listing: ListingRecord | undefined): boolean {
   if (!listing) return false;
-  return PUBLIC_LISTING_STATUSES.includes(listing.status);
+  // Status gate — Draft / Closed / Archived never reach public surfaces.
+  if (!PUBLIC_LISTING_STATUSES.includes(listing.status)) return false;
+  // Visibility gate — Unlisted hides from directory/search/map but the
+  // direct URL still resolves (handled at the page level). Private hides
+  // from every public surface AND the direct URL.
+  if (listing.visibility === "Unlisted") return false;
+  if (listing.visibility === "Private") return false;
+  return true;
 }
 
 /**

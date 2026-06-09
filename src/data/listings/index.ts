@@ -1,9 +1,11 @@
 export type {
+  ContactPreferences,
   ListingActivity,
   ListingActivityKind,
   ListingAnalyticsPoint,
   ListingRecord,
   ListingStatus,
+  ListingVisibility,
 } from "./types";
 
 export { SEED_LISTINGS } from "./seed";

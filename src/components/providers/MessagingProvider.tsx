@@ -143,6 +143,36 @@ type MessagingValue = {
    * (the image manager will keep local-only state).
    */
   updateListingImages: (listingId: string, images: string[]) => void;
+  /**
+   * Patch listing-level fields AND (where allowed) the backing user
+   * opportunity. Used by the inline Listing Editor so sponsors can update
+   * a published listing without re-entering the wizard.
+   *
+   * Listing-level fields always persist (title, category, dealType, status,
+   * visibility, contactPreferences, subtitle). Opportunity-level fields
+   * (description, executiveSummary, fullDescription, place, financial,
+   * postedBy, etc.) only persist when the listing is backed by a user
+   * opportunity; for seed-backed listings those updates are silently
+   * skipped.
+   */
+  updateListingFields: (
+    listingId: string,
+    patch: {
+      listing?: Partial<
+        Pick<
+          ListingRecord,
+          | "title"
+          | "subtitle"
+          | "category"
+          | "dealType"
+          | "status"
+          | "visibility"
+          | "contactPreferences"
+        >
+      >;
+      opportunity?: Partial<Opportunity>;
+    }
+  ) => void;
 
   /** Add a new document to a listing's data room. */
   addDocument: (
@@ -872,6 +902,66 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     setDocumentActivity((prev) => prev.filter((a) => a.listingId !== id));
   }, []);
 
+  const updateListingFields = useCallback(
+    (
+      listingId: string,
+      patch: {
+        listing?: Partial<
+          Pick<
+            ListingRecord,
+            | "title"
+            | "subtitle"
+            | "category"
+            | "dealType"
+            | "status"
+            | "visibility"
+            | "contactPreferences"
+          >
+        >;
+        opportunity?: Partial<Opportunity>;
+      }
+    ) => {
+      const now = new Date().toISOString();
+      let targetOpportunityId: string | undefined;
+      setListings((prev) =>
+        prev.map((l) => {
+          if (l.id !== listingId) return l;
+          targetOpportunityId = l.opportunityId;
+          return {
+            ...l,
+            ...(patch.listing ?? {}),
+            lastUpdatedAt: now,
+            activity: [
+              ...l.activity,
+              makeActivityEntry(
+                l.id,
+                l.activity,
+                "edit",
+                "Details edited",
+                "Sponsor updated listing details from the inline editor.",
+                { opportunitySlug: l.opportunitySlug }
+              ),
+            ],
+          };
+        })
+      );
+      if (
+        patch.opportunity &&
+        targetOpportunityId &&
+        userOpportunities.some((o) => o.id === targetOpportunityId)
+      ) {
+        setUserOpportunities((prev) =>
+          prev.map((o) =>
+            o.id === targetOpportunityId
+              ? { ...o, ...(patch.opportunity ?? {}) }
+              : o
+          )
+        );
+      }
+    },
+    [userOpportunities]
+  );
+
   const updateListingImages = useCallback(
     (listingId: string, images: string[]) => {
       let targetOpportunityId: string | undefined;
@@ -1429,6 +1519,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     getListing,
     deleteListing,
     updateListingImages,
+    updateListingFields,
     addDocument,
     deleteDocument,
     replaceDocument,

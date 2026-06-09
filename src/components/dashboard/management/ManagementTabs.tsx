@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   LayoutGrid,
+  Pencil,
   Images,
   FileText,
   BarChart3,
@@ -15,15 +16,23 @@ import type { Company } from "@/data/companies";
 import { cn } from "@/lib/cn";
 
 import ListingInformationBlock from "./ListingInformationBlock";
+import ListingEditor from "./ListingEditor";
 import ListingAnalyticsDetail from "./ListingAnalyticsDetail";
 import ListingActivityFeed from "./ListingActivityFeed";
 import ImageManager from "./ImageManager";
 import DocumentManager from "./DocumentManager";
 
-type TabKey = "overview" | "gallery" | "documents" | "analytics" | "activity";
+type TabKey =
+  | "overview"
+  | "edit"
+  | "gallery"
+  | "documents"
+  | "analytics"
+  | "activity";
 
 const TABS: { key: TabKey; label: string; Icon: typeof LayoutGrid }[] = [
   { key: "overview", label: "Overview", Icon: LayoutGrid },
+  { key: "edit", label: "Edit Details", Icon: Pencil },
   { key: "gallery", label: "Gallery", Icon: Images },
   { key: "documents", label: "Documents", Icon: FileText },
   { key: "analytics", label: "Analytics", Icon: BarChart3 },
@@ -78,6 +87,9 @@ export default function ManagementTabs({ listing, opportunity }: Props) {
       <div className="max-w-6xl mx-auto px-5 md:px-10 py-8 md:py-10">
         {active === "overview" ? (
           <ListingInformationBlock listing={listing} opportunity={opportunity} />
+        ) : null}
+        {active === "edit" ? (
+          <ListingEditor listing={listing} opportunity={opportunity} />
         ) : null}
         {active === "gallery" ? (
           <ImageManager
