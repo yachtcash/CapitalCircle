@@ -1,3 +1,5 @@
+"use client";
+
 import { Fragment } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -6,9 +8,14 @@ type Props = {
   current: number;
   total: number;
   labels: string[];
+  /**
+   * If provided, completed step circles become clickable buttons that jump
+   * back to that step. The active step + future steps remain non-interactive.
+   */
+  onJumpTo?: (step: number) => void;
 };
 
-export default function ProgressBar({ current, total, labels }: Props) {
+export default function ProgressBar({ current, total, labels, onJumpTo }: Props) {
   const pct = Math.max(0, Math.min(100, ((current - 1) / (total - 1)) * 100));
 
   return (
@@ -38,19 +45,34 @@ export default function ProgressBar({ current, total, labels }: Props) {
             const stepNum = i + 1;
             const isComplete = stepNum < current;
             const isActive = stepNum === current;
+            const canJump = !!onJumpTo && isComplete;
+            const circleClass = cn(
+              "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
+              isComplete && "bg-gold-500 text-navy-900",
+              isActive && "bg-navy-900 text-gold-500 ring-2 ring-gold-500 ring-offset-2 ring-offset-white",
+              !isComplete && !isActive && "bg-bone text-navy-700/55",
+              canJump && "hover:bg-gold-400 cursor-pointer"
+            );
             return (
               <Fragment key={label}>
                 <div className="flex flex-col items-center min-w-0">
-                  <div
-                    className={cn(
-                      "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
-                      isComplete && "bg-gold-500 text-navy-900",
-                      isActive && "bg-navy-900 text-gold-500 ring-2 ring-gold-500 ring-offset-2 ring-offset-white",
-                      !isComplete && !isActive && "bg-bone text-navy-700/55"
-                    )}
-                  >
-                    {isComplete ? <Check className="h-4 w-4" strokeWidth={2.6} /> : stepNum}
-                  </div>
+                  {canJump ? (
+                    <button
+                      type="button"
+                      onClick={() => onJumpTo?.(stepNum)}
+                      aria-label={`Jump back to step ${stepNum} — ${label}`}
+                      className={circleClass}
+                    >
+                      <Check className="h-4 w-4" strokeWidth={2.6} />
+                    </button>
+                  ) : (
+                    <div
+                      className={circleClass}
+                      aria-current={isActive ? "step" : undefined}
+                    >
+                      {isComplete ? <Check className="h-4 w-4" strokeWidth={2.6} /> : stepNum}
+                    </div>
+                  )}
                   <span
                     className={cn(
                       "mt-2 text-[10px] uppercase tracking-[0.14em] font-semibold whitespace-nowrap",

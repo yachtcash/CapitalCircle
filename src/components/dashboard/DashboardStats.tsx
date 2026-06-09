@@ -121,14 +121,19 @@ export default function DashboardStats() {
 function StatTile({ tile, hydrated }: { tile: Tile; hydrated: boolean }) {
   const Icon = tile.icon;
   const Wrapper: React.ElementType = tile.href ? Link : "div";
-  const wrapperProps = tile.href ? { href: tile.href } : {};
+  const wrapperProps = tile.href
+    ? { href: tile.href }
+    : { "aria-label": `${tile.label} (read-only summary)` };
+  const interactive = !!tile.href;
 
   return (
     <Wrapper
       {...wrapperProps}
       className={cn(
-        "group bg-white rounded-2xl ring-1 ring-navy-900/[0.06] p-4 md:p-5 flex flex-col gap-3",
-        tile.href && "hover:shadow-md hover:shadow-navy-900/5 transition-shadow"
+        "group bg-white rounded-2xl ring-1 p-4 md:p-5 flex flex-col gap-3",
+        interactive
+          ? "ring-navy-900/[0.06] hover:shadow-md hover:shadow-navy-900/5 transition-shadow"
+          : "ring-navy-900/[0.04] bg-bone/40"
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -140,9 +145,19 @@ function StatTile({ tile, hydrated }: { tile: Tile; hydrated: boolean }) {
         >
           <Icon className="h-4 w-4" strokeWidth={2.2} />
         </span>
+        {!interactive ? (
+          <span className="text-[9px] uppercase tracking-[0.16em] text-navy-700/45 font-semibold">
+            Read-only
+          </span>
+        ) : null}
       </div>
       <div>
-        <div className="text-2xl md:text-3xl font-semibold tracking-tight text-navy-900 leading-none">
+        <div
+          className={cn(
+            "text-2xl md:text-3xl font-semibold tracking-tight leading-none",
+            interactive ? "text-navy-900" : "text-navy-900/85"
+          )}
+        >
           {hydrated ? tile.value : "—"}
         </div>
         <div className="mt-2 text-[10px] uppercase tracking-[0.14em] text-navy-700/60 font-semibold leading-snug">

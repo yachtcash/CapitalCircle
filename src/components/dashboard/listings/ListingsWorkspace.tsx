@@ -21,12 +21,59 @@ const STATUS_RANK: Record<ListingStatus, number> = {
   Archived: 6,
 };
 
-function sortListings(listings: ListingRecord[]): ListingRecord[] {
-  return [...listings].sort((a, b) => {
-    const rankDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
-    if (rankDiff !== 0) return rankDiff;
-    return b.lastUpdatedAt.localeCompare(a.lastUpdatedAt);
+export type SortKey =
+  | "default"
+  | "title"
+  | "category"
+  | "dealType"
+  | "status"
+  | "views"
+  | "saves"
+  | "interests"
+  | "lastUpdated";
+
+export type SortDir = "asc" | "desc";
+
+function compareString(a?: string | null, b?: string | null): number {
+  return (a ?? "").localeCompare(b ?? "");
+}
+
+function sortListings(
+  listings: ListingRecord[],
+  key: SortKey,
+  dir: SortDir
+): ListingRecord[] {
+  const out = [...listings];
+  const mul = dir === "asc" ? 1 : -1;
+  out.sort((a, b) => {
+    switch (key) {
+      case "title":
+        return compareString(a.title, b.title) * mul;
+      case "category":
+        return compareString(a.category, b.category) * mul;
+      case "dealType":
+        return compareString(a.dealType, b.dealType) * mul;
+      case "status": {
+        const diff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
+        return diff * mul;
+      }
+      case "views":
+        return (a.views - b.views) * mul;
+      case "saves":
+        return (a.saves - b.saves) * mul;
+      case "interests":
+        return (a.interests - b.interests) * mul;
+      case "lastUpdated":
+        return a.lastUpdatedAt.localeCompare(b.lastUpdatedAt) * mul;
+      case "default":
+      default: {
+        const rankDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
+        if (rankDiff !== 0) return rankDiff;
+        return b.lastUpdatedAt.localeCompare(a.lastUpdatedAt);
+      }
+    }
   });
+  return out;
 }
 
 type Toast = {
@@ -43,6 +90,22 @@ export default function ListingsWorkspace() {
   const [selectedStatuses, setSelectedStatuses] = useState<ListingStatus[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [toast, setToast] = useState<Toast | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("default");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const toggleSort = useCallback((key: SortKey) => {
+    setSortKey((prevKey) => {
+      if (prevKey === key) {
+        setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
+        return prevKey;
+      }
+      // Sensible defaults: alpha asc; numeric desc; date desc.
+      const isAlpha =
+        key === "title" || key === "category" || key === "dealType";
+      setSortDir(isAlpha ? "asc" : "desc");
+      return key;
+    });
+  }, []);
 
   const toggleStatus = useCallback((status: ListingStatus) => {
     setSelectedStatuses((prev) =>
@@ -79,7 +142,10 @@ export default function ListingsWorkspace() {
     });
   }, [listings, selectedStatuses, query]);
 
-  const sorted = useMemo(() => sortListings(filtered), [filtered]);
+  const sorted = useMemo(
+    () => sortListings(filtered, sortKey, sortDir),
+    [filtered, sortKey, sortDir]
+  );
 
   const handleDuplicateSuccess = useCallback((newId: string) => {
     setToast({
@@ -148,6 +214,9 @@ export default function ListingsWorkspace() {
                 <ListingsTable
                   listings={sorted}
                   onDuplicateSuccess={handleDuplicateSuccess}
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
                 />
                 {/* Mobile fallback: cards even when table is selected */}
                 <ListingsCardGrid

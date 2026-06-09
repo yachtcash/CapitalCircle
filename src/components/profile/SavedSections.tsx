@@ -49,7 +49,7 @@ export default function SavedSections() {
             label="No saved opportunities yet"
             hint='Tap "Save Opportunity" on any listing to keep it here for later.'
             ctaLabel="Browse opportunities"
-            ctaHref="/#opportunities"
+            ctaHref="/opportunities"
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -81,7 +81,7 @@ export default function SavedSections() {
             label="No saved companies yet"
             hint='Tap "Follow Company" on any sponsor profile to keep it here.'
             ctaLabel="Browse opportunities"
-            ctaHref="/#opportunities"
+            ctaHref="/opportunities"
           />
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">

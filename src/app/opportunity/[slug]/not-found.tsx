@@ -16,7 +16,7 @@ export default function NotFound() {
           opportunities in the marketplace.
         </p>
         <Link
-          href="/#opportunities"
+          href="/opportunities"
           className="mt-7 inline-flex items-center gap-2 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-6 py-3 text-sm transition-colors"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2.2} />

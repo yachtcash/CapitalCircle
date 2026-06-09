@@ -1,32 +1,51 @@
 "use client";
 
-import { Mail, Phone, Globe2, Lock } from "lucide-react";
+import { Mail, Phone, Globe2, Lock, Users, Globe } from "lucide-react";
 import type { UserProfile } from "@/data/profile";
+import type { PrivacyLevel } from "@/data/profile";
 import PrivacyBadge from "./PrivacyBadge";
+import { cn } from "@/lib/cn";
 
 type Props = {
   profile: UserProfile;
 };
 
-function maskedFor(value: string, privacy: UserProfile["privacy"]["email"]): string {
-  if (privacy === "Public") return value;
-  // Mask everything for Private + Approved Contacts Only — give a hint of the prefix.
-  if (value.includes("@")) {
-    const [local, domain] = value.split("@");
-    return `${local.slice(0, 2)}•••@${domain}`;
+type Render =
+  | { kind: "value"; text: string }
+  | { kind: "masked"; text: string; hint: string }
+  | { kind: "hidden"; text: string; hint: string };
+
+function renderFor(value: string, privacy: PrivacyLevel): Render {
+  if (privacy === "Public") {
+    return { kind: "value", text: value };
   }
-  // Phone number
-  const digits = value.replace(/\D/g, "");
-  if (digits.length > 4) {
-    return `•••• ${digits.slice(-4)}`;
+  if (privacy === "Approved Contacts Only") {
+    // Show masked preview — approved contacts will see the real value
+    // (in a fully implemented backend); until then the hint explains the state.
+    if (value.includes("@")) {
+      const [local, domain] = value.split("@");
+      return {
+        kind: "masked",
+        text: `${local.slice(0, 2)}•••@${domain}`,
+        hint: "Visible to approved contacts only",
+      };
+    }
+    const digits = value.replace(/\D/g, "");
+    return {
+      kind: "masked",
+      text: digits.length > 4 ? `•••• ${digits.slice(-4)}` : "•••",
+      hint: "Visible to approved contacts only",
+    };
   }
-  return "•••";
+  // Private — fully hidden, no preview
+  return {
+    kind: "hidden",
+    text: "Hidden",
+    hint: "Private — only you can see this",
+  };
 }
 
 export default function ContactCard({ profile }: Props) {
-  const emailDisplay = maskedFor(profile.email, profile.privacy.email);
-  const phoneDisplay = maskedFor(profile.phone, profile.privacy.phone);
-
   return (
     <section>
       <SectionHeader eyebrow="Contact" title="How members reach you" />
@@ -34,22 +53,20 @@ export default function ContactCard({ profile }: Props) {
         <Row
           icon={Mail}
           label="Email"
-          value={emailDisplay}
-          masked={profile.privacy.email !== "Public"}
+          render={renderFor(profile.email, profile.privacy.email)}
           privacy={profile.privacy.email}
         />
         <Row
           icon={Phone}
           label="Phone"
-          value={phoneDisplay}
-          masked={profile.privacy.phone !== "Public"}
+          render={renderFor(profile.phone, profile.privacy.phone)}
           privacy={profile.privacy.phone}
         />
         {profile.website ? (
           <Row
             icon={Globe2}
             label="Website"
-            value={profile.websiteLabel}
+            render={{ kind: "value", text: profile.websiteLabel }}
             href={profile.website}
           />
         ) : null}
@@ -66,17 +83,15 @@ export default function ContactCard({ profile }: Props) {
 function Row({
   icon: Icon,
   label,
-  value,
+  render,
   href,
-  masked = false,
   privacy,
 }: {
   icon: typeof Mail;
   label: string;
-  value: string;
+  render: Render;
   href?: string;
-  masked?: boolean;
-  privacy?: UserProfile["privacy"]["email"];
+  privacy?: PrivacyLevel;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 p-4 md:p-5">
@@ -95,15 +110,49 @@ function Row({
               rel="noopener noreferrer"
               className="text-sm text-navy-900 hover:text-gold-700 transition-colors truncate block"
             >
-              {value}
+              {render.text}
             </a>
           ) : (
-            <div className="text-sm text-navy-900 truncate inline-flex items-center gap-1.5">
-              <span className="tabular-nums">{value}</span>
-              {masked ? (
-                <Lock className="h-3 w-3 text-navy-700/40" strokeWidth={2.4} />
+            <>
+              <div className="text-sm truncate inline-flex items-center gap-1.5">
+                {render.kind === "value" ? (
+                  <span className="text-navy-900 inline-flex items-center gap-1">
+                    {render.text}
+                    <Globe className="h-3 w-3 text-emerald-700" strokeWidth={2.4} />
+                  </span>
+                ) : null}
+                {render.kind === "masked" ? (
+                  <span className="text-navy-900 tabular-nums inline-flex items-center gap-1">
+                    {render.text}
+                    <Users
+                      className="h-3 w-3 text-gold-700"
+                      strokeWidth={2.4}
+                      aria-hidden="true"
+                    />
+                  </span>
+                ) : null}
+                {render.kind === "hidden" ? (
+                  <span className="italic text-navy-700/55 inline-flex items-center gap-1">
+                    {render.text}
+                    <Lock
+                      className="h-3 w-3 text-navy-700/55"
+                      strokeWidth={2.4}
+                      aria-hidden="true"
+                    />
+                  </span>
+                ) : null}
+              </div>
+              {render.kind !== "value" ? (
+                <div
+                  className={cn(
+                    "mt-0.5 text-[10px] leading-snug",
+                    render.kind === "hidden" ? "text-navy-700/45" : "text-navy-700/60"
+                  )}
+                >
+                  {render.hint}
+                </div>
               ) : null}
-            </div>
+            </>
           )}
         </div>
       </div>

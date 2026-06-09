@@ -40,7 +40,7 @@ export default function CompanyActiveOpportunities({ opportunities, companyName 
             wider marketplace.
           </p>
           <Link
-            href="/#opportunities"
+            href="/opportunities"
             className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-navy-900 hover:text-gold-700 transition-colors group"
           >
             Browse marketplace

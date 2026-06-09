@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MapPinned } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { clusterMarkers } from "@/lib/map/clustering";
@@ -11,6 +11,7 @@ import WorldMapSvg from "./WorldMapSvg";
 import MapMarker from "./MapMarker";
 import MapClusterBadge from "./MapCluster";
 import MarkerPreviewCard from "./MarkerPreviewCard";
+import ClusterPreviewCard from "./ClusterPreviewCard";
 
 type Props = {
   opportunities: Opportunity[];
@@ -25,6 +26,7 @@ export default function MapView({
   onSelectOpportunity,
   highlightedRegionId,
 }: Props) {
+  const [openCluster, setOpenCluster] = useState<MapCluster | null>(null);
   const markers = useMemo<MapMarkerData[]>(() => {
     return opportunities
       .filter((o) => o.place?.coordinates)
@@ -58,6 +60,18 @@ export default function MapView({
       Math.max(24, selected.x - CARD_W / 2)
     );
     previewY = Math.max(24, selected.y - CARD_H - 32);
+  }
+
+  let clusterX = 0;
+  let clusterY = 0;
+  if (openCluster && !selected) {
+    const CARD_W = 280;
+    const CARD_H = 360;
+    clusterX = Math.min(
+      MAP_VIEWBOX.width - CARD_W - 24,
+      Math.max(24, openCluster.x - CARD_W / 2)
+    );
+    clusterY = Math.max(24, openCluster.y - CARD_H - 32);
   }
 
   return (
@@ -98,13 +112,19 @@ export default function MapView({
             <MapClusterBadge
               key={it.cluster.id}
               cluster={it.cluster}
-              onSelect={(c: MapCluster) => onSelectOpportunity(c.markers[0].opportunity)}
+              onSelect={(c: MapCluster) => {
+                // Open the cluster panel so every opportunity in the cluster
+                // is reachable. Clearing any single-marker preview avoids
+                // visual overlap.
+                onSelectOpportunity(null);
+                setOpenCluster(c);
+              }}
             />
           );
         })}
       </WorldMapSvg>
 
-      {/* Floating preview overlay */}
+      {/* Floating preview overlay (single marker) */}
       {selected ? (
         <div
           className="absolute z-10 w-[280px] pointer-events-auto"
@@ -116,6 +136,26 @@ export default function MapView({
           <MarkerPreviewCard
             opportunity={selected.opportunity}
             onClose={() => onSelectOpportunity(null)}
+          />
+        </div>
+      ) : null}
+
+      {/* Cluster preview — list every opportunity in the cluster */}
+      {openCluster && !selected ? (
+        <div
+          className="absolute z-10 pointer-events-auto"
+          style={{
+            left: `${(clusterX / MAP_VIEWBOX.width) * 100}%`,
+            top: `${(clusterY / MAP_VIEWBOX.height) * 100}%`,
+          }}
+        >
+          <ClusterPreviewCard
+            cluster={openCluster}
+            onPickOpportunity={(opp) => {
+              setOpenCluster(null);
+              onSelectOpportunity(opp);
+            }}
+            onClose={() => setOpenCluster(null)}
           />
         </div>
       ) : null}

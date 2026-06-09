@@ -38,7 +38,7 @@ export default function DetailHero({ opportunity }: { opportunity: Opportunity }
             Home
           </Link>
           <ChevronRight className="h-3 w-3" strokeWidth={2} />
-          <Link href="/#opportunities" className="hover:text-white transition-colors">
+          <Link href="/opportunities" className="hover:text-white transition-colors">
             Marketplace
           </Link>
           <ChevronRight className="h-3 w-3" strokeWidth={2} />

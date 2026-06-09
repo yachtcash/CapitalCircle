@@ -113,47 +113,63 @@ export default function NotificationBell({ className }: Props) {
             ) : null}
             {sorted.map((n) => {
               const Icon = KIND_ICON[n.kind];
-              return (
-                <li key={n.id}>
-                  <Link
-                    href={n.href ?? "#"}
-                    onClick={() => {
-                      markNotificationRead(n.id);
-                      setOpen(false);
-                    }}
+              const rowClass = cn(
+                "w-full text-left flex gap-3 px-4 py-3 hover:bg-bone/60 transition-colors",
+                !n.read && "bg-gold-500/[0.05]"
+              );
+              const inner = (
+                <>
+                  <span
                     className={cn(
-                      "flex gap-3 px-4 py-3 hover:bg-bone/60 transition-colors",
-                      !n.read && "bg-gold-500/[0.05]"
+                      "shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-full",
+                      n.read
+                        ? "bg-navy-900/[0.05] text-navy-700"
+                        : "bg-navy-900 text-gold-500 ring-1 ring-navy-900/10"
                     )}
                   >
-                    <span
-                      className={cn(
-                        "shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-full",
-                        n.read
-                          ? "bg-navy-900/[0.05] text-navy-700"
-                          : "bg-navy-900 text-gold-500 ring-1 ring-navy-900/10"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" strokeWidth={1.9} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-navy-900 leading-snug truncate">
-                        {n.title}
-                      </div>
-                      <p className="mt-0.5 text-xs text-navy-700/75 leading-snug line-clamp-2">
-                        {n.body}
-                      </p>
-                      <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-navy-700/50 font-semibold">
-                        {formatRelative(n.createdAt)}
-                      </div>
+                    <Icon className="h-4 w-4" strokeWidth={1.9} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-navy-900 leading-snug truncate">
+                      {n.title}
                     </div>
-                    {!n.read ? (
-                      <span
-                        className="self-start mt-1.5 h-2 w-2 rounded-full bg-gold-500"
-                        aria-label="Unread"
-                      />
-                    ) : null}
-                  </Link>
+                    <p className="mt-0.5 text-xs text-navy-700/75 leading-snug line-clamp-2">
+                      {n.body}
+                    </p>
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-navy-700/50 font-semibold">
+                      {formatRelative(n.createdAt)}
+                    </div>
+                  </div>
+                  {!n.read ? (
+                    <span
+                      className="self-start mt-1.5 h-2 w-2 rounded-full bg-gold-500"
+                      aria-label="Unread"
+                    />
+                  ) : null}
+                </>
+              );
+              return (
+                <li key={n.id}>
+                  {n.href ? (
+                    <Link
+                      href={n.href}
+                      onClick={() => {
+                        markNotificationRead(n.id);
+                        setOpen(false);
+                      }}
+                      className={rowClass}
+                    >
+                      {inner}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => markNotificationRead(n.id)}
+                      className={rowClass}
+                    >
+                      {inner}
+                    </button>
+                  )}
                 </li>
               );
             })}

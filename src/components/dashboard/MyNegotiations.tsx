@@ -160,7 +160,7 @@ function EmptyState() {
         here.
       </p>
       <Link
-        href="/#opportunities"
+        href="/opportunities"
         className="mt-4 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] font-semibold text-gold-700 hover:text-gold-600 transition-colors group"
       >
         Browse opportunities

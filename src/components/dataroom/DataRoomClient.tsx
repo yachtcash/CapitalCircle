@@ -178,13 +178,23 @@ export default function DataRoomClient({ listing, opportunity, company }: Props)
               </div>
             </div>
 
-            <Link
-              href="/dashboard/listings"
-              className="inline-flex items-center gap-1.5 self-start md:self-end rounded-full bg-white/[0.08] hover:bg-white/[0.14] ring-1 ring-white/20 backdrop-blur text-white font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
-              All listings
-            </Link>
+            <div className="flex items-center gap-2 flex-wrap self-start md:self-end">
+              <button
+                type="button"
+                onClick={() => setRequestOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
+              >
+                <Lock className="h-3.5 w-3.5" strokeWidth={2.4} />
+                Request access
+              </button>
+              <Link
+                href="/dashboard/listings"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] ring-1 ring-white/20 backdrop-blur text-white font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
+                All listings
+              </Link>
+            </div>
           </div>
         </div>
       </section>

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Save, Sparkles, Plus } from "lucide-react";
+import { Save, Sparkles, Plus, Trash2 } from "lucide-react";
 import Modal from "@/components/negotiations/Modal";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import {
   EXPERTISE_SUGGESTIONS,
   PRIVACY_OPTIONS,
   type PrivacyLevel,
+  type ProfileExperience,
   type UserProfile,
 } from "@/data/profile";
 import { cn } from "@/lib/cn";
@@ -20,16 +21,58 @@ type Props = {
 const inputClass =
   "w-full rounded-lg bg-bone/60 ring-1 ring-navy-900/5 focus:ring-2 focus:ring-gold-500 outline-none px-3 py-2 text-sm text-navy-900 placeholder:text-navy-700/40 transition-shadow";
 
+function deriveInitials(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((s) => s[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "—"
+  );
+}
+
+function nextExperienceId(existing: ProfileExperience[]): string {
+  let maxNum = 0;
+  for (const e of existing) {
+    const m = /^exp-(\d+)$/.exec(e.id);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!Number.isNaN(n) && n > maxNum) maxNum = n;
+    }
+  }
+  return `exp-${maxNum + 1}`;
+}
+
 export default function EditProfileModal({ open, onClose }: Props) {
   const { profile, updateProfile } = useMessaging();
   const [draft, setDraft] = useState<UserProfile>(profile);
+  const [initialsTouched, setInitialsTouched] = useState(false);
 
   useEffect(() => {
-    if (open) setDraft(profile);
+    if (open) {
+      setDraft(profile);
+      setInitialsTouched(false);
+    }
   }, [open, profile]);
 
   const set = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const setName = (value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      name: value,
+      // Auto-track initials with the name until the user manually edits them.
+      initials: initialsTouched ? prev.initials : deriveInitials(value),
+    }));
+  };
+
+  const setInitials = (value: string) => {
+    setInitialsTouched(true);
+    setDraft((prev) => ({ ...prev, initials: value.toUpperCase().slice(0, 3) }));
   };
 
   const setPrivacy = (key: "email" | "phone", value: PrivacyLevel) => {
@@ -45,8 +88,49 @@ export default function EditProfileModal({ open, onClose }: Props) {
     }));
   };
 
+  const addExperience = () => {
+    setDraft((prev) => ({
+      ...prev,
+      experience: [
+        ...prev.experience,
+        {
+          id: nextExperienceId(prev.experience),
+          company: "",
+          title: "",
+          startYear: new Date(0).getFullYear() || 2020,
+          description: "",
+          location: "",
+        },
+      ],
+    }));
+  };
+
+  const updateExperience = (
+    id: string,
+    patch: Partial<ProfileExperience>
+  ) => {
+    setDraft((prev) => ({
+      ...prev,
+      experience: prev.experience.map((e) =>
+        e.id === id ? { ...e, ...patch } : e
+      ),
+    }));
+  };
+
+  const removeExperience = (id: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      experience: prev.experience.filter((e) => e.id !== id),
+    }));
+  };
+
   const handleSave = () => {
-    updateProfile(draft);
+    // Final guard: ensure initials always reflect at least the trimmed name.
+    const cleaned: UserProfile = {
+      ...draft,
+      initials: draft.initials.trim() || deriveInitials(draft.name),
+    };
+    updateProfile(cleaned);
     onClose();
   };
 
@@ -60,7 +144,7 @@ export default function EditProfileModal({ open, onClose }: Props) {
       open={open}
       onClose={onClose}
       title="Edit profile"
-      description="Update your bio, expertise, contact preferences, and privacy settings. Changes save locally."
+      description="Update your identity, story, contact info, expertise, and privacy settings. Changes save locally."
       maxWidth="lg"
       footer={
         <>
@@ -83,9 +167,34 @@ export default function EditProfileModal({ open, onClose }: Props) {
       }
     >
       <div className="space-y-6">
-        {/* Basics */}
-        <Section title="Basics">
+        {/* Identity */}
+        <Section title="Identity">
+          <div className="flex items-center gap-4">
+            <div className="shrink-0 h-16 w-16 rounded-2xl bg-navy-900 text-gold-500 ring-4 ring-white shadow flex items-center justify-center text-xl font-semibold tracking-wide">
+              {draft.initials || deriveInitials(draft.name)}
+            </div>
+            <div className="flex-1">
+              <Field label="Initials (avatar text)">
+                <input
+                  type="text"
+                  value={draft.initials}
+                  onChange={(e) => setInitials(e.target.value)}
+                  maxLength={3}
+                  placeholder={deriveInitials(draft.name)}
+                  className={cn(inputClass, "uppercase tracking-widest")}
+                />
+              </Field>
+            </div>
+          </div>
           <Grid>
+            <Field label="Full name">
+              <input
+                type="text"
+                value={draft.name}
+                onChange={(e) => setName(e.target.value)}
+                className={inputClass}
+              />
+            </Field>
             <Field label="Title">
               <input
                 type="text"
@@ -110,7 +219,29 @@ export default function EditProfileModal({ open, onClose }: Props) {
                 className={inputClass}
               />
             </Field>
-            <Field label="Website">
+          </Grid>
+        </Section>
+
+        {/* Contact */}
+        <Section title="Contact">
+          <Grid>
+            <Field label="Email">
+              <input
+                type="email"
+                value={draft.email}
+                onChange={(e) => set("email", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Phone">
+              <input
+                type="tel"
+                value={draft.phone}
+                onChange={(e) => set("phone", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Website" full>
               <input
                 type="url"
                 value={draft.website}
@@ -125,6 +256,12 @@ export default function EditProfileModal({ open, onClose }: Props) {
                 className={inputClass}
               />
             </Field>
+          </Grid>
+        </Section>
+
+        {/* Location */}
+        <Section title="Location">
+          <Grid>
             <Field label="Country">
               <input
                 type="text"
@@ -152,7 +289,7 @@ export default function EditProfileModal({ open, onClose }: Props) {
           </Grid>
         </Section>
 
-        {/* Bio / About */}
+        {/* Story */}
         <Section title="Story">
           <Field label="Bio (one line)">
             <input
@@ -171,6 +308,118 @@ export default function EditProfileModal({ open, onClose }: Props) {
               className={cn(inputClass, "resize-none leading-relaxed")}
             />
           </Field>
+        </Section>
+
+        {/* Experience */}
+        <Section title="Experience">
+          <div className="space-y-3">
+            {draft.experience.length === 0 ? (
+              <p className="text-xs text-navy-700/55">
+                No experience entries yet. Add your career history so members can
+                see what you&apos;ve done.
+              </p>
+            ) : null}
+            {draft.experience.map((exp) => (
+              <div
+                key={exp.id}
+                className="rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-3 md:p-4"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-gold-600 font-semibold">
+                    Role
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeExperience(exp.id)}
+                    aria-label="Remove experience entry"
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-full text-rose-700 hover:bg-rose-500/10 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" strokeWidth={2.2} />
+                  </button>
+                </div>
+                <Grid>
+                  <Field label="Title">
+                    <input
+                      type="text"
+                      value={exp.title}
+                      onChange={(e) =>
+                        updateExperience(exp.id, { title: e.target.value })
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Company">
+                    <input
+                      type="text"
+                      value={exp.company}
+                      onChange={(e) =>
+                        updateExperience(exp.id, { company: e.target.value })
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Start year">
+                    <input
+                      type="number"
+                      min={1950}
+                      max={2100}
+                      value={exp.startYear}
+                      onChange={(e) =>
+                        updateExperience(exp.id, {
+                          startYear: parseInt(e.target.value, 10) || exp.startYear,
+                        })
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="End year (blank = present)">
+                    <input
+                      type="number"
+                      min={1950}
+                      max={2100}
+                      value={exp.endYear ?? ""}
+                      onChange={(e) =>
+                        updateExperience(exp.id, {
+                          endYear: e.target.value
+                            ? parseInt(e.target.value, 10)
+                            : undefined,
+                        })
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Location" full>
+                    <input
+                      type="text"
+                      value={exp.location ?? ""}
+                      onChange={(e) =>
+                        updateExperience(exp.id, { location: e.target.value })
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Description" full>
+                    <textarea
+                      value={exp.description ?? ""}
+                      onChange={(e) =>
+                        updateExperience(exp.id, { description: e.target.value })
+                      }
+                      rows={2}
+                      className={cn(inputClass, "resize-none leading-relaxed")}
+                    />
+                  </Field>
+                </Grid>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addExperience}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/[0.08] hover:ring-navy-900/30 text-navy-900 text-xs font-semibold uppercase tracking-[0.14em] px-3 py-2 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
+              Add experience
+            </button>
+          </div>
         </Section>
 
         {/* Expertise */}

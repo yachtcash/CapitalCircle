@@ -4,6 +4,10 @@ import Link from "next/link";
 import { Eye, ArrowDownToLine, Lock } from "lucide-react";
 import type { DataRoomDocument } from "@/data/documents";
 import { useMessaging } from "@/components/providers/MessagingProvider";
+import {
+  openDocumentPlaceholder,
+  downloadDocumentPlaceholder,
+} from "@/lib/downloadDocument";
 import DocumentTypeIcon, { fileTypeLabel } from "./DocumentTypeIcon";
 import VisibilityBadge from "./VisibilityBadge";
 import { cn } from "@/lib/cn";
@@ -77,7 +81,10 @@ export default function DocumentRow({
           <>
             <button
               type="button"
-              onClick={() => markDocumentViewed(document.id)}
+              onClick={() => {
+                openDocumentPlaceholder(document);
+                markDocumentViewed(document.id);
+              }}
               aria-label={`View ${document.name}`}
               className="h-9 w-9 inline-flex items-center justify-center rounded-full text-navy-700/65 hover:text-navy-900 hover:bg-bone transition-colors"
             >
@@ -85,7 +92,10 @@ export default function DocumentRow({
             </button>
             <button
               type="button"
-              onClick={() => markDocumentDownloaded(document.id)}
+              onClick={() => {
+                downloadDocumentPlaceholder(document);
+                markDocumentDownloaded(document.id);
+              }}
               aria-label={`Download ${document.name}`}
               className="h-9 w-9 inline-flex items-center justify-center rounded-full text-navy-700/65 hover:text-navy-900 hover:bg-bone transition-colors"
             >

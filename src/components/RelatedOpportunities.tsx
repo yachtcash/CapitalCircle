@@ -23,7 +23,7 @@ export default function RelatedOpportunities({
             </h2>
           </div>
           <Link
-            href="/#opportunities"
+            href="/opportunities"
             className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-navy-900 hover:text-gold-600 transition-colors group"
           >
             Browse all

@@ -13,10 +13,11 @@ import {
 } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { getListingById } from "@/data/listings";
-import type { DocumentVisibility } from "@/data/documents";
+import type { DocumentVisibility, DataRoomDocument } from "@/data/documents";
 import DocumentRow from "./DocumentRow";
 import AccessRequestRow from "./AccessRequestRow";
 import DocumentActivityTimeline from "./DocumentActivityTimeline";
+import RequestAccessModal from "./RequestAccessModal";
 import { cn } from "@/lib/cn";
 
 const FILE_TYPE_OPTIONS = [
@@ -60,13 +61,19 @@ function Stat({
 }
 
 export default function DocumentCenterClient() {
-  const { documents, accessRequests, documentActivity } = useMessaging();
+  const {
+    documents,
+    accessRequests,
+    documentActivity,
+    hasApprovedAccess,
+  } = useMessaging();
   const [tab, setTab] = useState<TabKey>("documents");
   const [query, setQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState<DocumentVisibility | "All">(
     "All"
   );
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [accessTarget, setAccessTarget] = useState<DataRoomDocument | null>(null);
 
   const filteredDocuments = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -231,13 +238,17 @@ export default function DocumentCenterClient() {
               <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] divide-y divide-navy-900/[0.06] overflow-hidden">
                 {filteredDocuments.map((document) => {
                   const listing = getListingById(document.listingId);
+                  // Real visibility state: Private docs are locked unless the
+                  // user has approved data-room access for that listing.
+                  const unlocked = hasApprovedAccess(document.listingId);
                   return (
                     <DocumentRow
                       key={document.id}
                       document={document}
                       listingHref={listing ? `/data-room/${listing.id}` : undefined}
                       listingLabel={listing ? listing.title : document.listingId}
-                      unlocked={true}
+                      unlocked={unlocked}
+                      onRequestAccess={() => setAccessTarget(document)}
                     />
                   );
                 })}
@@ -278,7 +289,7 @@ export default function DocumentCenterClient() {
           <span>
             Tip — request access to other sponsors&apos; data rooms from their{" "}
             <Link
-              href="/#opportunities"
+              href="/opportunities"
               className="font-semibold text-navy-900 hover:text-gold-700 transition-colors"
             >
               opportunity pages
@@ -293,6 +304,17 @@ export default function DocumentCenterClient() {
           </Link>
         </div>
       </div>
+
+      {accessTarget ? (
+        <RequestAccessModal
+          open={true}
+          onClose={() => setAccessTarget(null)}
+          listingId={accessTarget.listingId}
+          listingTitle={
+            getListingById(accessTarget.listingId)?.title ?? accessTarget.name
+          }
+        />
+      ) : null}
     </div>
   );
 }

@@ -342,6 +342,23 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // Append a notification to the in-memory list. Used by every workflow that
+  // changes conversation / negotiation / access-request state so the bell
+  // reflects actual activity (audit item: "Notifications never created by
+  // app actions").
+  const pushNotification = useCallback(
+    (n: Omit<Notification, "id" | "createdAt" | "read">) => {
+      const entry: Notification = {
+        ...n,
+        id: makeId("notif"),
+        createdAt: new Date().toISOString(),
+        read: false,
+      };
+      setNotifications((prev) => [entry, ...prev]);
+    },
+    []
+  );
+
   const createInterestConversation = useCallback(
     (context: ConversationContext, optionalNote?: string): string => {
       const now = new Date().toISOString();
@@ -368,9 +385,19 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           createdAt: now,
         });
       }
-      return upsertConversation(context, "Interest Submitted", messages);
+      const id = upsertConversation(context, "Interest Submitted", messages);
+      pushNotification({
+        kind: "message",
+        title: "Interest submitted",
+        body: context.opportunityTitle
+          ? `You opened a conversation about ${context.opportunityTitle}.`
+          : "You opened a new conversation.",
+        href: `/messages?conversation=${id}`,
+        companyId: context.companyId,
+      });
+      return id;
     },
-    [upsertConversation]
+    [upsertConversation, pushNotification]
   );
 
   const createNegotiationConversation = useCallback(
@@ -405,9 +432,19 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           createdAt: now,
         },
       ];
-      return upsertConversation(context, "Negotiation Active", messages);
+      const id = upsertConversation(context, "Negotiation Active", messages);
+      pushNotification({
+        kind: "negotiation_update",
+        title: "Negotiation started",
+        body: context.opportunityTitle
+          ? `You opened a formal negotiation on ${context.opportunityTitle}.`
+          : "You opened a formal negotiation.",
+        href: `/messages?conversation=${id}`,
+        companyId: context.companyId,
+      });
+      return id;
     },
-    [upsertConversation]
+    [upsertConversation, pushNotification]
   );
 
   const sendMessage = useCallback(
@@ -446,8 +483,18 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           };
         })
       );
+      pushNotification({
+        kind: hasAttachments ? "attachment" : "message",
+        title: hasAttachments ? "Attachment sent" : "Message sent",
+        body: value
+          ? value.slice(0, 120)
+          : attachments && attachments.length === 1
+            ? `You sent ${attachments[0].name}`
+            : `You sent ${attachments?.length ?? 0} attachments`,
+        href: `/messages?conversation=${conversationId}`,
+      });
     },
-    []
+    [pushNotification]
   );
 
   const markConversationRead = useCallback((conversationId: string) => {
@@ -458,29 +505,37 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
 
   const advanceStage = useCallback(
     (conversationId: string, stage: NegotiationStage) => {
+      let companyId: string | undefined;
       setConversations((prev) =>
-        prev.map((c) =>
-          c.id === conversationId
-            ? {
-                ...c,
-                stage,
-                messages: [
-                  ...c.messages,
-                  {
-                    id: makeId("sysmsg"),
-                    conversationId,
-                    kind: "system",
-                    variant: "stage_change",
-                    text: stage,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
-            : c
-        )
+        prev.map((c) => {
+          if (c.id !== conversationId) return c;
+          companyId = c.companyId;
+          return {
+            ...c,
+            stage,
+            messages: [
+              ...c.messages,
+              {
+                id: makeId("sysmsg"),
+                conversationId,
+                kind: "system",
+                variant: "stage_change",
+                text: stage,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+          };
+        })
       );
+      pushNotification({
+        kind: "negotiation_update",
+        title: "Negotiation stage updated",
+        body: `Stage advanced to ${stage}.`,
+        href: `/messages?conversation=${conversationId}`,
+        companyId,
+      });
     },
-    []
+    [pushNotification]
   );
 
   const toggleSavedOpportunity = useCallback((opportunityId: string) => {
@@ -1029,9 +1084,15 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           `${requesterName} has been approved for private documents.`,
           ME.authorName
         );
+        pushNotification({
+          kind: "company_response",
+          title: "Access approved",
+          body: `${requesterName} can now view the data room.`,
+          href: `/data-room/${listingId}`,
+        });
       }
     },
-    [pushDocActivity]
+    [pushDocActivity, pushNotification]
   );
 
   const denyAccessRequest = useCallback(
@@ -1058,9 +1119,15 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           `${requesterName} was not approved at this time.`,
           ME.authorName
         );
+        pushNotification({
+          kind: "company_response",
+          title: "Access denied",
+          body: `${requesterName} was not approved for the data room.`,
+          href: `/data-room/${listingId}`,
+        });
       }
     },
-    [pushDocActivity]
+    [pushDocActivity, pushNotification]
   );
 
   const markDocumentViewed = useCallback(

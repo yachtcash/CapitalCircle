@@ -2,18 +2,90 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import type { ListingRecord } from "@/data/listings";
 import { formatRelative } from "@/data/messages";
 import { getOpportunityBySlug } from "@/data/opportunities";
 import { cn } from "@/lib/cn";
 import ListingActionsMenu from "./ListingActionsMenu";
 import ListingStatusBadge from "./ListingStatusBadge";
+import type { SortDir, SortKey } from "./ListingsWorkspace";
 
 type Props = {
   listings: ListingRecord[];
   onDuplicateSuccess?: (newId: string) => void;
   className?: string;
+  sortKey?: SortKey;
+  sortDir?: SortDir;
+  onSort?: (key: SortKey) => void;
 };
+
+function SortableHeader({
+  label,
+  columnKey,
+  align,
+  width,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  columnKey: SortKey;
+  align?: "right";
+  width?: string;
+  sortKey?: SortKey;
+  sortDir?: SortDir;
+  onSort?: (key: SortKey) => void;
+}) {
+  const active = sortKey === columnKey;
+  const ariaSort: "ascending" | "descending" | "none" = active
+    ? sortDir === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
+  const Icon = active
+    ? sortDir === "asc"
+      ? ChevronUp
+      : ChevronDown
+    : ChevronsUpDown;
+  return (
+    <th
+      scope="col"
+      aria-sort={ariaSort}
+      className={cn(
+        "px-4 py-3 font-semibold",
+        width,
+        align === "right" && "text-right"
+      )}
+    >
+      {onSort ? (
+        <button
+          type="button"
+          onClick={() => onSort(columnKey)}
+          aria-label={`Sort by ${label}${
+            active ? ` (${sortDir === "asc" ? "ascending" : "descending"})` : ""
+          }`}
+          className={cn(
+            "inline-flex items-center gap-1 transition-colors hover:text-navy-900",
+            align === "right" && "justify-end w-full",
+            active ? "text-navy-900" : "text-navy-700/70"
+          )}
+        >
+          {label}
+          <Icon
+            className={cn(
+              "h-3 w-3",
+              active ? "text-gold-600" : "text-navy-700/30"
+            )}
+            strokeWidth={2.4}
+          />
+        </button>
+      ) : (
+        label
+      )}
+    </th>
+  );
+}
 
 function PlaceholderCover({ title }: { title: string }) {
   const letter = title.trim().charAt(0).toUpperCase() || "C";
@@ -54,7 +126,12 @@ export default function ListingsTable({
   listings,
   onDuplicateSuccess,
   className,
+  sortKey,
+  sortDir,
+  onSort,
 }: Props) {
+  const headerProps = { sortKey, sortDir, onSort };
+
   return (
     <div
       className={cn(
@@ -66,30 +143,14 @@ export default function ListingsTable({
         <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 bg-bone z-10">
             <tr className="text-[10px] uppercase tracking-[0.14em] font-semibold text-navy-700/70">
-              <th scope="col" className="px-4 py-3 font-semibold w-[28%]">
-                Listing
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Category
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Deal Type
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Status
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold text-right">
-                Views
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold text-right">
-                Saves
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold text-right">
-                Interests
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Last Updated
-              </th>
+              <SortableHeader label="Listing" columnKey="title" width="w-[28%]" {...headerProps} />
+              <SortableHeader label="Category" columnKey="category" {...headerProps} />
+              <SortableHeader label="Deal Type" columnKey="dealType" {...headerProps} />
+              <SortableHeader label="Status" columnKey="status" {...headerProps} />
+              <SortableHeader label="Views" columnKey="views" align="right" {...headerProps} />
+              <SortableHeader label="Saves" columnKey="saves" align="right" {...headerProps} />
+              <SortableHeader label="Interests" columnKey="interests" align="right" {...headerProps} />
+              <SortableHeader label="Last Updated" columnKey="lastUpdated" {...headerProps} />
               <th scope="col" className="px-4 py-3 font-semibold text-right">
                 <span className="sr-only">Actions</span>
               </th>

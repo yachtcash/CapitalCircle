@@ -475,7 +475,12 @@ export default function CreateListingClient({
 
   return (
     <div className="flex-1 flex flex-col">
-      <ProgressBar current={step} total={9} labels={STEP_LABELS} />
+      <ProgressBar
+        current={step}
+        total={9}
+        labels={STEP_LABELS}
+        onJumpTo={handleEdit}
+      />
 
       <div className="flex-1 max-w-3xl w-full mx-auto px-5 md:px-10 py-8 md:py-12">
         <StepHeading {...STEP_TITLES[step]} />
