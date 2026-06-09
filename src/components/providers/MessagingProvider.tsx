@@ -48,6 +48,7 @@ import {
   type DocumentActivityKind,
 } from "@/data/documents";
 import { SEED_PROFILE, type UserProfile } from "@/data/profile";
+import { isStoredImageToken, prewarmTokens } from "@/lib/imageStore";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
 const KEY_NOTIFICATIONS = "cc:notifications:v1";
@@ -379,6 +380,27 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_OPPORTUNITY_PATCHES, opportunityPatches);
   }, [opportunityPatches, hydrated]);
+
+  // After hydration, scan all known opportunity image lists for IDB-backed
+  // tokens and eagerly resolve each to a cached object URL. This way the
+  // sync resolver hits cache on the very first card/hero render, avoiding
+  // a flash-of-empty while async resolution catches up.
+  useEffect(() => {
+    if (!hydrated) return;
+    const tokens = new Set<string>();
+    for (const opp of userOpportunities) {
+      for (const src of opp.images ?? []) {
+        if (isStoredImageToken(src)) tokens.add(src);
+      }
+    }
+    for (const patch of Object.values(opportunityPatches)) {
+      for (const src of patch.images ?? []) {
+        if (isStoredImageToken(src)) tokens.add(src);
+      }
+    }
+    if (tokens.size === 0) return;
+    void prewarmTokens([...tokens]);
+  }, [hydrated, userOpportunities, opportunityPatches]);
 
   const updateProfile = useCallback((partial: Partial<UserProfile>) => {
     setProfile((prev) => ({ ...prev, ...partial }));

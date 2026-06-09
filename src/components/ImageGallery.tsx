@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Images, Maximize2 } from "lucide-react";
 import Lightbox, { useLightbox } from "@/components/common/Lightbox";
+import { useResolvedImages } from "@/lib/imageStore";
 
 type Props = {
   images: string[];
@@ -10,8 +11,9 @@ type Props = {
 };
 
 export default function ImageGallery({ images, title }: Props) {
+  const resolved = useResolvedImages(images);
   const lb = useLightbox(
-    images.map((src, i) => ({ src, alt: `${title} — Photo ${i + 1}` }))
+    resolved.map((src, i) => ({ src, alt: `${title} — Photo ${i + 1}` }))
   );
 
   if (!images.length) return null;
@@ -42,14 +44,14 @@ export default function ImageGallery({ images, title }: Props) {
         {/* Airbnb-style mosaic: large left + 2x2 grid right (desktop), single + scroll row (mobile) */}
         <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2.5 h-[480px] rounded-2xl overflow-hidden">
           <Tile
-            src={images[0]}
+            src={resolved[0]}
             alt={`${title} — Photo 1`}
             onClick={() => lb.openAt(0)}
             className="col-span-2 row-span-2"
           />
           {[1, 2, 3, 4].map((i) => {
-            const src = images[i] ?? images[i % images.length];
-            const lightboxIndex = i < images.length ? i : i % images.length;
+            const src = resolved[i] ?? resolved[i % resolved.length];
+            const lightboxIndex = i < resolved.length ? i : i % resolved.length;
             return (
               <Tile
                 key={i}
@@ -65,27 +67,29 @@ export default function ImageGallery({ images, title }: Props) {
         {/* Mobile: featured + horizontal scroll for the rest */}
         <div className="md:hidden">
           <Tile
-            src={images[0]}
+            src={resolved[0]}
             alt={`${title} — Photo 1`}
             onClick={() => lb.openAt(0)}
             className="aspect-[4/3] rounded-2xl"
           />
           <div className="mt-2.5 flex gap-2.5 overflow-x-auto snap-x snap-mandatory pb-1 -mx-5 px-5">
-            {images.slice(1).map((src, i) => (
+            {resolved.slice(1).map((src, i) => (
               <button
-                key={src + i}
+                key={(src ?? "") + i}
                 type="button"
                 onClick={() => lb.openAt(i + 1)}
                 className="relative shrink-0 w-2/3 aspect-[4/3] rounded-xl overflow-hidden snap-start bg-navy-900/5"
               >
-                <Image
-                  src={src}
-                  alt={`${title} — Photo ${i + 2}`}
-                  fill
-                  sizes="66vw"
-                  className="object-cover"
-                  unoptimized
-                />
+                {src ? (
+                  <Image
+                    src={src}
+                    alt={`${title} — Photo ${i + 2}`}
+                    fill
+                    sizes="66vw"
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : null}
               </button>
             ))}
           </div>
@@ -108,7 +112,7 @@ function Tile({
   className,
   onClick,
 }: {
-  src: string;
+  src: string | undefined;
   alt: string;
   className?: string;
   onClick?: () => void;
@@ -120,14 +124,16 @@ function Tile({
       className={`relative overflow-hidden bg-navy-900/5 group ${className ?? ""}`}
       aria-label={`Open ${alt} in gallery`}
     >
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        sizes="(min-width: 1024px) 600px, (min-width: 768px) 50vw, 100vw"
-        className="object-cover group-hover:scale-105 transition-transform duration-700"
-        unoptimized
-      />
+      {src ? (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="(min-width: 1024px) 600px, (min-width: 768px) 50vw, 100vw"
+          className="object-cover group-hover:scale-105 transition-transform duration-700"
+          unoptimized
+        />
+      ) : null}
       <div className="absolute inset-0 bg-navy-900/0 group-hover:bg-navy-900/10 transition-colors" />
     </button>
   );

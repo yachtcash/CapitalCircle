@@ -20,6 +20,7 @@ import {
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { useResolvedImage } from "@/lib/imageStore";
 import type { ListingRecord, ListingStatus } from "@/data/listings";
 import type { Opportunity } from "@/data/opportunities";
 import type { Company } from "@/data/companies";
@@ -87,7 +88,7 @@ export default function ManagementHero({ listing, opportunity }: Props) {
   const [toast, setToast] = useState<{ id: string } | null>(null);
   const [dialog, setDialog] = useState<DialogKind>(null);
 
-  const coverImage = opportunity?.images?.[0];
+  const coverImage = useResolvedImage(opportunity?.images?.[0]);
 
   const handleDuplicate = () => {
     const newId = duplicateListing(listing.id);

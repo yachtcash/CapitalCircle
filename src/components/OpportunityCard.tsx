@@ -1,9 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Clock } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { publicOpportunityId } from "@/lib/opportunities/id";
 import MessageOpportunityButton from "@/components/common/MessageOpportunityButton";
+import { useResolvedImage } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 
 const statusStyles: Record<Opportunity["status"], string> = {
@@ -27,7 +30,7 @@ export default function OpportunityCard({
   ribbon = null,
   showPublicId = false,
 }: Props) {
-  const cover = opportunity.images[0];
+  const cover = useResolvedImage(opportunity.images[0]);
   const publicId = publicOpportunityId(opportunity);
 
   return (
@@ -37,14 +40,16 @@ export default function OpportunityCard({
     >
       {/* Featured image — aspect 4:3 so it lands at ~50% of card height with content below */}
       <div className="relative aspect-[4/3] overflow-hidden bg-navy-900/5">
-        <Image
-          src={cover}
-          alt={opportunity.title}
-          fill
-          priority={priority}
-          sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {cover ? (
+          <Image
+            src={cover}
+            alt={opportunity.title}
+            fill
+            priority={priority}
+            sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : null}
 
         {/* Subtle gradient overlays for legibility */}
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-navy-900/45 to-transparent pointer-events-none" />

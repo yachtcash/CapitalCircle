@@ -6,6 +6,7 @@ import { X, ChevronRight, Layers, MapPin } from "lucide-react";
 import type { MapCluster } from "@/lib/map/types";
 import type { Opportunity } from "@/data/opportunities";
 import { publicOpportunityId } from "@/lib/opportunities/id";
+import { useResolvedImages } from "@/lib/imageStore";
 
 type Props = {
   cluster: MapCluster;
@@ -26,6 +27,9 @@ export default function ClusterPreviewCard({
   onPickOpportunity,
   onClose,
 }: Props) {
+  const covers = useResolvedImages(
+    cluster.markers.map(({ opportunity }) => opportunity.images[0])
+  );
   return (
     <article className="bg-white rounded-2xl ring-1 ring-navy-900/[0.08] shadow-xl shadow-navy-900/15 overflow-hidden w-[280px]">
       <header className="flex items-center justify-between gap-2 px-4 py-3 bg-navy-900 text-white">
@@ -49,8 +53,9 @@ export default function ClusterPreviewCard({
       </header>
 
       <ul className="max-h-[280px] overflow-y-auto divide-y divide-navy-900/[0.06]">
-        {cluster.markers.map(({ opportunity }) => {
+        {cluster.markers.map(({ opportunity }, idx) => {
           const id = publicOpportunityId(opportunity);
+          const cover = covers[idx];
           return (
             <li key={opportunity.id}>
               <button
@@ -59,14 +64,16 @@ export default function ClusterPreviewCard({
                 className="w-full text-left flex items-center gap-3 px-3 py-2.5 hover:bg-bone/60 transition-colors group"
               >
                 <div className="relative h-10 w-12 shrink-0 rounded-md overflow-hidden bg-navy-900/5 ring-1 ring-navy-900/[0.05]">
-                  <Image
-                    src={opportunity.images[0]}
-                    alt=""
-                    fill
-                    sizes="48px"
-                    className="object-cover"
-                    unoptimized
-                  />
+                  {cover ? (
+                    <Image
+                      src={cover}
+                      alt=""
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold text-navy-900 truncate group-hover:text-gold-700 transition-colors">

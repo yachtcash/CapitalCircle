@@ -7,6 +7,7 @@ import type { Opportunity } from "@/data/opportunities";
 import { getCompanyById } from "@/data/companies";
 import { publicOpportunityId } from "@/lib/opportunities/id";
 import { markerStyleFor, MARKER_STYLES } from "@/lib/map/types";
+import { useResolvedImage } from "@/lib/imageStore";
 import MessageOpportunityButton from "@/components/common/MessageOpportunityButton";
 
 type Props = {
@@ -18,17 +19,20 @@ export default function MarkerPreviewCard({ opportunity, onClose }: Props) {
   const company = getCompanyById(opportunity.companyId);
   const publicId = publicOpportunityId(opportunity);
   const style = MARKER_STYLES[markerStyleFor(opportunity.category)];
+  const cover = useResolvedImage(opportunity.images[0]);
 
   return (
     <article className="bg-white rounded-2xl ring-1 ring-navy-900/[0.08] shadow-xl shadow-navy-900/15 overflow-hidden">
       <div className="relative aspect-[16/9] bg-navy-900/5">
-        <Image
-          src={opportunity.images[0]}
-          alt={opportunity.title}
-          fill
-          sizes="380px"
-          className="object-cover"
-        />
+        {cover ? (
+          <Image
+            src={cover}
+            alt={opportunity.title}
+            fill
+            sizes="380px"
+            className="object-cover"
+          />
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-navy-900/55 to-transparent pointer-events-none" />
         <button
           type="button"

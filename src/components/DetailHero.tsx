@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Briefcase, ChevronRight } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
+import { useResolvedImage } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 
 const statusStyles: Record<Opportunity["status"], string> = {
@@ -13,18 +16,21 @@ const statusStyles: Record<Opportunity["status"], string> = {
 };
 
 export default function DetailHero({ opportunity }: { opportunity: Opportunity }) {
+  const cover = useResolvedImage(opportunity.images[0]);
   return (
     <section className="relative overflow-hidden bg-navy-900">
       {/* Image */}
       <div className="absolute inset-0">
-        <Image
-          src={opportunity.images[0]}
-          alt={opportunity.title}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
+        {cover ? (
+          <Image
+            src={cover}
+            alt={opportunity.title}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        ) : null}
       </div>
 
       {/* Overlay gradients for text legibility */}

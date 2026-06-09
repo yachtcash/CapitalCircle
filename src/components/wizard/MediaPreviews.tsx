@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { X } from "lucide-react";
+import { useResolvedImages } from "@/lib/imageStore";
 import type { MediaItem } from "./types";
 
 type Props = {
@@ -16,6 +17,7 @@ function formatSize(bytes: number): string {
 }
 
 export default function MediaPreviews({ items, onRemove }: Props) {
+  const resolved = useResolvedImages(items.map((i) => i.previewUrl));
   if (items.length === 0) return null;
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -24,14 +26,18 @@ export default function MediaPreviews({ items, onRemove }: Props) {
           key={item.id}
           className="group relative aspect-square rounded-xl overflow-hidden bg-navy-900/5 ring-1 ring-navy-900/[0.06]"
         >
-          <Image
-            src={item.previewUrl}
-            alt={item.name}
-            fill
-            sizes="(min-width: 768px) 25vw, 50vw"
-            className="object-cover"
-            unoptimized
-          />
+          {resolved[index] ? (
+            <Image
+              src={resolved[index]}
+              alt={item.name}
+              fill
+              sizes="(min-width: 768px) 25vw, 50vw"
+              className="object-cover"
+              unoptimized
+            />
+          ) : (
+            <div className="absolute inset-0 bg-navy-900/[0.06] animate-pulse" />
+          )}
           {index === 0 ? (
             <span className="absolute top-2 left-2 inline-flex items-center text-[9px] uppercase tracking-[0.14em] font-bold bg-gold-500 text-navy-900 rounded-full px-2 py-0.5">
               Cover

@@ -62,6 +62,11 @@ import {
 } from "@/components/wizard/types";
 import { categories } from "@/data/categories";
 import { useMessaging } from "@/components/providers/MessagingProvider";
+import {
+  deleteImage as deleteStoredImage,
+  isStoredImageToken,
+  putImage,
+} from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 
 // -------- Constants & options --------
@@ -385,7 +390,8 @@ export default function CreateListingClient({
   };
 
   const handleCreateAnother = () => {
-    formData.images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    // Don't free the IDB blobs here — the just-created listing now references
+    // them via the same tokens, and deleting them would break the gallery.
     setFormData(INITIAL_FORM_STATE);
     setCreatedIds(null);
     setStep(1);
@@ -395,19 +401,23 @@ export default function CreateListingClient({
   // -------- Image / document handlers --------
 
   const handleImagesAdded = useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
       const remaining = MAX_IMAGES - formData.images.length;
       if (remaining <= 0) return;
-      const accepted = files
+      const slice = files
         .filter((f) => ALLOWED_IMAGE_TYPES.includes(f.type))
-        .slice(0, remaining)
-        .map<MediaItem>((f) => ({
+        .slice(0, remaining);
+      // Persist each blob to IndexedDB and use the token as previewUrl.
+      // Tokens survive refresh / restart; object URLs don't.
+      const accepted = await Promise.all(
+        slice.map<Promise<MediaItem>>(async (f) => ({
           id: makeId(),
           name: f.name,
           size: f.size,
           type: f.type,
-          previewUrl: URL.createObjectURL(f),
-        }));
+          previewUrl: await putImage(f, f.name),
+        }))
+      );
       if (accepted.length > 0) {
         update({ images: [...formData.images, ...accepted] });
       }
@@ -418,7 +428,9 @@ export default function CreateListingClient({
   const handleImageRemove = useCallback(
     (id: string) => {
       const target = formData.images.find((i) => i.id === id);
-      if (target) URL.revokeObjectURL(target.previewUrl);
+      if (target && isStoredImageToken(target.previewUrl)) {
+        void deleteStoredImage(target.previewUrl);
+      }
       update({ images: formData.images.filter((i) => i.id !== id) });
     },
     [formData.images, update]

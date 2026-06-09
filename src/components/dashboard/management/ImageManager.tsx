@@ -18,6 +18,12 @@ import {
 import Lightbox, { useLightbox } from "@/components/common/Lightbox";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useMessaging } from "@/components/providers/MessagingProvider";
+import {
+  deleteImage as deleteStoredImage,
+  isStoredImageToken,
+  putImage,
+  useResolvedImages,
+} from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -57,18 +63,22 @@ export default function ImageManager({
   listingId,
 }: Props) {
   const { updateListingImages } = useMessaging();
+  // `images` holds canonical references — either seed paths like
+  // "/listings/.../1.jpg" or persistent IDB tokens like "idb://img-abc.jpg".
+  // Display URLs are derived via `useResolvedImages` below.
   const [images, setImages] = useState<string[]>(initialImages);
-  const objectUrls = useRef<Set<string>>(new Set());
   const fileInput = useRef<HTMLInputElement>(null);
   const replaceTargetRef = useRef<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
+  // Hydrate the canonical image list when the parent passes a new initial
+  // set (e.g. another listing is opened in the same workspace). Tokens are
+  // preserved across this; we never substitute object URLs into state.
   useEffect(() => {
-    return () => {
-      objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
-      objectUrls.current.clear();
-    };
-  }, []);
+    setImages(initialImages);
+  }, [initialImages]);
+
+  const displayImages = useResolvedImages(images);
 
   const persist = (next: string[]) => {
     if (listingId) updateListingImages(listingId, next);
@@ -87,7 +97,7 @@ export default function ImageManager({
   };
 
   const lb = useLightbox(
-    images.map((src, i) => ({ src, alt: `${title} — Photo ${i + 1}` }))
+    displayImages.map((src, i) => ({ src, alt: `${title} — Photo ${i + 1}` }))
   );
 
   const setCover = (i: number) => {
@@ -101,16 +111,12 @@ export default function ImageManager({
   };
 
   const performRemove = (i: number) => {
-    updateAndPersist(
-      (prev) => prev.filter((_, idx) => idx !== i),
-      () => {
-        const removed = images[i];
-        if (removed && objectUrls.current.has(removed)) {
-          URL.revokeObjectURL(removed);
-          objectUrls.current.delete(removed);
-        }
-      }
-    );
+    const removed = images[i];
+    updateAndPersist((prev) => prev.filter((_, idx) => idx !== i));
+    if (removed && isStoredImageToken(removed)) {
+      // Best-effort: free the IDB blob so the user doesn't leak storage.
+      void deleteStoredImage(removed);
+    }
     setDeleteIndex(null);
   };
 
@@ -145,37 +151,41 @@ export default function ImageManager({
     fileInput.current?.click();
   };
 
-  const acceptFiles = (files: File[], targetIndex: number | null) => {
+  const acceptFiles = async (
+    files: File[],
+    targetIndex: number | null
+  ): Promise<void> => {
     if (files.length === 0) return;
-    const images = files.filter((f) => f.type.startsWith("image/"));
-    if (images.length === 0) return;
-    const urls = images.map((f) => {
-      const u = URL.createObjectURL(f);
-      objectUrls.current.add(u);
-      return u;
-    });
+    const accepted = files.filter((f) => f.type.startsWith("image/"));
+    if (accepted.length === 0) return;
+    // Persist every blob to IndexedDB BEFORE updating React state. Tokens
+    // are stable strings that survive refresh / restart / serialization.
+    const tokens = await Promise.all(
+      accepted.map((f) => putImage(f, f.name))
+    );
     updateAndPersist((prev) => {
-      if (targetIndex != null && urls.length > 0) {
+      if (targetIndex != null && tokens.length > 0) {
         // Replace ONE image at the target index. Position preserved.
         // Extra files (if multi-select on Replace) append at the end.
         const next = [...prev];
-        if (objectUrls.current.has(next[targetIndex])) {
-          URL.revokeObjectURL(next[targetIndex]);
-          objectUrls.current.delete(next[targetIndex]);
+        const replaced = next[targetIndex];
+        if (isStoredImageToken(replaced)) {
+          void deleteStoredImage(replaced);
         }
-        next[targetIndex] = urls[0];
-        return next.concat(urls.slice(1));
+        next[targetIndex] = tokens[0];
+        return next.concat(tokens.slice(1));
       }
-      return prev.concat(urls);
+      return prev.concat(tokens);
     });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    acceptFiles(files, replaceTargetRef.current);
+    const targetIndex = replaceTargetRef.current;
     replaceTargetRef.current = null;
     // Reset value so picking the same file again still triggers onChange.
     e.target.value = "";
+    void acceptFiles(files, targetIndex);
   };
 
   const [dragOver, setDragOver] = useState(false);
@@ -197,7 +207,7 @@ export default function ImageManager({
     e.stopPropagation();
     setDragOver(false);
     const files = Array.from(e.dataTransfer?.files ?? []);
-    acceptFiles(files, null);
+    void acceptFiles(files, null);
   };
 
   const coverIndex = useMemo(() => (images.length > 0 ? 0 : -1), [images.length]);
@@ -284,23 +294,27 @@ export default function ImageManager({
         </div>
       ) : (
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {images.map((src, i) => (
+          {images.map((token, i) => (
             <li
-              key={src + i}
+              key={token + i}
               className={cn(
                 "relative rounded-2xl overflow-hidden bg-white ring-1",
                 i === coverIndex ? "ring-gold-500/60" : "ring-navy-900/[0.06]"
               )}
             >
               <div className="relative aspect-[4/3]">
-                <Image
-                  src={src}
-                  alt={`${title} — Photo ${i + 1}`}
-                  fill
-                  sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-                  className="object-cover"
-                  unoptimized
-                />
+                {displayImages[i] ? (
+                  <Image
+                    src={displayImages[i]}
+                    alt={`${title} — Photo ${i + 1}`}
+                    fill
+                    sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-navy-900/[0.06] animate-pulse" />
+                )}
                 <button
                   type="button"
                   onClick={() => lb.openAt(i)}
