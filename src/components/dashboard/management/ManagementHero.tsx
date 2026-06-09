@@ -15,9 +15,11 @@ import {
   Briefcase,
   Clock,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import type { ListingRecord, ListingStatus } from "@/data/listings";
 import type { Opportunity } from "@/data/opportunities";
 import type { Company } from "@/data/companies";
@@ -70,12 +72,20 @@ type Props = {
   company?: Company;
 };
 
+type DialogKind = "archive" | "close" | "delete" | null;
+
 export default function ManagementHero({ listing, opportunity }: Props) {
   const router = useRouter();
-  const { duplicateListing, archiveListing, markListingClosed, restoreListing } =
-    useMessaging();
+  const {
+    duplicateListing,
+    archiveListing,
+    markListingClosed,
+    restoreListing,
+    deleteListing,
+  } = useMessaging();
 
   const [toast, setToast] = useState<{ id: string } | null>(null);
+  const [dialog, setDialog] = useState<DialogKind>(null);
 
   const coverImage = opportunity?.images?.[0];
 
@@ -84,19 +94,29 @@ export default function ManagementHero({ listing, opportunity }: Props) {
     if (newId) setToast({ id: newId });
   };
 
-  const handleArchive = () => {
-    if (typeof window === "undefined") return;
-    const ok = window.confirm(
-      `Archive ${listing.id} — ${listing.title}? It will be removed from the active marketplace.`
-    );
-    if (!ok) return;
-    archiveListing(listing.id);
-    router.push("/dashboard/listings");
-  };
-
-  const handleMarkClosed = () => markListingClosed(listing.id);
   const handleRestore = () => restoreListing(listing.id);
   const isArchived = listing.status === "Archived";
+
+  const handleConfirm = () => {
+    switch (dialog) {
+      case "archive":
+        archiveListing(listing.id);
+        setDialog(null);
+        router.push("/dashboard/listings");
+        break;
+      case "close":
+        markListingClosed(listing.id);
+        setDialog(null);
+        break;
+      case "delete":
+        deleteListing(listing.id);
+        setDialog(null);
+        router.push("/dashboard/listings");
+        break;
+      default:
+        setDialog(null);
+    }
+  };
 
   return (
     <section className="bg-white">
@@ -222,7 +242,7 @@ export default function ManagementHero({ listing, opportunity }: Props) {
                 <>
                   <button
                     type="button"
-                    onClick={handleArchive}
+                    onClick={() => setDialog("archive")}
                     className="inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-bone text-navy-900 font-semibold ring-1 ring-navy-900/10 px-4 py-2 text-xs transition-colors"
                   >
                     <Archive className="h-3.5 w-3.5" strokeWidth={2.4} />
@@ -230,7 +250,7 @@ export default function ManagementHero({ listing, opportunity }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={handleMarkClosed}
+                    onClick={() => setDialog("close")}
                     className="inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-bone text-navy-900 font-semibold ring-1 ring-navy-900/10 px-4 py-2 text-xs transition-colors"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.4} />
@@ -238,6 +258,14 @@ export default function ManagementHero({ listing, opportunity }: Props) {
                   </button>
                 </>
               )}
+              <button
+                type="button"
+                onClick={() => setDialog("delete")}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-rose-500/10 text-rose-700 font-semibold ring-1 ring-rose-500/30 px-4 py-2 text-xs transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={2.4} />
+                Delete
+              </button>
             </div>
           </div>
 
@@ -259,6 +287,32 @@ export default function ManagementHero({ listing, opportunity }: Props) {
           ) : null}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={dialog === "archive"}
+        title={`Archive ${listing.id}?`}
+        body={`“${listing.title}” will be removed from the active marketplace. You can restore it later from My Listings.`}
+        confirmLabel="Archive listing"
+        onCancel={() => setDialog(null)}
+        onConfirm={handleConfirm}
+      />
+      <ConfirmDialog
+        open={dialog === "close"}
+        title={`Mark ${listing.id} as Closed?`}
+        body={`“${listing.title}” will be marked Closed. Investors will no longer see it as an active raise. You can still view it from My Listings.`}
+        confirmLabel="Mark Closed"
+        onCancel={() => setDialog(null)}
+        onConfirm={handleConfirm}
+      />
+      <ConfirmDialog
+        open={dialog === "delete"}
+        title={`Permanently delete ${listing.id}?`}
+        body={`“${listing.title}”, its gallery, documents, access requests, and activity history will be removed. This cannot be undone.`}
+        confirmLabel="Delete listing"
+        tone="danger"
+        onCancel={() => setDialog(null)}
+        onConfirm={handleConfirm}
+      />
     </section>
   );
 }

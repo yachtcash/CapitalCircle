@@ -15,10 +15,10 @@ import type { Company } from "@/data/companies";
 import { cn } from "@/lib/cn";
 
 import ListingInformationBlock from "./ListingInformationBlock";
-import ListingDocumentsBlock from "./ListingDocumentsBlock";
 import ListingAnalyticsDetail from "./ListingAnalyticsDetail";
 import ListingActivityFeed from "./ListingActivityFeed";
 import ImageManager from "./ImageManager";
+import DocumentManager from "./DocumentManager";
 
 type TabKey = "overview" | "gallery" | "documents" | "analytics" | "activity";
 
@@ -83,11 +83,13 @@ export default function ManagementTabs({ listing, opportunity }: Props) {
           <ImageManager
             initialImages={opportunity?.images ?? []}
             title={listing.title}
+            listingId={listing.id}
           />
         ) : null}
         {active === "documents" ? (
-          <ListingDocumentsBlock
-            documents={opportunity?.documents ?? []}
+          <DocumentManager
+            listingId={listing.id}
+            listingTitle={listing.title}
           />
         ) : null}
         {active === "analytics" ? (

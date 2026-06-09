@@ -132,6 +132,30 @@ type MessagingValue = {
   saveListingDraft: (id: string, draftPayload: unknown) => void;
   getListing: (id: string) => ListingRecord | undefined;
 
+  /**
+   * Hard-delete a listing. Also removes its backing user opportunity (if any)
+   * and any documents owned by the listing. Seed opportunities are untouched.
+   */
+  deleteListing: (id: string) => void;
+  /**
+   * Replace the image array on the listing's backing opportunity. Works for
+   * user-created opportunities; for seed opportunities this is a no-op
+   * (the image manager will keep local-only state).
+   */
+  updateListingImages: (listingId: string, images: string[]) => void;
+
+  /** Add a new document to a listing's data room. */
+  addDocument: (
+    input: Omit<DataRoomDocument, "id" | "uploadedAt" | "updatedAt">
+  ) => string;
+  /** Hard-delete a document. */
+  deleteDocument: (documentId: string) => void;
+  /** Patch document metadata (e.g. replace name / category / size on replace). */
+  replaceDocument: (
+    documentId: string,
+    patch: Partial<Omit<DataRoomDocument, "id" | "listingId" | "uploadedAt">>
+  ) => void;
+
   /** User-created opportunities (persisted to localStorage). */
   userOpportunities: Opportunity[];
   /**
@@ -831,6 +855,60 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const deleteListing = useCallback((id: string) => {
+    let deletedOpportunityId: string | undefined;
+    setListings((prev) => {
+      const target = prev.find((l) => l.id === id);
+      if (target) deletedOpportunityId = target.opportunityId;
+      return prev.filter((l) => l.id !== id);
+    });
+    if (deletedOpportunityId) {
+      setUserOpportunities((prev) =>
+        prev.filter((o) => o.id !== deletedOpportunityId)
+      );
+    }
+    setDocuments((prev) => prev.filter((d) => d.listingId !== id));
+    setAccessRequests((prev) => prev.filter((r) => r.listingId !== id));
+    setDocumentActivity((prev) => prev.filter((a) => a.listingId !== id));
+  }, []);
+
+  const updateListingImages = useCallback(
+    (listingId: string, images: string[]) => {
+      let targetOpportunityId: string | undefined;
+      setListings((prev) =>
+        prev.map((l) => {
+          if (l.id !== listingId) return l;
+          targetOpportunityId = l.opportunityId;
+          return {
+            ...l,
+            lastUpdatedAt: new Date().toISOString(),
+            activity: [
+              ...l.activity,
+              makeActivityEntry(
+                l.id,
+                l.activity,
+                "edit",
+                "Gallery updated",
+                `Image set updated to ${images.length} ${
+                  images.length === 1 ? "photo" : "photos"
+                }.`,
+                { opportunitySlug: l.opportunitySlug }
+              ),
+            ],
+          };
+        })
+      );
+      if (targetOpportunityId) {
+        setUserOpportunities((prev) =>
+          prev.map((o) =>
+            o.id === targetOpportunityId ? { ...o, images } : o
+          )
+        );
+      }
+    },
+    []
+  );
+
   // ---- User-created opportunities (wizard target) ----
 
   const createListing = useCallback(
@@ -1026,6 +1104,128 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       });
     },
     []
+  );
+
+  // ---- Document management (post-publication, no wizard) ----
+
+  function nextDocId(existing: DataRoomDocument[]): string {
+    let maxNum = 0;
+    for (const d of existing) {
+      const match = /^DOC-(\d+)$/.exec(d.id);
+      if (match) {
+        const value = parseInt(match[1], 10);
+        if (!Number.isNaN(value) && value > maxNum) maxNum = value;
+      }
+    }
+    return `DOC-${String(maxNum + 1).padStart(6, "0")}`;
+  }
+
+  const addDocument = useCallback(
+    (
+      input: Omit<DataRoomDocument, "id" | "uploadedAt" | "updatedAt">
+    ): string => {
+      const now = new Date().toISOString();
+      let id = "";
+      setDocuments((prev) => {
+        id = nextDocId(prev);
+        const entry: DataRoomDocument = {
+          ...input,
+          id,
+          uploadedAt: now,
+          updatedAt: now,
+        };
+        return [entry, ...prev];
+      });
+      pushDocActivity(
+        input.listingId,
+        "uploaded",
+        "Document uploaded",
+        `${ME.authorName} uploaded “${input.name}”.`,
+        ME.authorName,
+        id
+      );
+      setListings((prev) =>
+        prev.map((l) =>
+          l.id === input.listingId
+            ? {
+                ...l,
+                lastUpdatedAt: now,
+                activity: [
+                  ...l.activity,
+                  makeActivityEntry(
+                    l.id,
+                    l.activity,
+                    "edit",
+                    "Document uploaded",
+                    `${input.name} was added to the data room.`,
+                    { opportunitySlug: l.opportunitySlug }
+                  ),
+                ],
+              }
+            : l
+        )
+      );
+      return id;
+    },
+    [pushDocActivity]
+  );
+
+  const deleteDocument = useCallback(
+    (documentId: string) => {
+      let targetListingId: string | undefined;
+      let targetName: string | undefined;
+      setDocuments((prev) => {
+        const target = prev.find((d) => d.id === documentId);
+        if (target) {
+          targetListingId = target.listingId;
+          targetName = target.name;
+        }
+        return prev.filter((d) => d.id !== documentId);
+      });
+      if (targetListingId && targetName) {
+        pushDocActivity(
+          targetListingId,
+          "uploaded", // closest existing kind for "removed"
+          "Document removed",
+          `${ME.authorName} removed “${targetName}”.`,
+          ME.authorName
+        );
+      }
+    },
+    [pushDocActivity]
+  );
+
+  const replaceDocument = useCallback(
+    (
+      documentId: string,
+      patch: Partial<Omit<DataRoomDocument, "id" | "listingId" | "uploadedAt">>
+    ) => {
+      let targetListingId: string | undefined;
+      let nextName: string | undefined;
+      setDocuments((prev) =>
+        prev.map((d) => {
+          if (d.id !== documentId) return d;
+          targetListingId = d.listingId;
+          nextName = patch.name ?? d.name;
+          return {
+            ...d,
+            ...patch,
+            updatedAt: new Date().toISOString(),
+          };
+        })
+      );
+      if (targetListingId) {
+        pushDocActivity(
+          targetListingId,
+          "uploaded",
+          "Document replaced",
+          `${ME.authorName} replaced the document with “${nextName ?? "an updated file"}”.`,
+          ME.authorName,
+          documentId
+        );
+      }
+    },
+    [pushDocActivity]
   );
 
   const requestDocumentAccess = useCallback(
@@ -1227,6 +1427,11 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     updateListingStatus,
     saveListingDraft,
     getListing,
+    deleteListing,
+    updateListingImages,
+    addDocument,
+    deleteDocument,
+    replaceDocument,
     userOpportunities,
     createListing,
     updateUserOpportunity,

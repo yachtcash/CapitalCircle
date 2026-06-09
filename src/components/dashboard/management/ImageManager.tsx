@@ -5,15 +5,18 @@ import Image from "next/image";
 import {
   ArrowDown,
   ArrowUp,
+  ChevronsUp,
+  ChevronsDown,
   Image as ImageIcon,
   Plus,
   RefreshCw,
   Star,
-  StarOff,
   Trash2,
   ZoomIn,
 } from "lucide-react";
 import Lightbox, { useLightbox } from "@/components/common/Lightbox";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { useMessaging } from "@/components/providers/MessagingProvider";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -21,26 +24,52 @@ type Props = {
   initialImages: string[];
   /** Optional human-readable label for image alt text. */
   title?: string;
+  /**
+   * When provided AND the listing's backing opportunity is user-created,
+   * every change is persisted through `updateListingImages`. Seed listings
+   * keep local-only state (provider call is a no-op) and the panel shows a
+   * "Local only — refresh resets" note.
+   */
+  listingId?: string;
 };
 
 /**
- * Mock image manager — local state only, no backend.
+ * Live image manager for `/dashboard/listings/[id]` Gallery tab.
  *
- * Capabilities:
- *  - Replace an individual image (file picker → object URL)
- *  - Delete an individual image
- *  - Add a new image
- *  - Reorder (up/down)
+ * Capabilities (all individual — no full-gallery re-upload):
+ *  - Add image (file picker, multi-select)
+ *  - Replace an individual image (preserves its index)
+ *  - Delete an individual image (with confirmation)
+ *  - Reorder: move up / move down / move to first / move to last
  *  - Set cover (move to index 0)
+ *  - Preview every image in the universal Lightbox
  *
- * Object URLs created via createObjectURL are revoked on unmount.
+ * Persistence: changes flow through `updateListingImages` when a
+ * `listingId` is provided. For user-created opportunities that means the
+ * public marketplace surfaces (directory, search, map, detail) update
+ * immediately. Seed opportunities remain immutable (the persistence call
+ * silently no-ops in the provider).
  */
-export default function ImageManager({ initialImages, title = "Listing" }: Props) {
+export default function ImageManager({
+  initialImages,
+  title = "Listing",
+  listingId,
+}: Props) {
+  const { updateListingImages, userOpportunities, listings } = useMessaging();
   const [images, setImages] = useState<string[]>(initialImages);
   const objectUrls = useRef<Set<string>>(new Set());
-
   const fileInput = useRef<HTMLInputElement>(null);
   const replaceTargetRef = useRef<number | null>(null);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+
+  // Detect whether this listing is backed by a user-created opportunity so we
+  // can label the persistence story correctly.
+  const isLive = useMemo(() => {
+    if (!listingId) return false;
+    const listing = listings.find((l) => l.id === listingId);
+    if (!listing?.opportunityId) return false;
+    return userOpportunities.some((o) => o.id === listing.opportunityId);
+  }, [listingId, listings, userOpportunities]);
 
   useEffect(() => {
     return () => {
@@ -49,13 +78,29 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
     };
   }, []);
 
+  const persist = (next: string[]) => {
+    if (listingId) updateListingImages(listingId, next);
+  };
+
+  const updateAndPersist = (
+    updater: (prev: string[]) => string[],
+    sideEffect?: (next: string[]) => void
+  ) => {
+    setImages((prev) => {
+      const next = updater(prev);
+      sideEffect?.(next);
+      persist(next);
+      return next;
+    });
+  };
+
   const lb = useLightbox(
     images.map((src, i) => ({ src, alt: `${title} — Photo ${i + 1}` }))
   );
 
   const setCover = (i: number) => {
     if (i === 0) return;
-    setImages((prev) => {
+    updateAndPersist((prev) => {
       const next = [...prev];
       const [picked] = next.splice(i, 1);
       next.unshift(picked);
@@ -63,23 +108,37 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
     });
   };
 
-  const remove = (i: number) => {
-    setImages((prev) => {
-      const removed = prev[i];
-      if (objectUrls.current.has(removed)) {
-        URL.revokeObjectURL(removed);
-        objectUrls.current.delete(removed);
+  const performRemove = (i: number) => {
+    updateAndPersist(
+      (prev) => prev.filter((_, idx) => idx !== i),
+      () => {
+        const removed = images[i];
+        if (removed && objectUrls.current.has(removed)) {
+          URL.revokeObjectURL(removed);
+          objectUrls.current.delete(removed);
+        }
       }
-      return prev.filter((_, idx) => idx !== i);
-    });
+    );
+    setDeleteIndex(null);
   };
 
   const move = (i: number, delta: -1 | 1) => {
-    setImages((prev) => {
+    updateAndPersist((prev) => {
       const target = i + delta;
       if (target < 0 || target >= prev.length) return prev;
       const next = [...prev];
       [next[i], next[target]] = [next[target], next[i]];
+      return next;
+    });
+  };
+
+  const moveTo = (i: number, position: "first" | "last") => {
+    updateAndPersist((prev) => {
+      if (prev.length < 2) return prev;
+      const next = [...prev];
+      const [picked] = next.splice(i, 1);
+      if (position === "first") next.unshift(picked);
+      else next.push(picked);
       return next;
     });
   };
@@ -102,9 +161,11 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
       objectUrls.current.add(u);
       return u;
     });
-    setImages((prev) => {
+    updateAndPersist((prev) => {
       const target = replaceTargetRef.current;
       if (target != null && urls.length > 0) {
+        // Replace ONE image, preserve its index. Extra files (if user picked
+        // multiple) append at the end.
         const next = [...prev];
         if (objectUrls.current.has(next[target])) {
           URL.revokeObjectURL(next[target]);
@@ -121,6 +182,8 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
   };
 
   const coverIndex = useMemo(() => (images.length > 0 ? 0 : -1), [images.length]);
+  const targetForDelete =
+    deleteIndex != null ? images[deleteIndex] : undefined;
 
   return (
     <section>
@@ -192,7 +255,7 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
                   type="button"
                   onClick={() => lb.openAt(i)}
                   aria-label={`Preview photo ${i + 1}`}
-                  className="absolute inset-0 bg-navy-900/0 hover:bg-navy-900/35 transition-colors flex items-center justify-center text-white opacity-0 hover:opacity-100"
+                  className="absolute inset-0 bg-navy-900/0 hover:bg-navy-900/35 focus-visible:bg-navy-900/35 transition-colors flex items-center justify-center text-white opacity-0 hover:opacity-100 focus-visible:opacity-100"
                 >
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur ring-1 ring-white/35 px-3 py-1.5 text-xs uppercase tracking-[0.14em] font-bold">
                     <ZoomIn className="h-3.5 w-3.5" strokeWidth={2.4} />
@@ -200,8 +263,8 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
                   </span>
                 </button>
                 {i === coverIndex ? (
-                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold bg-gold-500 text-navy-900 rounded-full px-2 py-0.5">
-                    <Star className="h-3 w-3" strokeWidth={2.4} />
+                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold bg-gold-500 text-navy-900 rounded-full px-2 py-0.5 shadow-sm">
+                    <Star className="h-3 w-3 fill-navy-900" strokeWidth={2.4} />
                     Cover
                   </span>
                 ) : null}
@@ -209,8 +272,15 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
                   {i + 1} / {images.length}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-1 p-2.5">
+              <div className="grid grid-cols-2 gap-2 p-2.5">
                 <div className="flex items-center gap-1">
+                  <IconBtn
+                    onClick={() => moveTo(i, "first")}
+                    disabled={i === 0}
+                    label="Move to first"
+                  >
+                    <ChevronsUp className="h-3.5 w-3.5" strokeWidth={2.4} />
+                  </IconBtn>
                   <IconBtn
                     onClick={() => move(i, -1)}
                     disabled={i === 0}
@@ -226,22 +296,35 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
                     <ArrowDown className="h-3.5 w-3.5" strokeWidth={2.4} />
                   </IconBtn>
                   <IconBtn
-                    onClick={() => setCover(i)}
-                    disabled={i === coverIndex}
-                    label="Set as cover"
+                    onClick={() => moveTo(i, "last")}
+                    disabled={i === images.length - 1}
+                    label="Move to last"
                   >
-                    {i === coverIndex ? (
-                      <StarOff className="h-3.5 w-3.5" strokeWidth={2.4} />
-                    ) : (
-                      <Star className="h-3.5 w-3.5" strokeWidth={2.4} />
-                    )}
+                    <ChevronsDown className="h-3.5 w-3.5" strokeWidth={2.4} />
                   </IconBtn>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center justify-end gap-1">
+                  <IconBtn
+                    onClick={() => setCover(i)}
+                    disabled={i === coverIndex}
+                    label={i === coverIndex ? "Already cover" : "Set as cover"}
+                  >
+                    <Star
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        i === coverIndex && "fill-gold-500"
+                      )}
+                      strokeWidth={2.4}
+                    />
+                  </IconBtn>
                   <IconBtn onClick={() => handleReplace(i)} label="Replace photo">
                     <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.4} />
                   </IconBtn>
-                  <IconBtn onClick={() => remove(i)} label="Delete photo" tone="danger">
+                  <IconBtn
+                    onClick={() => setDeleteIndex(i)}
+                    label="Delete photo"
+                    tone="danger"
+                  >
                     <Trash2 className="h-3.5 w-3.5" strokeWidth={2.4} />
                   </IconBtn>
                 </div>
@@ -252,8 +335,18 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
       )}
 
       <p className="mt-4 text-xs text-navy-700/55">
-        Changes are local — refreshing the page will reset to the original photo set. Backend sync
-        is not wired in this mock build.
+        {isLive ? (
+          <>
+            Changes persist immediately to your listing&apos;s gallery and
+            update the public marketplace, search, and map views.
+          </>
+        ) : (
+          <>
+            Local only — refreshing the page will reset to the seed photos.
+            (This listing is backed by the seed catalog and isn&apos;t patchable
+            without a backend.)
+          </>
+        )}
       </p>
 
       <Lightbox
@@ -261,6 +354,22 @@ export default function ImageManager({ initialImages, title = "Listing" }: Props
         initialIndex={lb.index}
         open={lb.open}
         onClose={lb.close}
+      />
+
+      <ConfirmDialog
+        open={deleteIndex != null}
+        title="Delete this photo?"
+        body={
+          targetForDelete
+            ? `Photo ${(deleteIndex ?? 0) + 1} will be removed from your gallery. This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete photo"
+        tone="danger"
+        onCancel={() => setDeleteIndex(null)}
+        onConfirm={() => {
+          if (deleteIndex != null) performRemove(deleteIndex);
+        }}
       />
     </section>
   );
@@ -287,7 +396,7 @@ function IconBtn({
       aria-label={label}
       title={label}
       className={cn(
-        "h-8 w-8 inline-flex items-center justify-center rounded-full transition-colors",
+        "h-9 w-9 inline-flex items-center justify-center rounded-full transition-colors",
         disabled
           ? "text-navy-700/25 cursor-not-allowed"
           : tone === "danger"
