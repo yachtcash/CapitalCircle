@@ -16,6 +16,7 @@ import {
   SEED_SAVED_COMPANIES,
   SEED_SAVED_OPPORTUNITIES,
   makeId,
+  type Attachment,
   type Conversation,
   type Message,
   type Notification,
@@ -106,7 +107,11 @@ type MessagingValue = {
   createNegotiationConversation: (
     context: ConversationContext
   ) => string;
-  sendMessage: (conversationId: string, text: string) => void;
+  sendMessage: (
+    conversationId: string,
+    text: string,
+    attachments?: Attachment[]
+  ) => void;
   markConversationRead: (conversationId: string) => void;
   advanceStage: (conversationId: string, stage: NegotiationStage) => void;
 
@@ -406,9 +411,11 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   );
 
   const sendMessage = useCallback(
-    (conversationId: string, text: string) => {
+    (conversationId: string, text: string, attachments?: Attachment[]) => {
       const value = text.trim();
-      if (!value) return;
+      const hasAttachments = !!attachments && attachments.length > 0;
+      // Allow sending a message that is attachments-only.
+      if (!value && !hasAttachments) return;
       const now = new Date().toISOString();
       setConversations((prev) =>
         prev.map((c) => {
@@ -421,13 +428,21 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
             authorName: ME.authorName,
             authorInitials: ME.authorInitials,
             text: value,
+            attachments: hasAttachments ? attachments : undefined,
             createdAt: now,
           };
+          const preview = value
+            ? value
+            : hasAttachments
+              ? attachments!.length === 1
+                ? `Attachment: ${attachments![0].name}`
+                : `${attachments!.length} attachments`
+              : "";
           return {
             ...c,
             messages: [...c.messages, message],
             lastMessageAt: now,
-            lastMessagePreview: value,
+            lastMessagePreview: preview,
           };
         })
       );

@@ -1,7 +1,17 @@
 import { FileText, Lock, ArrowDownToLine } from "lucide-react";
 import type { OpportunityDocument } from "@/data/opportunities";
 
-export default function DocumentsBlock({ documents }: { documents: OpportunityDocument[] }) {
+type Props = {
+  documents: OpportunityDocument[];
+  /**
+   * Click handler for per-card "Request Access" buttons. Required for the
+   * buttons to do anything — typically wired by the parent to open the same
+   * `RequestAccessModal` used by `OpportunityDataRoomBlock`.
+   */
+  onRequestAccess?: () => void;
+};
+
+export default function DocumentsBlock({ documents, onRequestAccess }: Props) {
   return (
     <section>
       <SectionHeader
@@ -41,7 +51,9 @@ export default function DocumentsBlock({ documents }: { documents: OpportunityDo
 
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-bone hover:bg-gold-500 text-navy-900 text-xs font-semibold uppercase tracking-wider px-3 py-2 transition-colors"
+              onClick={onRequestAccess}
+              disabled={!onRequestAccess}
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-bone hover:bg-gold-500 text-navy-900 text-xs font-semibold uppercase tracking-wider px-3 py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-bone"
             >
               <ArrowDownToLine className="h-3.5 w-3.5" strokeWidth={2.4} />
               Request Access

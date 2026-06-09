@@ -1,9 +1,20 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Globe2, MapPin, Briefcase, CalendarDays } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ChevronRight,
+  Globe2,
+  MapPin,
+  Briefcase,
+  CalendarDays,
+  MessageSquare,
+} from "lucide-react";
 import type { Company } from "@/data/companies";
 import VerificationBadge from "./VerificationBadge";
 import SaveCompanyButton from "@/components/profile/SaveCompanyButton";
+import { useMessaging } from "@/components/providers/MessagingProvider";
 
 function initialsFor(name: string): string {
   return name
@@ -16,6 +27,9 @@ function initialsFor(name: string): string {
 }
 
 export default function CompanyHero({ company }: { company: Company }) {
+  const router = useRouter();
+  const { createInterestConversation } = useMessaging();
+
   const headquarters = [
     company.headquarters.city,
     company.headquarters.state,
@@ -23,6 +37,11 @@ export default function CompanyHero({ company }: { company: Company }) {
   ]
     .filter((x): x is string => Boolean(x && x.trim()))
     .join(", ");
+
+  const messageCompany = () => {
+    const id = createInterestConversation({ companyId: company.id });
+    router.push(`/messages?conversation=${id}`);
+  };
 
   return (
     <section className="bg-white">
@@ -45,7 +64,9 @@ export default function CompanyHero({ company }: { company: Company }) {
             Home
           </Link>
           <ChevronRight className="h-3 w-3" strokeWidth={2} />
-          <span>Companies</span>
+          <Link href="/companies" className="hover:text-white transition-colors">
+            Companies
+          </Link>
           <ChevronRight className="h-3 w-3" strokeWidth={2} />
           <span className="text-white">{company.name}</span>
         </nav>
@@ -71,6 +92,15 @@ export default function CompanyHero({ company }: { company: Company }) {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <VerificationBadge status={company.verification} size="md" />
+                <button
+                  type="button"
+                  onClick={messageCompany}
+                  aria-label={`Message ${company.name}`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 text-xs font-semibold uppercase tracking-[0.14em] px-3 py-2 transition-colors"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" strokeWidth={2.4} />
+                  Message Company
+                </button>
                 <SaveCompanyButton companyId={company.id} />
               </div>
             </div>

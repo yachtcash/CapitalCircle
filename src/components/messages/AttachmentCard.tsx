@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { Attachment } from "@/data/messages";
 import { attachmentLabel, formatBytes } from "@/data/messages";
+import { downloadAttachmentPlaceholder } from "@/lib/downloadAttachment";
 
 const ICONS: Record<Attachment["type"], { icon: LucideIcon; tone: string }> = {
   pdf: { icon: FileText, tone: "text-rose-700 bg-rose-500/10 ring-rose-500/20" },
@@ -38,6 +39,7 @@ export default function AttachmentCard({ attachment }: { attachment: Attachment 
       </div>
       <button
         type="button"
+        onClick={() => downloadAttachmentPlaceholder(attachment)}
         aria-label={`Download ${attachment.name}`}
         className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-full text-navy-700/65 hover:text-navy-900 hover:bg-bone transition-colors"
       >

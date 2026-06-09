@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X, Expand, FileText, ArrowDownToLine } from "lucide-react";
 import type { Attachment } from "@/data/messages";
 import { formatBytes } from "@/data/messages";
+import { downloadAttachmentPlaceholder } from "@/lib/downloadAttachment";
 
 function paletteFor(id: string): { from: string; to: string } {
   const palettes: Array<{ from: string; to: string }> = [
@@ -132,6 +133,7 @@ function Lightbox({
           </div>
           <button
             type="button"
+            onClick={() => downloadAttachmentPlaceholder(attachment)}
             className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
           >
             <ArrowDownToLine className="h-3.5 w-3.5" strokeWidth={2.4} />
@@ -171,7 +173,8 @@ export function PdfPreviewCard({ attachment }: { attachment: Attachment }) {
         </div>
         <button
           type="button"
-          aria-label={`Download ${attachment.name}`}
+          onClick={() => downloadAttachmentPlaceholder(attachment)}
+          aria-label={`Open ${attachment.name}`}
           className="shrink-0 inline-flex items-center gap-1.5 rounded-full text-navy-900 hover:bg-bone px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] font-bold transition-colors"
         >
           <ArrowDownToLine className="h-3.5 w-3.5" strokeWidth={2.4} />

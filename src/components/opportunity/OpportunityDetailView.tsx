@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { getCompanyById } from "@/data/companies";
 import { featuredOpportunities, type Opportunity } from "@/data/opportunities";
+import { getListingByOpportunitySlug } from "@/data/listings";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 
 import DetailHero from "@/components/DetailHero";
@@ -14,6 +15,7 @@ import DocumentsBlock from "@/components/DocumentsBlock";
 import OpportunityDataRoomBlock from "@/components/dataroom/OpportunityDataRoomBlock";
 import ActionPanel from "@/components/ActionPanel";
 import RelatedOpportunities from "@/components/RelatedOpportunities";
+import RequestAccessModal from "@/components/documents/RequestAccessModal";
 
 /**
  * Shared client view rendering the full opportunity detail page.
@@ -28,6 +30,8 @@ export default function OpportunityDetailView({
   opportunity: Opportunity;
 }) {
   const { userOpportunities } = useMessaging();
+  const listing = getListingByOpportunitySlug(opportunity.slug);
+  const [docsBlockRequestOpen, setDocsBlockRequestOpen] = useState(false);
 
   const related = useMemo(() => {
     const pool = [...userOpportunities, ...featuredOpportunities];
@@ -80,7 +84,12 @@ export default function OpportunityDetailView({
               opportunity={opportunity}
               companyName={company?.name ?? opportunity.postedBy}
             />
-            <DocumentsBlock documents={opportunity.documents} />
+            <DocumentsBlock
+              documents={opportunity.documents}
+              onRequestAccess={
+                listing ? () => setDocsBlockRequestOpen(true) : undefined
+              }
+            />
           </div>
 
           <aside className="order-1 lg:order-2 lg:w-[360px]">
@@ -92,6 +101,17 @@ export default function OpportunityDetailView({
       </div>
 
       <RelatedOpportunities opportunities={related} />
+
+      {listing ? (
+        <RequestAccessModal
+          open={docsBlockRequestOpen}
+          onClose={() => setDocsBlockRequestOpen(false)}
+          listingId={listing.id}
+          listingTitle={opportunity.title}
+          companyName={company?.name ?? opportunity.postedBy}
+          privateDocsCount={opportunity.documents.length}
+        />
+      ) : null}
     </div>
   );
 }

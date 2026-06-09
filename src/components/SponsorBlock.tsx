@@ -9,6 +9,7 @@ import {
   Globe2,
 } from "lucide-react";
 import type { Company } from "@/data/companies";
+import SaveCompanyButton from "@/components/profile/SaveCompanyButton";
 import { cn } from "@/lib/cn";
 
 const verificationBadgeStyle: Record<Company["verification"], string> = {
@@ -70,16 +71,19 @@ export default function SponsorBlock({ company }: { company: Company }) {
               />
             </div>
 
-            <Link
-              href={`/company/${company.slug}`}
-              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-navy-900 hover:text-gold-700 transition-colors group"
-            >
-              View company profile
-              <ArrowRight
-                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                strokeWidth={2.2}
-              />
-            </Link>
+            <div className="mt-5 flex items-center gap-3 flex-wrap">
+              <Link
+                href={`/company/${company.slug}`}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-navy-900 hover:text-gold-700 transition-colors group"
+              >
+                View company profile
+                <ArrowRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                  strokeWidth={2.2}
+                />
+              </Link>
+              <SaveCompanyButton companyId={company.id} />
+            </div>
           </div>
         </div>
       </div>

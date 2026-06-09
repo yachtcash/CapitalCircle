@@ -182,7 +182,9 @@ export default function ConversationThread({
 
       {/* Composer */}
       <MessageComposer
-        onSend={(text) => sendMessage(conversation.id, text)}
+        onSend={(text, attachments) =>
+          sendMessage(conversation.id, text, attachments)
+        }
         placeholder={`Message ${companyName}…`}
       />
     </div>
