@@ -8,24 +8,25 @@ import {
   CalendarClock,
   DollarSign,
   TrendingUp,
+  Trophy,
+  XCircle,
+  UserPlus,
 } from "lucide-react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
-import { computeDealMetrics } from "@/data/deals";
+import { computeDealDeskMetrics, DEAL_DESK_NOW_MS } from "@/data/deals";
 import { formatCurrency } from "@/components/dashboard/deals/DealBadges";
 import { cn } from "@/lib/cn";
 
 /**
- * Hero-style Deal Desk card for the dashboard homepage.
- *
- * Surfaces the seven required widgets — Open Deals, Deals This Week,
- * Deals This Month, Closed Deals, Potential Commission, Upcoming Follow
- * Ups, Overdue Follow Ups — and routes to /dashboard/deals.
+ * Deal Desk hero on the dashboard homepage. Surfaces the operations-center
+ * summary — active, monthly, won/lost, pending intros, follow-ups, capital
+ * being raised, total value — and routes to /deal-desk.
  */
 export default function DealDeskCard() {
-  const { deals } = useMessaging();
-  const nowMs = Date.parse("2026-06-09T00:00:00Z");
-  const m = computeDealMetrics(deals, nowMs);
+  const { deals, introductionRequests } = useMessaging();
+  const m = computeDealDeskMetrics(deals, DEAL_DESK_NOW_MS);
+  const pendingIntros = introductionRequests.filter((r) => r.status === "Pending").length;
 
   return (
     <section className="bg-navy-900 text-white rounded-3xl ring-1 ring-gold-500/30 shadow-md overflow-hidden">
@@ -33,18 +34,18 @@ export default function DealDeskCard() {
         <div>
           <div className="text-[11px] uppercase tracking-[0.22em] text-gold-400 font-bold inline-flex items-center gap-2">
             <Briefcase className="h-3.5 w-3.5" strokeWidth={2.4} />
-            Deal Desk
+            Deal Desk · Platform Operations
           </div>
           <h2 className="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
             Pipeline at a glance
           </h2>
           <p className="mt-1.5 text-sm text-white/70 max-w-xl leading-relaxed">
-            Every introduction, inquiry, and lead — tracked from First Touch
-            to Closed. Conversions feed straight into the table.
+            Every introduction, negotiation, and capital raise — tracked from
+            New Lead to Closed Won.
           </p>
         </div>
         <Link
-          href="/dashboard/deals"
+          href="/deal-desk"
           className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors shrink-0"
         >
           Open Deal Desk
@@ -52,28 +53,20 @@ export default function DealDeskCard() {
         </Link>
       </div>
 
-      <div className="border-t border-white/10 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-        <Cell label="Open" value={m.openCount.toString()} Icon={Briefcase} />
-        <Cell label="This Week" value={m.dealsThisWeek.toString()} Icon={TrendingUp} />
+      <div className="border-t border-white/10 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
+        <Cell label="Active" value={m.totalActive.toString()} Icon={Briefcase} />
         <Cell label="This Month" value={m.dealsThisMonth.toString()} Icon={TrendingUp} />
-        <Cell label="Closed" value={m.closedCount.toString()} Icon={DollarSign} />
+        <Cell label="Won" value={m.closedWon.toString()} Icon={Trophy} />
+        <Cell label="Lost" value={m.closedLost.toString()} Icon={XCircle} />
+        <Cell label="Intros" value={pendingIntros.toString()} Icon={UserPlus} />
         <Cell
-          label="Commission"
-          value={formatCurrency(m.potentialCommission)}
-          Icon={DollarSign}
-          tone="gold"
-        />
-        <Cell
-          label="Upcoming"
-          value={m.upcomingFollowUps.toString()}
+          label="Follow Ups"
+          value={m.pendingFollowUps.toString()}
           Icon={CalendarClock}
-        />
-        <Cell
-          label="Overdue"
-          value={m.overdueFollowUps.toString()}
-          Icon={AlertCircle}
           tone={m.overdueFollowUps > 0 ? "rose" : "default"}
         />
+        <Cell label="Raising" value={formatCurrency(m.capitalBeingRaised)} Icon={DollarSign} tone="gold" />
+        <Cell label="Total Value" value={formatCurrency(m.totalDealValue)} Icon={DollarSign} tone="gold" />
       </div>
     </section>
   );
@@ -91,12 +84,7 @@ function Cell({
   tone?: "default" | "gold" | "rose";
 }) {
   return (
-    <div
-      className={cn(
-        "px-4 md:px-5 py-4 border-r border-white/10 last:border-r-0",
-        "even:bg-white/[0.02] lg:even:bg-transparent lg:[&:nth-child(even)]:bg-white/[0.02]"
-      )}
-    >
+    <div className="px-4 md:px-5 py-4 border-r border-white/10 last:border-r-0 [&:nth-child(even)]:bg-white/[0.02]">
       <div className="text-[10px] uppercase tracking-[0.16em] text-white/55 font-bold inline-flex items-center gap-1.5">
         <Icon className="h-3 w-3" strokeWidth={2.4} />
         {label}

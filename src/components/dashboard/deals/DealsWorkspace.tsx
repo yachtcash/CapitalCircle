@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   KanbanSquare,
   LayoutList,
-  LayoutGrid,
   Search,
   X,
   Briefcase,
@@ -12,121 +12,195 @@ import {
   TrendingUp,
   CalendarClock,
   AlertCircle,
+  Trophy,
+  XCircle,
+  UserPlus,
+  Plus,
 } from "lucide-react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
-import { computeDealMetrics, DEAL_PRIORITIES, DEAL_STAGES } from "@/data/deals";
-import type { DealPriority, DealStage } from "@/data/deals";
+import {
+  computeDealDeskMetrics,
+  DEAL_DESK_NOW_MS,
+  DEAL_PRIORITIES,
+  DEAL_STAGES,
+  SAMPLE_ADMINS,
+  isOpenStage,
+  type Deal,
+  type DealPriority,
+  type DealStage,
+} from "@/data/deals";
+import Modal from "@/components/negotiations/Modal";
 import { cn } from "@/lib/cn";
 
 import DealPipelineView from "./DealPipelineView";
 import DealTableView from "./DealTableView";
-import DealCardGridView from "./DealCardGridView";
 import { formatCurrency } from "./DealBadges";
 
-type ViewMode = "pipeline" | "table" | "card";
-
-const VIEWS: { value: ViewMode; label: string; Icon: typeof KanbanSquare }[] = [
-  { value: "pipeline", label: "Pipeline", Icon: KanbanSquare },
-  { value: "table", label: "Table", Icon: LayoutList },
-  { value: "card", label: "Cards", Icon: LayoutGrid },
-];
+type ViewMode = "kanban" | "table";
+type StatusBucket = "all" | "open" | "closed" | "archived";
 
 export default function DealsWorkspace() {
-  const { deals } = useMessaging();
-  const [view, setView] = useState<ViewMode>("pipeline");
+  const { deals, introductionRequests, createDeal } = useMessaging();
+  const router = useRouter();
+  const [view, setView] = useState<ViewMode>("kanban");
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<DealStage | "all">("all");
   const [priority, setPriority] = useState<DealPriority | "all">("all");
+  const [admin, setAdmin] = useState<string>("all");
+  const [bucket, setBucket] = useState<StatusBucket>("all");
+  const [sponsorFilter, setSponsorFilter] = useState<string>("all");
+  const [investorFilter, setInvestorFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const nowMs = Date.parse("2026-06-09T00:00:00Z");
-  const metrics = useMemo(() => computeDealMetrics(deals, nowMs), [deals, nowMs]);
+  const nowMs = DEAL_DESK_NOW_MS;
+  const metrics = useMemo(() => computeDealDeskMetrics(deals, nowMs), [deals, nowMs]);
+  const pendingIntros = useMemo(
+    () => introductionRequests.filter((r) => r.status === "Pending").length,
+    [introductionRequests]
+  );
+
+  const sponsors = useMemo(
+    () => [...new Set(deals.map((d) => d.sponsor.name))].sort(),
+    [deals]
+  );
+  const investors = useMemo(
+    () =>
+      [...new Set(deals.map((d) => d.investor?.name).filter((x): x is string => !!x))].sort(),
+    [deals]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return deals.filter((d) => {
-      if (stage !== "all" && d.status !== stage) return false;
+      if (stage !== "all" && d.stage !== stage) return false;
       if (priority !== "all" && d.priority !== priority) return false;
+      if (admin !== "all" && d.assignedAdmin !== admin) return false;
+      if (bucket === "open" && !isOpenStage(d.stage)) return false;
+      if (bucket === "closed" && d.stage !== "Closed Won" && d.stage !== "Closed Lost")
+        return false;
+      if (bucket === "archived" && d.stage !== "Archived") return false;
+      if (sponsorFilter !== "all" && d.sponsor.name !== sponsorFilter) return false;
+      if (investorFilter !== "all" && d.investor?.name !== investorFilter) return false;
+      if (dateFrom && d.createdDate.slice(0, 10) < dateFrom) return false;
+      if (dateTo && d.createdDate.slice(0, 10) > dateTo) return false;
       if (!q) return true;
       const hay = [
         d.dealId,
         d.title,
         d.summaryNote ?? "",
+        d.sponsor.name,
+        d.investor?.name ?? "",
+        d.assignedAdmin,
         d.companyId ?? "",
         d.opportunityId ?? "",
-        d.sourceName ?? "",
-        d.owner,
         ...d.tags,
       ]
         .join("\n")
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [deals, query, stage, priority]);
+  }, [
+    deals,
+    query,
+    stage,
+    priority,
+    admin,
+    bucket,
+    sponsorFilter,
+    investorFilter,
+    dateFrom,
+    dateTo,
+  ]);
 
   return (
-    <div className="bg-cream min-h-[calc(100vh-5rem-3rem)]">
-      <div className="max-w-7xl mx-auto px-5 md:px-10 py-8 md:py-10 space-y-7">
+    <div className="bg-cream min-h-[calc(100vh-5rem)]">
+      <div className="max-w-[1400px] mx-auto px-5 md:px-10 py-8 md:py-10 space-y-7">
         <header className="flex items-end justify-between gap-3 flex-wrap">
           <div>
             <div className="text-[11px] uppercase tracking-[0.22em] text-gold-700 font-bold">
-              Deal Desk
+              Platform Operations Center
             </div>
             <h1 className="mt-1 text-3xl md:text-4xl font-semibold tracking-tight text-navy-900">
-              Opportunity Pipeline
+              Deal Desk
             </h1>
             <p className="mt-2 text-sm md:text-base text-navy-700/75 max-w-2xl leading-relaxed">
-              Every introduction, inquiry, and lead flows through here. Track
-              relationships from First Touch to Closed.
+              Every introduction, negotiation, and capital raise tracked across
+              the full lifecycle — New Lead to Closed Won.
             </p>
           </div>
-          <ViewSwitcher value={view} onChange={setView} />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.4} />
+              New Deal
+            </button>
+            <ViewSwitcher value={view} onChange={setView} />
+          </div>
         </header>
 
-        {/* Widgets */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
+          <Widget label="Active Deals" value={metrics.totalActive.toString()} Icon={Briefcase} tone="navy" />
+          <Widget label="This Month" value={metrics.dealsThisMonth.toString()} Icon={TrendingUp} tone="sky" />
+          <Widget label="Closed Won" value={metrics.closedWon.toString()} Icon={Trophy} tone="emerald" />
+          <Widget label="Closed Lost" value={metrics.closedLost.toString()} Icon={XCircle} tone="rose" />
+          <Widget label="Pending Intros" value={pendingIntros.toString()} Icon={UserPlus} tone="sky" />
           <Widget
-            label="Open"
-            value={metrics.openCount.toString()}
-            Icon={Briefcase}
-            tone="navy"
+            label="Follow Ups"
+            value={metrics.pendingFollowUps.toString()}
+            sublabel={`${metrics.overdueFollowUps} overdue`}
+            Icon={metrics.overdueFollowUps > 0 ? AlertCircle : CalendarClock}
+            tone={metrics.overdueFollowUps > 0 ? "rose" : "navy"}
           />
           <Widget
-            label="Closed"
-            value={metrics.closedCount.toString()}
-            Icon={DollarSign}
-            tone="emerald"
-          />
-          <Widget
-            label="This Week"
-            value={metrics.dealsThisWeek.toString()}
-            Icon={TrendingUp}
-            tone="sky"
-          />
-          <Widget
-            label="This Month"
-            value={metrics.dealsThisMonth.toString()}
-            Icon={TrendingUp}
-            tone="sky"
-          />
-          <Widget
-            label="Commission"
-            value={formatCurrency(metrics.potentialCommission)}
+            label="Capital Raising"
+            value={formatCurrency(metrics.capitalBeingRaised)}
             Icon={DollarSign}
             tone="gold"
           />
           <Widget
-            label="Overdue"
-            value={metrics.overdueFollowUps.toString()}
-            sublabel={`${metrics.upcomingFollowUps} upcoming`}
-            Icon={AlertCircle}
-            tone={metrics.overdueFollowUps > 0 ? "rose" : "navy"}
+            label="Total Deal Value"
+            value={formatCurrency(metrics.totalDealValue)}
+            Icon={DollarSign}
+            tone="gold"
           />
+        </div>
+
+        {/* Status buckets */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(
+            [
+              ["all", `All (${deals.length})`],
+              ["open", "Open Deals"],
+              ["closed", "Closed Deals"],
+              ["archived", "Archived"],
+            ] as [StatusBucket, string][]
+          ).map(([b, label]) => (
+            <button
+              key={b}
+              type="button"
+              onClick={() => setBucket(b)}
+              className={cn(
+                "inline-flex items-center rounded-full px-3.5 py-1.5 text-xs uppercase tracking-[0.14em] font-semibold ring-1 transition-colors",
+                bucket === b
+                  ? "bg-navy-900 text-white ring-navy-900"
+                  : "bg-white text-navy-700 ring-navy-900/[0.08] hover:ring-navy-900/30"
+              )}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Filters */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex-1 min-w-[240px] bg-white rounded-full ring-1 ring-navy-900/[0.08] focus-within:ring-2 focus-within:ring-gold-500 shadow-sm flex items-center gap-2 transition-shadow">
+          <div className="flex-1 min-w-[220px] bg-white rounded-full ring-1 ring-navy-900/[0.08] focus-within:ring-2 focus-within:ring-gold-500 shadow-sm flex items-center gap-2 transition-shadow">
             <span className="pl-4 text-navy-700/60">
               <Search className="h-4 w-4" strokeWidth={2} />
             </span>
@@ -134,7 +208,7 @@ export default function DealsWorkspace() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by title, ID, company, opportunity, owner, or tag"
+              placeholder="Search title, ID, sponsor, investor, admin, tag"
               className="flex-1 bg-transparent outline-none py-2.5 text-sm text-navy-900 placeholder:text-navy-700/45"
             />
             {query ? (
@@ -148,43 +222,232 @@ export default function DealsWorkspace() {
               </button>
             ) : null}
           </div>
-          <Select value={stage} onChange={(v) => setStage(v as DealStage | "all")}>
+          <Sel value={stage} onChange={(v) => setStage(v as DealStage | "all")}>
             <option value="all">All stages</option>
             {DEAL_STAGES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
+              <option key={s} value={s}>{s}</option>
             ))}
-          </Select>
-          <Select
-            value={priority}
-            onChange={(v) => setPriority(v as DealPriority | "all")}
-          >
+          </Sel>
+          <Sel value={priority} onChange={(v) => setPriority(v as DealPriority | "all")}>
             <option value="all">All priorities</option>
             {DEAL_PRIORITIES.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
+              <option key={p} value={p}>{p}</option>
             ))}
-          </Select>
+          </Sel>
+          <Sel value={admin} onChange={setAdmin}>
+            <option value="all">All admins</option>
+            {SAMPLE_ADMINS.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </Sel>
+          <Sel value={sponsorFilter} onChange={setSponsorFilter}>
+            <option value="all">All sponsors</option>
+            {sponsors.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </Sel>
+          <Sel value={investorFilter} onChange={setInvestorFilter}>
+            <option value="all">All investors</option>
+            {investors.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </Sel>
+          <label className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-semibold text-navy-700/65">
+            From
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="rounded-full bg-white ring-1 ring-navy-900/[0.08] px-3 py-2 text-xs text-navy-900"
+            />
+          </label>
+          <label className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-semibold text-navy-700/65">
+            To
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="rounded-full bg-white ring-1 ring-navy-900/[0.08] px-3 py-2 text-xs text-navy-900"
+            />
+          </label>
         </div>
 
         <div className="text-xs text-navy-700/60">
+          <span className="font-semibold text-navy-900 tabular-nums">{filtered.length}</span>{" "}
+          deals · combined target{" "}
           <span className="font-semibold text-navy-900 tabular-nums">
-            {filtered.length}
-          </span>{" "}
-          deals · total estimated value{" "}
-          <span className="font-semibold text-navy-900 tabular-nums">
-            {formatCurrency(filtered.reduce((s, d) => s + d.estimatedValue, 0))}
+            {formatCurrency(filtered.reduce((s, d) => s + d.targetInvestment, 0))}
           </span>
         </div>
 
-        {/* Views */}
-        {view === "pipeline" ? <DealPipelineView deals={filtered} /> : null}
+        {view === "kanban" ? <DealPipelineView deals={filtered} /> : null}
         {view === "table" ? <DealTableView deals={filtered} /> : null}
-        {view === "card" ? <DealCardGridView deals={filtered} /> : null}
       </div>
+
+      <CreateDealModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={(input) => {
+          const id = createDeal(input);
+          setCreateOpen(false);
+          router.push(`/deal-desk/${id}`);
+        }}
+      />
     </div>
+  );
+}
+
+// ---- Create Deal modal ----
+
+type CreateInput = Parameters<ReturnType<typeof useMessaging>["createDeal"]>[0];
+
+function CreateDealModal({
+  open,
+  onClose,
+  onCreate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (input: CreateInput) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [sponsorName, setSponsorName] = useState("");
+  const [investorName, setInvestorName] = useState("");
+  const [target, setTarget] = useState("");
+  const [stage, setStage] = useState<DealStage>("New Lead");
+  const [priority, setPriority] = useState<DealPriority>("Normal");
+
+  const canSubmit = title.trim() && sponsorName.trim() && Number(target.replace(/[^\d]/g, "")) >= 0;
+
+  const submit = () => {
+    if (!canSubmit) return;
+    const t = Number(target.replace(/[^\d]/g, "")) || 0;
+    const pct = 2.5;
+    onCreate({
+      title: title.trim(),
+      sponsor: { name: sponsorName.trim() },
+      investor: investorName.trim() ? { name: investorName.trim() } : undefined,
+      assignedAdmin: SAMPLE_ADMINS[0],
+      stage,
+      priority,
+      targetInvestment: t,
+      commissionPct: pct,
+      estimatedCommission: Math.round((t * pct) / 100),
+      sourceType: "Manual Entry",
+      tags: [],
+    });
+    setTitle("");
+    setSponsorName("");
+    setInvestorName("");
+    setTarget("");
+    setStage("New Lead");
+    setPriority("Normal");
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="New Deal"
+      description="Open a deal record manually. Introductions can also be converted from the Introductions queue."
+      maxWidth="md"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full px-5 py-2.5 text-sm font-semibold text-navy-900 hover:bg-bone transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!canSubmit}
+            className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-6 py-2.5 text-sm transition-colors disabled:bg-navy-900/10 disabled:text-navy-700/40 disabled:cursor-not-allowed"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.4} />
+            Create Deal
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Title">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Solar Portfolio Funding — 120 MW"
+            className={inputCls}
+          />
+        </Field>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Sponsor">
+            <input
+              type="text"
+              value={sponsorName}
+              onChange={(e) => setSponsorName(e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Investor (optional)">
+            <input
+              type="text"
+              value={investorName}
+              onChange={(e) => setInvestorName(e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Target investment (USD)">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              placeholder="10,000,000"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Stage">
+            <select
+              value={stage}
+              onChange={(e) => setStage(e.target.value as DealStage)}
+              className={inputCls}
+            >
+              {DEAL_STAGES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Priority">
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as DealPriority)}
+              className={inputCls}
+            >
+              {DEAL_PRIORITIES.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+const inputCls =
+  "w-full rounded-lg bg-bone/60 ring-1 ring-navy-900/5 focus:ring-2 focus:ring-gold-500 outline-none px-3 py-2 text-sm text-navy-900 placeholder:text-navy-700/40";
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-xs uppercase tracking-[0.14em] text-navy-700/70 font-semibold mb-1.5">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
 
@@ -197,7 +460,12 @@ function ViewSwitcher({
 }) {
   return (
     <div className="bg-white rounded-full ring-1 ring-navy-900/[0.08] p-1 inline-flex">
-      {VIEWS.map(({ value: v, label, Icon }) => {
+      {(
+        [
+          ["kanban", "Kanban", KanbanSquare],
+          ["table", "Table", LayoutList],
+        ] as const
+      ).map(([v, label, Icon]) => {
         const active = value === v;
         return (
           <button
@@ -206,9 +474,7 @@ function ViewSwitcher({
             onClick={() => onChange(v)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs uppercase tracking-[0.14em] font-semibold transition-colors",
-              active
-                ? "bg-navy-900 text-white"
-                : "text-navy-700 hover:text-navy-900"
+              active ? "bg-navy-900 text-white" : "text-navy-700 hover:text-navy-900"
             )}
           >
             <Icon className="h-3.5 w-3.5" strokeWidth={2.4} />
@@ -217,26 +483,6 @@ function ViewSwitcher({
         );
       })}
     </div>
-  );
-}
-
-function Select({
-  value,
-  onChange,
-  children,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="rounded-full bg-white ring-1 ring-navy-900/[0.08] hover:ring-navy-900/20 px-4 py-2 text-xs uppercase tracking-[0.14em] font-semibold text-navy-900 transition-shadow"
-    >
-      {children}
-    </select>
   );
 }
 
@@ -268,24 +514,39 @@ function Widget({
     rose: "text-rose-600",
   };
   return (
-    <div
-      className={cn(
-        "rounded-xl ring-1 p-4 min-w-0",
-        styles[tone]
-      )}
-    >
+    <div className={cn("rounded-xl ring-1 p-3.5 min-w-0", styles[tone])}>
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] uppercase tracking-[0.16em] font-bold opacity-75">
+        <div className="text-[10px] uppercase tracking-[0.14em] font-bold opacity-75 truncate">
           {label}
         </div>
-        <Icon className={cn("h-3.5 w-3.5", iconTones[tone])} strokeWidth={2.4} />
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", iconTones[tone])} strokeWidth={2.4} />
       </div>
-      <div className="mt-1.5 text-xl md:text-2xl font-semibold tracking-tight tabular-nums">
+      <div className="mt-1 text-lg md:text-xl font-semibold tracking-tight tabular-nums truncate">
         {value}
       </div>
       {sublabel ? (
-        <div className="mt-0.5 text-[11px] opacity-65 truncate">{sublabel}</div>
+        <div className="mt-0.5 text-[10px] opacity-65 truncate">{sublabel}</div>
       ) : null}
     </div>
+  );
+}
+
+function Sel({
+  value,
+  onChange,
+  children,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="rounded-full bg-white ring-1 ring-navy-900/[0.08] hover:ring-navy-900/20 px-3.5 py-2 text-xs uppercase tracking-[0.12em] font-semibold text-navy-900 transition-shadow max-w-[180px]"
+    >
+      {children}
+    </select>
   );
 }

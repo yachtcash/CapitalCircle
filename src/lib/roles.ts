@@ -81,3 +81,13 @@ export function canEditContent(role: Role = CURRENT_USER_ROLE): boolean {
 export function canModerateContent(role: Role = CURRENT_USER_ROLE): boolean {
   return hasRoleAtLeast("Moderator", role);
 }
+
+/** Editor+ can read internal deal notes. Moderators and Members cannot. */
+export function canViewInternalNotes(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRoleAtLeast("Editor", role);
+}
+
+/** Admin+ run the Deal Desk: create / edit / delete / stage / assign. */
+export function canManageDeals(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRoleAtLeast("Admin", role);
+}

@@ -165,7 +165,7 @@ export default function IntroductionsClient() {
                   )}
                   onConvertToDeal={() => {
                     const id = convertIntroductionToDeal(r.id);
-                    if (id) router.push(`/dashboard/deals/${id}`);
+                    if (id) router.push(`/deal-desk/${id}`);
                   }}
                   existingDealId={
                     deals.find(
@@ -334,22 +334,22 @@ function Row({
         <div className="mt-4 flex flex-wrap gap-2">
           {existingDealId ? (
             <Link
-              href={`/dashboard/deals/${existingDealId}`}
+              href={`/deal-desk/${existingDealId}`}
               className="inline-flex items-center gap-1.5 rounded-full bg-navy-900 hover:bg-navy-800 text-white font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
             >
               <Briefcase className="h-3.5 w-3.5" strokeWidth={2.4} />
               Open {existingDealId}
             </Link>
-          ) : (
+          ) : request.status === "Approved" || request.status === "Completed" ? (
             <button
               type="button"
               onClick={onConvertToDeal}
               className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
             >
               <Briefcase className="h-3.5 w-3.5" strokeWidth={2.4} />
-              Convert to Deal
+              Create Deal
             </button>
-          )}
+          ) : null}
           {request.status === "Approved" || request.status === "Completed" ? (
             <button
               type="button"

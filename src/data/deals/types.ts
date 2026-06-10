@@ -1,54 +1,86 @@
-// Deal Desk data model.
+// Deal Desk data model — Phase 1, Platform Operations Center.
 //
-// Every introduction request, opportunity inquiry, company inquiry, and
-// member connection eventually becomes a Deal that flows through the
-// pipeline. The platform owner sits in the middle and shepherds every
-// relationship from First Touch → Closed (or Lost).
+// The Deal Desk sits ABOVE messaging and introductions: every introduction,
+// inquiry, and negotiation eventually becomes a Deal that the platform
+// owner shepherds through the full lifecycle, from New Lead to Closed Won.
+//
+// Activity records are structured (kind + actor + ref) so a future Audit
+// Log page can be built on top of them without schema changes.
 
 export type DealStage =
   | "New Lead"
-  | "Reviewing"
-  | "Contacted"
-  | "Waiting Response"
-  | "Introduction Sent"
-  | "Meeting Scheduled"
+  | "Introduction Requested"
+  | "Introduction Approved"
+  | "First Contact"
+  | "Investor Review"
+  | "Sponsor Review"
   | "Negotiating"
   | "Due Diligence"
-  | "Under Contract"
-  | "Closed"
-  | "Lost";
+  | "Letter Of Intent"
+  | "Contract Review"
+  | "Funding"
+  | "Closed Won"
+  | "Closed Lost"
+  | "Archived";
 
 export const DEAL_STAGES: DealStage[] = [
   "New Lead",
-  "Reviewing",
-  "Contacted",
-  "Waiting Response",
-  "Introduction Sent",
-  "Meeting Scheduled",
+  "Introduction Requested",
+  "Introduction Approved",
+  "First Contact",
+  "Investor Review",
+  "Sponsor Review",
   "Negotiating",
   "Due Diligence",
-  "Under Contract",
-  "Closed",
-  "Lost",
+  "Letter Of Intent",
+  "Contract Review",
+  "Funding",
+  "Closed Won",
+  "Closed Lost",
+  "Archived",
 ];
 
-/** Sort rank used by tables and metrics. Lower = earlier in funnel. */
+/** The eight columns shown on the Kanban board. */
+export const KANBAN_STAGES: DealStage[] = [
+  "New Lead",
+  "Introduction Requested",
+  "Introduction Approved",
+  "Negotiating",
+  "Due Diligence",
+  "Funding",
+  "Closed Won",
+  "Closed Lost",
+];
+
 export const STAGE_RANK: Record<DealStage, number> = {
   "New Lead": 0,
-  "Reviewing": 1,
-  "Contacted": 2,
-  "Waiting Response": 3,
-  "Introduction Sent": 4,
-  "Meeting Scheduled": 5,
+  "Introduction Requested": 1,
+  "Introduction Approved": 2,
+  "First Contact": 3,
+  "Investor Review": 4,
+  "Sponsor Review": 5,
   "Negotiating": 6,
   "Due Diligence": 7,
-  "Under Contract": 8,
-  "Closed": 9,
-  "Lost": 10,
+  "Letter Of Intent": 8,
+  "Contract Review": 9,
+  "Funding": 10,
+  "Closed Won": 11,
+  "Closed Lost": 12,
+  "Archived": 13,
 };
 
-export type DealPriority = "Low" | "Medium" | "High" | "Urgent";
-export const DEAL_PRIORITIES: DealPriority[] = ["Low", "Medium", "High", "Urgent"];
+export type DealStatus = "Open" | "Closed Won" | "Closed Lost" | "Archived";
+
+/** Derive the coarse status bucket from a stage. */
+export function statusForStage(stage: DealStage): DealStatus {
+  if (stage === "Closed Won") return "Closed Won";
+  if (stage === "Closed Lost") return "Closed Lost";
+  if (stage === "Archived") return "Archived";
+  return "Open";
+}
+
+export type DealPriority = "Low" | "Normal" | "High" | "Urgent";
+export const DEAL_PRIORITIES: DealPriority[] = ["Low", "Normal", "High", "Urgent"];
 
 export type DealSource =
   | "Introduction Request"
@@ -57,31 +89,53 @@ export type DealSource =
   | "Member Inquiry"
   | "Manual Entry";
 
+// ---- Activity (audit-ready) ----
+
 export type DealActivityKind =
   | "created"
   | "updated"
   | "stage_change"
   | "note_added"
+  | "internal_note_added"
+  | "introduction_requested"
   | "introduction_approved"
+  | "investor_added"
+  | "sponsor_added"
+  | "participant_added"
+  | "participant_removed"
+  | "document_added"
+  | "document_removed"
+  | "assigned"
+  | "priority_change"
   | "meeting_scheduled"
-  | "document_uploaded"
-  | "closed"
-  | "lost";
+  | "closed_won"
+  | "closed_lost"
+  | "archived"
+  | "restored"
+  | "reopened"
+  | "deleted";
 
+/**
+ * Structured activity record. Doubles as the audit-log row: every mutation
+ * captures who (actor + actorRole), what (kind + title + body), and which
+ * related record (ref) — a future Audit Log page only needs to render these.
+ */
 export type DealActivity = {
   id: string;
   kind: DealActivityKind;
   title: string;
   body?: string;
   createdAt: string; // ISO
-  actor: string; // display name
-  /** Optional cross-link to a structured target (member, opp, doc, etc.). */
+  actor: string;
+  actorRole?: string;
   ref?: { kind: string; id: string };
 };
 
+// ---- Notes ----
+
 export type DealNote = {
   id: string;
-  /** Markdown-style text with support for **bold**, *italic*, lists, and links. */
+  /** Markdown-ish text — **bold**, *italic*, - bullets, [links](url). */
   text: string;
   authorId: string;
   authorName: string;
@@ -89,83 +143,123 @@ export type DealNote = {
   updatedAt?: string;
 };
 
-export type DealContact = {
-  /** Member id (MEM-XXXXXX), or a free-text label when not a directory member. */
+// ---- Participants ----
+
+export type DealParticipantRole =
+  | "Sponsor"
+  | "Investor"
+  | "Admin"
+  | "Editor"
+  | "Moderator"
+  | "Member";
+
+export type DealParticipantStatus = "Active" | "Invited" | "Inactive";
+
+export type DealParticipant = {
   id: string;
   name: string;
-  role: string;
-  /** Optional reference back to a directory record. */
+  company: string;
+  role: DealParticipantRole;
+  status: DealParticipantStatus;
+  memberId?: string;
+};
+
+// ---- Documents (references only — no file storage) ----
+
+export type DealDocumentType =
+  | "LOI"
+  | "NDA"
+  | "Investor Deck"
+  | "Financial Model"
+  | "Contract"
+  | "Photo"
+  | "PDF";
+
+export const DEAL_DOCUMENT_TYPES: DealDocumentType[] = [
+  "LOI",
+  "NDA",
+  "Investor Deck",
+  "Financial Model",
+  "Contract",
+  "Photo",
+  "PDF",
+];
+
+export type DealDocumentRef = {
+  id: string;
+  name: string;
+  type: DealDocumentType;
+  /** Optional pointer to a data-room DOC-XXXXXX record. */
+  linkedDocumentId?: string;
+  addedAt: string;
+  addedBy: string;
+};
+
+// ---- Party (sponsor / investor) ----
+
+export type DealParty = {
+  name: string;
   memberId?: string;
   companyId?: string;
 };
 
-export type Deal = {
-  dealId: string; // "DEAL-XXXXXX"
-  title: string;
-  status: DealStage;
-  createdDate: string;
-  updatedDate: string;
-  /** Display name of the platform owner / admin who manages the deal. */
-  owner: string;
-  /** Optional handoff teammate. */
-  assignedTo?: string;
-  sourceType: DealSource;
-  /** Identifier of the source record (e.g. INT-000001 / OPP-000003). */
-  sourceId?: string;
-  /** Display label for the source. */
-  sourceName?: string;
+// ---- The Deal ----
 
-  /** Linked directory records (any combination may be set). */
-  memberId?: string;
-  companyId?: string;
+export type Deal = {
+  dealId: string; // "DEAL-000001"
+  title: string;
+
   opportunityId?: string;
   opportunitySlug?: string;
+  listingId?: string;
+  companyId?: string;
 
-  /** USD whole-dollar estimate of deal value (used for pipeline value totals). */
-  estimatedValue: number;
-  /** USD commission potential to the platform. */
-  commissionPotential: number;
+  sponsor: DealParty;
+  investor?: DealParty;
+  assignedAdmin: string;
 
-  /** A short human note shown on cards. The full notes live in `notes[]`. */
-  summaryNote?: string;
-  notes: DealNote[];
-  activity: DealActivity[];
-  contacts: DealContact[];
-
-  lastContactDate?: string; // ISO
-  nextFollowUpDate?: string; // ISO
+  stage: DealStage;
+  status: DealStatus;
   priority: DealPriority;
+
+  createdDate: string;
+  updatedDate: string;
+  expectedCloseDate?: string;
+
+  targetInvestment: number; // USD
+  actualInvestment?: number;
+  commissionPct: number; // e.g. 2.5
+  estimatedCommission: number;
+  actualCommission?: number;
+
+  sourceType: DealSource;
+  sourceId?: string;
+  sourceName?: string;
+
+  /** Card-level one-liner. Full notes live in the arrays below. */
+  summaryNote?: string;
+  /** Public notes — visible to every participant tier. */
+  notes: DealNote[];
+  /** Internal notes — Editor / Admin / Super Admin only. */
+  internalNotes: DealNote[];
+
+  activity: DealActivity[];
+  participants: DealParticipant[];
+  documents: DealDocumentRef[];
+  /** Existing messaging threads related to this deal. */
+  conversationIds: string[];
+
+  lastContactDate?: string;
+  nextFollowUpDate?: string;
   tags: string[];
 };
 
-export type DealMetrics = {
-  openCount: number;
-  closedCount: number;
-  lostCount: number;
-  dealsThisWeek: number;
-  dealsThisMonth: number;
-  potentialCommission: number;
-  upcomingFollowUps: number;
-  overdueFollowUps: number;
-};
+// ---- Time anchor ----
+//
+// All "today" math anchors here so SSG output and client hydration agree.
+export const DEAL_DESK_NOW_MS = Date.parse("2026-06-10T00:00:00Z");
 
-const OPEN_STAGES = new Set<DealStage>([
-  "New Lead",
-  "Reviewing",
-  "Contacted",
-  "Waiting Response",
-  "Introduction Sent",
-  "Meeting Scheduled",
-  "Negotiating",
-  "Due Diligence",
-  "Under Contract",
-]);
-
-export function isOpenStage(stage: DealStage): boolean {
-  return OPEN_STAGES.has(stage);
-}
-
-/** Days remaining until a deal's next follow-up (negative if overdue). */
+/** Days remaining until a date (negative if overdue). */
 export function daysUntil(iso: string | undefined, nowMs: number): number | null {
   if (!iso) return null;
   const t = new Date(iso).getTime();
@@ -173,44 +267,62 @@ export function daysUntil(iso: string | undefined, nowMs: number): number | null
   return Math.floor((t - nowMs) / (24 * 60 * 60 * 1000));
 }
 
-/** Compute pipeline metrics for the dashboard widgets. */
-export function computeDealMetrics(deals: Deal[], nowMs: number): DealMetrics {
-  const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+export function isOpenStage(stage: DealStage): boolean {
+  return statusForStage(stage) === "Open";
+}
+
+// ---- Metrics for the Deal Desk dashboard cards ----
+
+export type DealDeskMetrics = {
+  totalActive: number;
+  dealsThisMonth: number;
+  closedWon: number;
+  closedLost: number;
+  pendingFollowUps: number;
+  overdueFollowUps: number;
+  capitalBeingRaised: number; // sum targetInvestment over open deals
+  totalDealValue: number; // open target + won actual
+  estimatedCommissionOpen: number;
+};
+
+export function computeDealDeskMetrics(deals: Deal[], nowMs: number): DealDeskMetrics {
   const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
-  let openCount = 0;
-  let closedCount = 0;
-  let lostCount = 0;
-  let dealsThisWeek = 0;
-  let dealsThisMonth = 0;
-  let potentialCommission = 0;
-  let upcomingFollowUps = 0;
-  let overdueFollowUps = 0;
+  const m: DealDeskMetrics = {
+    totalActive: 0,
+    dealsThisMonth: 0,
+    closedWon: 0,
+    closedLost: 0,
+    pendingFollowUps: 0,
+    overdueFollowUps: 0,
+    capitalBeingRaised: 0,
+    totalDealValue: 0,
+    estimatedCommissionOpen: 0,
+  };
   for (const d of deals) {
-    if (isOpenStage(d.status)) {
-      openCount++;
-      potentialCommission += d.commissionPotential;
-    } else if (d.status === "Closed") closedCount++;
-    else if (d.status === "Lost") lostCount++;
-    const createdMs = new Date(d.createdDate).getTime();
-    if (!Number.isNaN(createdMs)) {
-      const age = nowMs - createdMs;
-      if (age <= oneWeekMs) dealsThisWeek++;
-      if (age <= oneMonthMs) dealsThisMonth++;
+    const open = isOpenStage(d.stage);
+    if (open) {
+      m.totalActive++;
+      m.capitalBeingRaised += d.targetInvestment;
+      m.totalDealValue += d.targetInvestment;
+      m.estimatedCommissionOpen += d.estimatedCommission;
+      const du = daysUntil(d.nextFollowUpDate, nowMs);
+      if (du !== null) {
+        if (du < 0) m.overdueFollowUps++;
+        else if (du <= 7) m.pendingFollowUps++;
+      }
+    } else if (d.stage === "Closed Won") {
+      m.closedWon++;
+      m.totalDealValue += d.actualInvestment ?? d.targetInvestment;
+    } else if (d.stage === "Closed Lost") {
+      m.closedLost++;
     }
-    const du = daysUntil(d.nextFollowUpDate, nowMs);
-    if (du !== null && isOpenStage(d.status)) {
-      if (du < 0) overdueFollowUps++;
-      else if (du <= 7) upcomingFollowUps++;
+    const createdMs = new Date(d.createdDate).getTime();
+    if (!Number.isNaN(createdMs) && nowMs - createdMs <= oneMonthMs) {
+      m.dealsThisMonth++;
     }
   }
-  return {
-    openCount,
-    closedCount,
-    lostCount,
-    dealsThisWeek,
-    dealsThisMonth,
-    potentialCommission,
-    upcomingFollowUps,
-    overdueFollowUps,
-  };
+  return m;
 }
+
+/** Admins assignable to deals (mock roster until auth exists). */
+export const SAMPLE_ADMINS = ["Stevie Cabrera", "Mariana Reyes", "Diego Salinas"];

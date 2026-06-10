@@ -2,7 +2,7 @@ export * from "./types";
 export { SEED_DEALS } from "./seed";
 
 import { SEED_DEALS } from "./seed";
-import type { Deal, DealStage } from "./types";
+import { DEAL_STAGES, type Deal, type DealStage } from "./types";
 
 export function getDealById(deals: Deal[], id: string): Deal | undefined {
   return deals.find((d) => d.dealId === id);
@@ -13,19 +13,9 @@ export function listSeedDealIds(): string[] {
 }
 
 export function groupByStage(deals: Deal[]): Record<DealStage, Deal[]> {
-  const groups: Record<DealStage, Deal[]> = {
-    "New Lead": [],
-    Reviewing: [],
-    Contacted: [],
-    "Waiting Response": [],
-    "Introduction Sent": [],
-    "Meeting Scheduled": [],
-    Negotiating: [],
-    "Due Diligence": [],
-    "Under Contract": [],
-    Closed: [],
-    Lost: [],
-  };
-  for (const d of deals) groups[d.status].push(d);
+  const groups = Object.fromEntries(
+    DEAL_STAGES.map((s) => [s, [] as Deal[]])
+  ) as Record<DealStage, Deal[]>;
+  for (const d of deals) groups[d.stage]?.push(d);
   return groups;
 }

@@ -20,7 +20,7 @@ type SubNavItem = {
 
 const ITEMS: SubNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
-  { label: "Deals", href: "/dashboard/deals", icon: Briefcase },
+  { label: "Deal Desk", href: "/deal-desk", icon: Briefcase },
   { label: "Listings", href: "/dashboard/listings", icon: ListChecks },
   { label: "Introductions", href: "/dashboard/introductions", icon: UserPlus },
 ];

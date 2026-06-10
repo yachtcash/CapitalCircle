@@ -59,13 +59,18 @@ import {
 } from "@/data/connections";
 import {
   SEED_DEALS,
+  statusForStage,
   type Deal,
   type DealActivity,
   type DealActivityKind,
+  type DealDocumentType,
   type DealNote,
+  type DealParticipant,
   type DealPriority,
   type DealStage,
 } from "@/data/deals";
+import { CURRENT_USER_ROLE } from "@/lib/roles";
+import { getMemberById } from "@/data/members";
 import { isStoredImageToken, prewarmTokens } from "@/lib/imageStore";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
@@ -308,31 +313,44 @@ type MessagingValue = {
     introductionId?: string;
   }) => string;
 
-  // ---- Deal Desk (pipeline / CRM) ----
+  // ---- Deal Desk (Phase 1 — Platform Operations Center) ----
   deals: Deal[];
   /** Get a single deal by DEAL-XXXXXX id. */
   getDeal: (dealId: string) => Deal | undefined;
-  /** Create a new deal manually. Returns the new id. */
-  createDeal: (input: Omit<Deal, "dealId" | "createdDate" | "updatedDate" | "notes" | "activity" | "contacts"> & {
-    notes?: DealNote[];
-    activity?: DealActivity[];
-    contacts?: Deal["contacts"];
-  }) => string;
-  /** Convert an introduction request into a deal record. Returns the new id. */
+  /** Create a new deal. Status derives from stage. Returns the new id. */
+  createDeal: (
+    input: Omit<
+      Deal,
+      | "dealId"
+      | "createdDate"
+      | "updatedDate"
+      | "status"
+      | "notes"
+      | "internalNotes"
+      | "activity"
+      | "participants"
+      | "documents"
+      | "conversationIds"
+    > &
+      Partial<
+        Pick<
+          Deal,
+          "notes" | "internalNotes" | "participants" | "documents" | "conversationIds"
+        >
+      >
+  ) => string;
+  /**
+   * Convert an approved introduction into a deal: sponsor = target member,
+   * investor = requester, stage = "Introduction Approved", admin = current
+   * user, opportunity/company carried over. Idempotent per introduction.
+   */
   convertIntroductionToDeal: (introductionId: string) => string | null;
-  /** Update a deal's pipeline stage. Stamps an activity entry. */
+  /** Update a deal's stage (kanban drag / selector). Syncs status. */
   updateDealStage: (dealId: string, stage: DealStage, note?: string) => void;
   /** Patch any subset of editable deal fields. Stamps an "updated" activity. */
   updateDealFields: (dealId: string, patch: Partial<Deal>) => void;
-  /** Append a free-text note. Stamps an activity entry. */
-  addDealNote: (dealId: string, text: string) => string;
-  /** Append a structured activity event to the deal. */
-  addDealActivity: (
-    dealId: string,
-    kind: DealActivityKind,
-    title: string,
-    body?: string
-  ) => void;
+  /** Append a note. `internal = true` targets the Editor+ internal list. */
+  addDealNote: (dealId: string, text: string, internal?: boolean) => string;
   /** Set the deal's priority. */
   setDealPriority: (dealId: string, priority: DealPriority) => void;
   /** Update follow-up dates (last contact / next follow up). */
@@ -340,6 +358,26 @@ type MessagingValue = {
     dealId: string,
     patch: { lastContactDate?: string; nextFollowUpDate?: string }
   ) => void;
+  /** Reassign the responsible admin. */
+  assignDealAdmin: (dealId: string, admin: string) => void;
+  /** Close the deal won/lost; "won" backfills actuals from targets. */
+  closeDeal: (dealId: string, outcome: "won" | "lost", note?: string) => void;
+  /** Reopen a closed deal back into Negotiating. */
+  reopenDeal: (dealId: string) => void;
+  /** Archive / restore. */
+  archiveDeal: (dealId: string) => void;
+  restoreDeal: (dealId: string) => void;
+  /** Hard-delete the deal record. */
+  deleteDeal: (dealId: string) => void;
+  /** Participant roster management. */
+  addDealParticipant: (dealId: string, input: Omit<DealParticipant, "id">) => void;
+  removeDealParticipant: (dealId: string, participantId: string) => void;
+  /** Document references (no file storage — pointers only). */
+  addDealDocument: (
+    dealId: string,
+    input: { name: string; type: DealDocumentType; linkedDocumentId?: string }
+  ) => void;
+  removeDealDocument: (dealId: string, documentId: string) => void;
 };
 
 const Ctx = createContext<MessagingValue | null>(null);
@@ -444,7 +482,18 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     );
     if (storedConnections) setDirectConnections(storedConnections);
     const storedDeals = readStored<Deal[] | null>(KEY_DEALS, null);
-    if (storedDeals) setDeals(storedDeals);
+    // Phase 1 reshaped the Deal record (sponsor/investor/targetInvestment).
+    // Pre-Phase-1 stored deals lack those fields — discard them and start
+    // from the new seed rather than render half-broken rows.
+    if (
+      storedDeals &&
+      storedDeals.length > 0 &&
+      storedDeals.every(
+        (d) => d && typeof d.targetInvestment === "number" && !!d.sponsor
+      )
+    ) {
+      setDeals(storedDeals);
+    }
     setHydrated(true);
   }, []);
 
@@ -656,7 +705,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // ---- Deal Desk ----
+  // ---- Deal Desk (Phase 1 — Platform Operations Center) ----
 
   function nextDealId(existing: Deal[]): string {
     let max = 0;
@@ -670,11 +719,13 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     return `DEAL-${String(max + 1).padStart(6, "0")}`;
   }
 
+  // Structured, audit-ready record: who / role / what / related ref.
   function makeDealActivity(
     existing: DealActivity[],
     kind: DealActivityKind,
     title: string,
-    body?: string
+    body?: string,
+    ref?: { kind: string; id: string }
   ): DealActivity {
     return {
       id: `act-${String(existing.length + 1).padStart(2, "0")}`,
@@ -683,8 +734,44 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       body,
       createdAt: new Date().toISOString(),
       actor: profile.name,
+      actorRole: CURRENT_USER_ROLE,
+      ref,
     };
   }
+
+  /** Shared mutate-one-deal helper: patches + stamps activity + updatedDate. */
+  const mutateDeal = useCallback(
+    (
+      dealId: string,
+      patch: Partial<Deal> | ((d: Deal) => Partial<Deal>),
+      act?: {
+        kind: DealActivityKind;
+        title: string;
+        body?: string;
+        ref?: { kind: string; id: string };
+      }
+    ) => {
+      setDeals((prev) =>
+        prev.map((d) => {
+          if (d.dealId !== dealId) return d;
+          const resolved = typeof patch === "function" ? patch(d) : patch;
+          const next: Deal = {
+            ...d,
+            ...resolved,
+            updatedDate: new Date().toISOString(),
+          };
+          if (act) {
+            next.activity = [
+              ...next.activity,
+              makeDealActivity(d.activity, act.kind, act.title, act.body, act.ref),
+            ];
+          }
+          return next;
+        })
+      );
+    },
+    [profile.name]
+  );
 
   const getDeal = useCallback(
     (dealId: string): Deal | undefined => deals.find((d) => d.dealId === dealId),
@@ -695,30 +782,50 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     (
       input: Omit<
         Deal,
-        "dealId" | "createdDate" | "updatedDate" | "notes" | "activity" | "contacts"
-      > & {
-        notes?: DealNote[];
-        activity?: DealActivity[];
-        contacts?: Deal["contacts"];
-      }
+        | "dealId"
+        | "createdDate"
+        | "updatedDate"
+        | "status"
+        | "notes"
+        | "internalNotes"
+        | "activity"
+        | "participants"
+        | "documents"
+        | "conversationIds"
+      > &
+        Partial<
+          Pick<
+            Deal,
+            "notes" | "internalNotes" | "participants" | "documents" | "conversationIds"
+          >
+        >
     ): string => {
       let id = "";
       setDeals((prev) => {
         id = nextDealId(prev);
         const now = new Date().toISOString();
-        const seedActivity = input.activity ?? [];
-        const initialActivity = [
-          ...seedActivity,
-          makeDealActivity(seedActivity, "created", "Deal created", undefined),
-        ];
         const record: Deal = {
           ...input,
           dealId: id,
+          status: statusForStage(input.stage),
           createdDate: now,
           updatedDate: now,
           notes: input.notes ?? [],
-          activity: initialActivity,
-          contacts: input.contacts ?? [],
+          internalNotes: input.internalNotes ?? [],
+          participants: input.participants ?? [],
+          documents: input.documents ?? [],
+          conversationIds: input.conversationIds ?? [],
+          activity: [
+            {
+              id: "act-01",
+              kind: "created",
+              title: "Deal created",
+              body: `Opened by ${profile.name}.`,
+              createdAt: now,
+              actor: profile.name,
+              actorRole: CURRENT_USER_ROLE,
+            },
+          ],
         };
         return [record, ...prev];
       });
@@ -738,91 +845,119 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       const opp = intro.opportunitySlug
         ? featuredOpportunities.find((o) => o.slug === intro.opportunitySlug)
         : undefined;
+      const target = opp?.fundingAmount ?? 0;
+      const pct = 2.5;
+      const sponsorMember = getMemberById(intro.targetMemberId);
       const id = createDeal({
-        title: `${intro.requesterName} → ${intro.targetMemberName}`,
-        status: intro.status === "Pending" ? "New Lead" : "Introduction Sent",
-        owner: profile.name,
+        title: opp
+          ? `${opp.title} — ${intro.requesterName}`
+          : `${intro.requesterName} → ${intro.targetMemberName}`,
+        opportunityId: opp?.id,
+        opportunitySlug: intro.opportunitySlug,
+        companyId: intro.companyId,
+        sponsor: {
+          name: intro.targetMemberName,
+          memberId: intro.targetMemberId,
+          companyId: intro.companyId,
+        },
+        investor: { name: intro.requesterName, memberId: intro.requesterId },
+        assignedAdmin: profile.name,
+        stage: "Introduction Approved",
+        priority: "Normal",
+        targetInvestment: target,
+        commissionPct: pct,
+        estimatedCommission: Math.round((target * pct) / 100),
         sourceType: "Introduction Request",
         sourceId: introductionId,
         sourceName: `${introductionId} — ${intro.requesterName} → ${intro.targetMemberName}`,
-        memberId: intro.targetMemberId,
-        companyId: intro.companyId,
-        opportunityId: opp?.id,
-        opportunitySlug: intro.opportunitySlug,
-        estimatedValue: opp?.fundingAmount ?? 0,
-        commissionPotential: Math.round((opp?.fundingAmount ?? 0) * 0.025),
         summaryNote: intro.reason,
-        priority: "Medium",
         tags: ["Introduction"],
         lastContactDate: new Date().toISOString(),
+        participants: [
+          {
+            id: "p-sponsor",
+            name: intro.targetMemberName,
+            company: sponsorMember?.company ?? intro.companyName ?? "—",
+            role: "Sponsor",
+            status: "Active",
+            memberId: intro.targetMemberId,
+          },
+          {
+            id: "p-investor",
+            name: intro.requesterName,
+            company: "—",
+            role: "Investor",
+            status: "Active",
+          },
+          {
+            id: "p-admin",
+            name: profile.name,
+            company: "Capital Circle",
+            role: "Admin",
+            status: "Active",
+          },
+        ],
+      });
+      // Stamp the introduction trail onto the new deal.
+      mutateDeal(id, {}, {
+        kind: "introduction_requested",
+        title: "Introduction requested",
+        body: intro.message.slice(0, 140),
+        ref: { kind: "introduction", id: introductionId },
+      });
+      mutateDeal(id, {}, {
+        kind: "introduction_approved",
+        title: "Introduction approved",
+        ref: { kind: "introduction", id: introductionId },
       });
       return id;
     },
-    [introductionRequests, deals, profile.name, createDeal]
+    [introductionRequests, deals, profile.name, createDeal, mutateDeal]
   );
 
   const updateDealStage = useCallback(
     (dealId: string, stage: DealStage, note?: string) => {
-      const now = new Date().toISOString();
-      setDeals((prev) =>
-        prev.map((d) => {
-          if (d.dealId !== dealId) return d;
-          const kind: DealActivityKind =
-            stage === "Closed"
-              ? "closed"
-              : stage === "Lost"
-                ? "lost"
-                : stage === "Meeting Scheduled"
-                  ? "meeting_scheduled"
-                  : "stage_change";
-          return {
-            ...d,
-            status: stage,
-            updatedDate: now,
-            activity: [
-              ...d.activity,
-              makeDealActivity(
-                d.activity,
-                kind,
-                `Stage → ${stage}`,
-                note
-              ),
-            ],
-          };
-        })
+      const kind: DealActivityKind =
+        stage === "Closed Won"
+          ? "closed_won"
+          : stage === "Closed Lost"
+            ? "closed_lost"
+            : stage === "Archived"
+              ? "archived"
+              : "stage_change";
+      mutateDeal(
+        dealId,
+        { stage, status: statusForStage(stage) },
+        { kind, title: `Stage → ${stage}`, body: note }
       );
     },
-    []
+    [mutateDeal]
   );
 
-  const updateDealFields = useCallback((dealId: string, patch: Partial<Deal>) => {
-    const now = new Date().toISOString();
-    setDeals((prev) =>
-      prev.map((d) => {
-        if (d.dealId !== dealId) return d;
-        return {
-          ...d,
+  const updateDealFields = useCallback(
+    (dealId: string, patch: Partial<Deal>) => {
+      mutateDeal(
+        dealId,
+        (d) => ({
           ...patch,
-          updatedDate: now,
-          activity: [
-            ...d.activity,
-            makeDealActivity(d.activity, "updated", "Deal updated"),
-          ],
-        };
-      })
-    );
-  }, []);
+          status: patch.stage ? statusForStage(patch.stage) : d.status,
+        }),
+        { kind: "updated", title: "Deal updated" }
+      );
+    },
+    [mutateDeal]
+  );
 
   const addDealNote = useCallback(
-    (dealId: string, text: string): string => {
+    (dealId: string, text: string, internal = false): string => {
       const now = new Date().toISOString();
       let noteId = "";
       setDeals((prev) =>
         prev.map((d) => {
           if (d.dealId !== dealId) return d;
-          const seq = d.notes.length + 1;
-          noteId = `note-${String(seq).padStart(2, "0")}`;
-          const noteEntry: DealNote = {
+          const list = internal ? d.internalNotes : d.notes;
+          noteId = `note-${String(list.length + 1).padStart(2, "0")}`;
+          const entry: DealNote = {
             id: noteId,
             text,
             authorId: "me",
@@ -832,10 +967,16 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           return {
             ...d,
             updatedDate: now,
-            notes: [noteEntry, ...d.notes],
+            notes: internal ? d.notes : [entry, ...d.notes],
+            internalNotes: internal ? [entry, ...d.internalNotes] : d.internalNotes,
             activity: [
               ...d.activity,
-              makeDealActivity(d.activity, "note_added", "Note added", text.slice(0, 120)),
+              makeDealActivity(
+                d.activity,
+                internal ? "internal_note_added" : "note_added",
+                internal ? "Internal note added" : "Note added",
+                text.slice(0, 120)
+              ),
             ],
           };
         })
@@ -845,45 +986,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     [profile.name]
   );
 
-  const addDealActivityCb = useCallback(
-    (dealId: string, kind: DealActivityKind, title: string, body?: string) => {
-      setDeals((prev) =>
-        prev.map((d) =>
-          d.dealId === dealId
-            ? {
-                ...d,
-                updatedDate: new Date().toISOString(),
-                activity: [
-                  ...d.activity,
-                  makeDealActivity(d.activity, kind, title, body),
-                ],
-              }
-            : d
-        )
-      );
-    },
-    []
-  );
-
   const setDealPriority = useCallback(
     (dealId: string, priority: DealPriority) => {
-      setDeals((prev) =>
-        prev.map((d) =>
-          d.dealId === dealId
-            ? {
-                ...d,
-                priority,
-                updatedDate: new Date().toISOString(),
-                activity: [
-                  ...d.activity,
-                  makeDealActivity(d.activity, "updated", `Priority → ${priority}`),
-                ],
-              }
-            : d
-        )
-      );
+      mutateDeal(dealId, { priority }, {
+        kind: "priority_change",
+        title: `Priority → ${priority}`,
+      });
     },
-    []
+    [mutateDeal]
   );
 
   const setDealFollowUp = useCallback(
@@ -891,24 +1001,138 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       dealId: string,
       patch: { lastContactDate?: string; nextFollowUpDate?: string }
     ) => {
-      setDeals((prev) =>
-        prev.map((d) =>
-          d.dealId === dealId
-            ? {
-                ...d,
-                ...patch,
-                updatedDate: new Date().toISOString(),
-                activity: [
-                  ...d.activity,
-                  makeDealActivity(d.activity, "updated", "Follow-up updated"),
-                ],
-              }
-            : d
-        )
+      mutateDeal(dealId, patch, { kind: "updated", title: "Follow-up updated" });
+    },
+    [mutateDeal]
+  );
+
+  const assignDealAdmin = useCallback(
+    (dealId: string, admin: string) => {
+      mutateDeal(dealId, { assignedAdmin: admin }, {
+        kind: "assigned",
+        title: `Assigned to ${admin}`,
+      });
+    },
+    [mutateDeal]
+  );
+
+  const closeDeal = useCallback(
+    (dealId: string, outcome: "won" | "lost", note?: string) => {
+      updateDealStage(dealId, outcome === "won" ? "Closed Won" : "Closed Lost", note);
+      if (outcome === "won") {
+        mutateDeal(dealId, (d) => ({
+          actualInvestment: d.actualInvestment ?? d.targetInvestment,
+          actualCommission:
+            d.actualCommission ??
+            Math.round(((d.actualInvestment ?? d.targetInvestment) * d.commissionPct) / 100),
+        }));
+      }
+    },
+    [updateDealStage, mutateDeal]
+  );
+
+  const reopenDeal = useCallback(
+    (dealId: string) => {
+      mutateDeal(
+        dealId,
+        { stage: "Negotiating", status: "Open" },
+        { kind: "reopened", title: "Deal reopened", body: "Returned to Negotiating." }
       );
     },
-    []
+    [mutateDeal]
   );
+
+  const archiveDeal = useCallback(
+    (dealId: string) => updateDealStage(dealId, "Archived"),
+    [updateDealStage]
+  );
+
+  const restoreDeal = useCallback(
+    (dealId: string) => {
+      mutateDeal(
+        dealId,
+        { stage: "New Lead", status: "Open" },
+        { kind: "restored", title: "Deal restored", body: "Returned to New Lead." }
+      );
+    },
+    [mutateDeal]
+  );
+
+  const deleteDeal = useCallback((dealId: string) => {
+    setDeals((prev) => prev.filter((d) => d.dealId !== dealId));
+  }, []);
+
+  const addDealParticipant = useCallback(
+    (dealId: string, input: Omit<DealParticipant, "id">) => {
+      mutateDeal(
+        dealId,
+        (d) => ({
+          participants: [
+            ...d.participants,
+            { ...input, id: `p-${String(d.participants.length + 1).padStart(2, "0")}` },
+          ],
+        }),
+        {
+          kind:
+            input.role === "Investor"
+              ? "investor_added"
+              : input.role === "Sponsor"
+                ? "sponsor_added"
+                : "participant_added",
+          title: `${input.role} added — ${input.name}`,
+        }
+      );
+    },
+    [mutateDeal]
+  );
+
+  const removeDealParticipant = useCallback(
+    (dealId: string, participantId: string) => {
+      mutateDeal(
+        dealId,
+        (d) => ({
+          participants: d.participants.filter((p) => p.id !== participantId),
+        }),
+        { kind: "participant_removed", title: "Participant removed" }
+      );
+    },
+    [mutateDeal]
+  );
+
+  const addDealDocument = useCallback(
+    (dealId: string, input: { name: string; type: DealDocumentType; linkedDocumentId?: string }) => {
+      mutateDeal(
+        dealId,
+        (d) => ({
+          documents: [
+            ...d.documents,
+            {
+              id: `doc-${String(d.documents.length + 1).padStart(2, "0")}`,
+              name: input.name,
+              type: input.type,
+              linkedDocumentId: input.linkedDocumentId,
+              addedAt: new Date().toISOString(),
+              addedBy: profile.name,
+            },
+          ],
+        }),
+        { kind: "document_added", title: `Document added — ${input.name}` }
+      );
+    },
+    [mutateDeal, profile.name]
+  );
+
+  const removeDealDocument = useCallback(
+    (dealId: string, documentId: string) => {
+      mutateDeal(
+        dealId,
+        (d) => ({ documents: d.documents.filter((doc) => doc.id !== documentId) }),
+        { kind: "document_removed", title: "Document reference removed" }
+      );
+    },
+    [mutateDeal]
+  );
+
 
   const upsertConversation = useCallback(
     (
@@ -2172,9 +2396,18 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     updateDealStage,
     updateDealFields,
     addDealNote,
-    addDealActivity: addDealActivityCb,
     setDealPriority,
     setDealFollowUp,
+    assignDealAdmin,
+    closeDeal,
+    reopenDeal,
+    archiveDeal,
+    restoreDeal,
+    deleteDeal,
+    addDealParticipant,
+    removeDealParticipant,
+    addDealDocument,
+    removeDealDocument,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
