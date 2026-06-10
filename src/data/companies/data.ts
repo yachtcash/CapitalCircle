@@ -1,17 +1,28 @@
 import type { Company } from "./types";
 import { EXTRA_COMPANIES } from "./extra";
+import { pickCompanyCover, pickCompanyGallery } from "../imageSets";
 
-// Helper to make 4-image gallery from a listing folder, with category labels.
+/**
+ * Build the company gallery. Image URLs are drawn from the topic-tagged
+ * Loremflickr pool by industry, then paired with the editorial labels the
+ * company author provided so each image keeps a curated alt/caption.
+ */
 function listingGallery(
-  slug: string,
+  companyId: string,
+  industry: string,
   labels: { category: import("./types").GalleryCategory; caption: string }[]
 ) {
-  return labels.map((label, i) => ({
-    src: `/listings/${slug}/${i + 1}.jpg`,
-    alt: `${label.category} — ${label.caption}`,
-    category: label.category,
-    caption: label.caption,
-  }));
+  const count = Math.max(labels.length, 5);
+  const urls = pickCompanyGallery({ industry, id: companyId, count });
+  return urls.map((src, i) => {
+    const label = labels[i] ?? labels[labels.length - 1];
+    return {
+      src,
+      alt: `${label.category} — ${label.caption}`,
+      category: label.category,
+      caption: label.caption,
+    };
+  });
 }
 
 const CORE_COMPANIES: Company[] = [
@@ -28,7 +39,7 @@ const CORE_COMPANIES: Company[] = [
     foundedYear: 2013,
     employees: "50–100",
     verification: "Verified",
-    coverImage: "/listings/beachfront-boutique-hotel/1.jpg",
+    coverImage: pickCompanyCover({ industry: "Luxury Hospitality", id: "COMP-000001" }),
     about: {
       overview:
         "Pacific Coast Development Group is a vertically integrated owner-operator of boutique hospitality assets in the Mexican Riviera. The firm acquires, develops, and manages design-led properties under 60 keys with a focus on stabilized cash flow and brand-quality experience.",
@@ -95,7 +106,7 @@ const CORE_COMPANIES: Company[] = [
           "12-key off-grid retreat with solar and water reclamation. Sold to a private owner at 2.6× MOIC.",
       },
     ],
-    gallery: listingGallery("beachfront-boutique-hotel", [
+    gallery: listingGallery("COMP-000001", "Luxury Hospitality", [
       { category: "Project", caption: "Médano Beach property — aerial" },
       { category: "Facility", caption: "Pool and beach club" },
       { category: "Project", caption: "Ocean elevation" },
@@ -128,7 +139,7 @@ const CORE_COMPANIES: Company[] = [
     foundedYear: 2007,
     employees: "100–250",
     verification: "Premium Verified",
-    coverImage: "/listings/mixed-use-tower-development/1.jpg",
+    coverImage: pickCompanyCover({ industry: "Real Estate Development", id: "COMP-000002" }),
     about: {
       overview:
         "Aurora Capital Partners develops, builds, and sells high-rise residential and mixed-use towers across South Florida. The firm runs in-house teams across entitlement, construction, sales, and capital markets — a single operating platform from site to closing.",
@@ -195,7 +206,7 @@ const CORE_COMPANIES: Company[] = [
           "42-story luxury condo tower with $1,440 PSF average closing price.",
       },
     ],
-    gallery: listingGallery("mixed-use-tower-development", [
+    gallery: listingGallery("COMP-000002", "Real Estate Development", [
       { category: "Project", caption: "Edgewater tower elevation" },
       { category: "Office", caption: "Sales center interior" },
       { category: "Project", caption: "Skyline integration" },
@@ -227,7 +238,7 @@ const CORE_COMPANIES: Company[] = [
     foundedYear: 2011,
     employees: "10–50",
     verification: "Verified",
-    coverImage: "/listings/coastal-development-land/1.jpg",
+    coverImage: pickCompanyCover({ industry: "Land Aggregation & Brokerage", id: "COMP-000003" }),
     about: {
       overview:
         "Riviera Land Group acquires, entitles, and transacts large coastal parcels along Mexico's Pacific coast. The firm operates as both principal investor and seller-side broker, with a focus on parcels of 20+ acres suitable for resort or branded development.",
@@ -294,7 +305,7 @@ const CORE_COMPANIES: Company[] = [
           "38 acres re-zoned for branded residential. Closed direct sale at $19M.",
       },
     ],
-    gallery: listingGallery("coastal-development-land", [
+    gallery: listingGallery("COMP-000003", "Land Aggregation & Brokerage", [
       { category: "Project", caption: "Aerial view of parcel" },
       { category: "Project", caption: "Beach frontage" },
       { category: "Facility", caption: "Coastline contour" },
@@ -326,7 +337,7 @@ const CORE_COMPANIES: Company[] = [
     foundedYear: 2009,
     employees: "10–50",
     verification: "Verified",
-    coverImage: "/listings/regional-logistics-acquisition/1.jpg",
+    coverImage: pickCompanyCover({ industry: "Freight & Logistics M&A", id: "COMP-000004" }),
     about: {
       overview:
         "Global Logistics Holdings represents sellers of profitable, founder-led freight and logistics companies in the South-Central US. The firm handles confidential offers, Quality-of-Earnings work, financing syndication, and seller transition planning.",
@@ -393,7 +404,7 @@ const CORE_COMPANIES: Company[] = [
           "Hub-and-spoke last-mile operator with 28 vehicles. Sold to a Fortune-500 industrial at 4.8× EBITDA.",
       },
     ],
-    gallery: listingGallery("regional-logistics-acquisition", [
+    gallery: listingGallery("COMP-000004", "Freight & Logistics M&A", [
       { category: "Facility", caption: "Distribution interior" },
       { category: "Project", caption: "Loading bay exterior" },
       { category: "Facility", caption: "Inventory racks" },
@@ -425,7 +436,7 @@ const CORE_COMPANIES: Company[] = [
     foundedYear: 2016,
     employees: "100–250",
     verification: "Verified",
-    coverImage: "/listings/sonora-solar-storage-portfolio/1.jpg",
+    coverImage: pickCompanyCover({ industry: "Utility-Scale Renewables", id: "COMP-000005" }),
     about: {
       overview:
         "Sonora Energy Partners develops, finances, builds, and operates utility-scale solar and storage assets across Mexico and Central America. The firm holds long-term ownership of operating projects and partners with industrial offtakers under multi-decade PPAs.",
@@ -492,7 +503,7 @@ const CORE_COMPANIES: Company[] = [
           "Mexico's largest single-site bifacial array at COD. Multi-offtaker PPA structure.",
       },
     ],
-    gallery: listingGallery("sonora-solar-storage-portfolio", [
+    gallery: listingGallery("COMP-000005", "Utility-Scale Renewables", [
       { category: "Project", caption: "Solar array — aerial" },
       { category: "Facility", caption: "Inverter substation" },
       { category: "Project", caption: "Panel detail" },
@@ -524,7 +535,7 @@ const CORE_COMPANIES: Company[] = [
     foundedYear: 2015,
     employees: "50–100",
     verification: "Pending",
-    coverImage: "/listings/branded-residences-tulum-jv/1.jpg",
+    coverImage: pickCompanyCover({ industry: "Branded Residential", id: "COMP-000006" }),
     about: {
       overview:
         "Yucatán Development Co. designs and builds branded residential developments under license from global hospitality flags. The firm operates exclusively on titled beachfront in the Riviera Maya and along the Caribbean basin.",
@@ -591,7 +602,7 @@ const CORE_COMPANIES: Company[] = [
           "62-residence beachfront tower. Currently in delivery — 88% pre-sold at $2,140 PSF average.",
       },
     ],
-    gallery: listingGallery("branded-residences-tulum-jv", [
+    gallery: listingGallery("COMP-000006", "Branded Residential", [
       { category: "Project", caption: "Resort pool deck" },
       { category: "Facility", caption: "Lounge area" },
       { category: "Project", caption: "Beachfront elevation" },

@@ -18,6 +18,7 @@ import type {
   OpportunityStatus,
   Place,
 } from "./opportunities";
+import { pickOpportunityImages } from "./imageSets";
 
 const ANCHOR_MS = new Date("2026-06-06T12:00:00.000Z").getTime();
 const DAY_MS = 86_400_000;
@@ -102,10 +103,13 @@ function makeOpp(c: NewOppConfig): Opportunity {
     postedBy: c.postedBy,
     postedAgo: postedAgoFor(postedAt),
     postedAt,
-    images: Array.from(
-      { length: c.imageCount },
-      (_, i) => `/opportunities/${c.publicId}/${i + 1}.svg`
-    ),
+    images: pickOpportunityImages({
+      category: c.category,
+      industry: c.industry,
+      title: c.title,
+      id: c.id,
+      count: Math.max(c.imageCount, 5),
+    }),
     featured: !!c.featured,
     trending: !!c.trending,
     companyId: c.companyId,

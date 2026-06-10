@@ -75,6 +75,7 @@ export type Opportunity = {
 };
 
 import { EXTRA_OPPORTUNITIES } from "./opportunities-extra";
+import { pickOpportunityImages } from "./imageSets";
 
 const CORE_OPPORTUNITIES: Opportunity[] = [
   {
@@ -115,12 +116,13 @@ const CORE_OPPORTUNITIES: Opportunity[] = [
     postedBy: "Pacific Coast Development Group",
     postedAgo: "2 days ago",
     postedAt: "2026-06-02",
-    images: [
-      "/listings/beachfront-boutique-hotel/1.jpg",
-      "/listings/beachfront-boutique-hotel/2.jpg",
-      "/listings/beachfront-boutique-hotel/3.jpg",
-      "/listings/beachfront-boutique-hotel/4.jpg",
-    ],
+    images: pickOpportunityImages({
+      category: "Hotels & Resorts",
+      industry: "Luxury Hospitality",
+      title: "Beachfront Boutique Hotel — 42 Keys",
+      id: "cc-001",
+      count: 6,
+    }),
     featured: true,
     trending: false,
     companyId: "COMP-000001",
@@ -168,12 +170,13 @@ const CORE_OPPORTUNITIES: Opportunity[] = [
     postedBy: "Aurora Capital Partners",
     postedAgo: "5 days ago",
     postedAt: "2026-05-30",
-    images: [
-      "/listings/mixed-use-tower-development/1.jpg",
-      "/listings/mixed-use-tower-development/2.jpg",
-      "/listings/mixed-use-tower-development/3.jpg",
-      "/listings/mixed-use-tower-development/4.jpg",
-    ],
+    images: pickOpportunityImages({
+      category: "Real Estate Development",
+      industry: "Urban Mixed-Use",
+      title: "Mixed-Use Tower Development",
+      id: "cc-002",
+      count: 6,
+    }),
     featured: true,
     trending: true,
     companyId: "COMP-000002",
@@ -221,12 +224,13 @@ const CORE_OPPORTUNITIES: Opportunity[] = [
     postedBy: "Riviera Land Group",
     postedAgo: "1 week ago",
     postedAt: "2026-05-28",
-    images: [
-      "/listings/coastal-development-land/1.jpg",
-      "/listings/coastal-development-land/2.jpg",
-      "/listings/coastal-development-land/3.jpg",
-      "/listings/coastal-development-land/4.jpg",
-    ],
+    images: pickOpportunityImages({
+      category: "Land Opportunities",
+      industry: "Master-Planned Resort Land",
+      title: "Coastal Development Land — 84 Acres",
+      id: "cc-003",
+      count: 6,
+    }),
     featured: false,
     trending: true,
     companyId: "COMP-000003",
@@ -274,12 +278,13 @@ const CORE_OPPORTUNITIES: Opportunity[] = [
     postedBy: "Global Logistics Holdings",
     postedAgo: "3 days ago",
     postedAt: "2026-06-01",
-    images: [
-      "/listings/regional-logistics-acquisition/1.jpg",
-      "/listings/regional-logistics-acquisition/2.jpg",
-      "/listings/regional-logistics-acquisition/3.jpg",
-      "/listings/regional-logistics-acquisition/4.jpg",
-    ],
+    images: pickOpportunityImages({
+      category: "Business Acquisitions",
+      industry: "Freight & Logistics",
+      title: "Regional Logistics Operator Acquisition",
+      id: "cc-004",
+      count: 6,
+    }),
     featured: false,
     trending: false,
     companyId: "COMP-000004",
@@ -327,12 +332,13 @@ const CORE_OPPORTUNITIES: Opportunity[] = [
     postedBy: "Sonora Energy Partners",
     postedAgo: "1 day ago",
     postedAt: "2026-06-03",
-    images: [
-      "/listings/sonora-solar-storage-portfolio/1.jpg",
-      "/listings/sonora-solar-storage-portfolio/2.jpg",
-      "/listings/sonora-solar-storage-portfolio/3.jpg",
-      "/listings/sonora-solar-storage-portfolio/4.jpg",
-    ],
+    images: pickOpportunityImages({
+      category: "Energy",
+      industry: "Utility-Scale Renewables",
+      title: "Solar + Storage Portfolio — 120 MW",
+      id: "cc-005",
+      count: 6,
+    }),
     featured: true,
     trending: true,
     companyId: "COMP-000005",
@@ -380,12 +386,13 @@ const CORE_OPPORTUNITIES: Opportunity[] = [
     postedBy: "Yucatán Development Co.",
     postedAgo: "6 days ago",
     postedAt: "2026-05-29",
-    images: [
-      "/listings/branded-residences-tulum-jv/1.jpg",
-      "/listings/branded-residences-tulum-jv/2.jpg",
-      "/listings/branded-residences-tulum-jv/3.jpg",
-      "/listings/branded-residences-tulum-jv/4.jpg",
-    ],
+    images: pickOpportunityImages({
+      category: "Joint Ventures",
+      industry: "Branded Residential",
+      title: "Joint Venture — Branded Residences",
+      id: "cc-006",
+      count: 6,
+    }),
     featured: true,
     trending: false,
     companyId: "COMP-000006",

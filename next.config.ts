@@ -8,6 +8,13 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Real photos come from Loremflickr (Flickr Creative Commons proxy
+    // widely used for development/demo work). It serves a 302 redirect to
+    // Flickr's static CDN, so we have to allow both hostnames.
+    remotePatterns: [
+      { protocol: "https", hostname: "loremflickr.com" },
+      { protocol: "https", hostname: "live.staticflickr.com" },
+    ],
   },
 };
 

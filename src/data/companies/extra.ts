@@ -11,6 +11,7 @@ import type {
   TeamRole,
   VerificationStatus,
 } from "./types";
+import { pickCompanyCover, pickCompanyGallery } from "../imageSets";
 
 type NewCompanyConfig = {
   id: string;
@@ -45,6 +46,14 @@ function initials(name: string): string {
 
 function makeCompany(c: NewCompanyConfig): Company {
   const websiteLabel = c.website.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  // Pull at least 5 gallery photos even if the seed config asked for less,
+  // so the "min 3 per company" requirement is comfortably exceeded.
+  const galleryCount = Math.max(c.gallery.length, 5);
+  const galleryUrls = pickCompanyGallery({
+    industry: c.industry,
+    id: c.id,
+    count: galleryCount,
+  });
   return {
     id: c.id,
     slug: c.slug,
@@ -57,7 +66,7 @@ function makeCompany(c: NewCompanyConfig): Company {
     foundedYear: c.foundedYear,
     employees: c.employees,
     verification: c.verification,
-    coverImage: `/companies/${c.id}/cover.svg`,
+    coverImage: pickCompanyCover({ industry: c.industry, id: c.id }),
     about: c.about,
     team: c.team.map((t) => ({
       name: t.name,
@@ -74,12 +83,15 @@ function makeCompany(c: NewCompanyConfig): Company {
       description: p.description,
       category: p.category,
     })),
-    gallery: c.gallery.map((g, i) => ({
-      src: `/companies/${c.id}/gallery/${i + 1}.svg`,
-      alt: `${g.category} — ${g.caption}`,
-      category: g.category,
-      caption: g.caption,
-    })),
+    gallery: galleryUrls.map((src, i) => {
+      const label = c.gallery[i] ?? c.gallery[c.gallery.length - 1];
+      return {
+        src,
+        alt: `${label.category} — ${label.caption}`,
+        category: label.category,
+        caption: label.caption,
+      };
+    }),
     closedOpportunitiesCount: c.closedOpportunitiesCount,
     searchKeywords: c.searchKeywords,
     featured: c.featured,
