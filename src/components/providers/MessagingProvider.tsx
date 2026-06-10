@@ -48,6 +48,15 @@ import {
   type DocumentActivityKind,
 } from "@/data/documents";
 import { SEED_PROFILE, type UserProfile } from "@/data/profile";
+import {
+  SEED_INTRODUCTIONS,
+  type IntroductionRequest,
+  type IntroductionStatus,
+} from "@/data/introductions";
+import {
+  SEED_DIRECT_CONNECTIONS,
+  type DirectConnection,
+} from "@/data/connections";
 import { isStoredImageToken, prewarmTokens } from "@/lib/imageStore";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
@@ -61,6 +70,8 @@ const KEY_DOCUMENT_ACTIVITY = "cc:document-activity:v1";
 const KEY_PROFILE = "cc:profile:v1";
 const KEY_USER_OPPORTUNITIES = "cc:user-opps:v1";
 const KEY_OPPORTUNITY_PATCHES = "cc:opp-patches:v1";
+const KEY_INTRODUCTIONS = "cc:introductions:v1";
+const KEY_CONNECTIONS = "cc:connections:v1";
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -246,6 +257,46 @@ type MessagingValue = {
   profile: UserProfile;
   updateProfile: (partial: Partial<UserProfile>) => void;
   resetProfile: () => void;
+
+  // ---- Introductions (platform-as-middleman flow) ----
+  introductionRequests: IntroductionRequest[];
+  /**
+   * Submit a new introduction request from the current user. Returns the
+   * generated INT-XXXXXX id. The request lands in "Pending" and is visible
+   * to the admin at /dashboard/introductions.
+   */
+  submitIntroductionRequest: (input: {
+    targetMemberId: string;
+    targetMemberName: string;
+    reason: string;
+    message: string;
+    opportunitySlug?: string;
+    opportunityTitle?: string;
+    companyId?: string;
+    companyName?: string;
+  }) => string;
+  /**
+   * Update an introduction's status (admin actions). For "Completed", also
+   * optionally provision a direct connection record.
+   */
+  updateIntroductionStatus: (
+    id: string,
+    status: IntroductionStatus,
+    note?: string
+  ) => void;
+  approveIntroduction: (id: string, note?: string) => void;
+  rejectIntroduction: (id: string, note?: string) => void;
+  completeIntroduction: (id: string, note?: string) => void;
+
+  // ---- Direct Connections (future-ready) ----
+  directConnections: DirectConnection[];
+  /** Provision a direct connection between two members. Schema-only — no
+   *  permission gating is implemented yet. Returns the new CONN id. */
+  createDirectConnection: (input: {
+    memberA: string;
+    memberB: string;
+    introductionId?: string;
+  }) => string;
 };
 
 const Ctx = createContext<MessagingValue | null>(null);
@@ -284,6 +335,12 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [opportunityPatches, setOpportunityPatches] = useState<
     Record<string, Partial<Opportunity>>
   >({});
+  const [introductionRequests, setIntroductionRequests] = useState<
+    IntroductionRequest[]
+  >(SEED_INTRODUCTIONS);
+  const [directConnections, setDirectConnections] = useState<DirectConnection[]>(
+    SEED_DIRECT_CONNECTIONS
+  );
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -332,6 +389,16 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       null
     );
     if (storedPatches) setOpportunityPatches(storedPatches);
+    const storedIntros = readStored<IntroductionRequest[] | null>(
+      KEY_INTRODUCTIONS,
+      null
+    );
+    if (storedIntros) setIntroductionRequests(storedIntros);
+    const storedConnections = readStored<DirectConnection[] | null>(
+      KEY_CONNECTIONS,
+      null
+    );
+    if (storedConnections) setDirectConnections(storedConnections);
     setHydrated(true);
   }, []);
 
@@ -380,6 +447,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_OPPORTUNITY_PATCHES, opportunityPatches);
   }, [opportunityPatches, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_INTRODUCTIONS, introductionRequests);
+  }, [introductionRequests, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_CONNECTIONS, directConnections);
+  }, [directConnections, hydrated]);
 
   // After hydration, scan all known opportunity image lists for IDB-backed
   // tokens and eagerly resolve each to a cached object URL. This way the
@@ -409,6 +484,127 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const resetProfile = useCallback(() => {
     setProfile(SEED_PROFILE);
   }, []);
+
+  // ---- Introductions / Direct Connections ----
+
+  function nextIntroductionId(existing: IntroductionRequest[]): string {
+    let max = 0;
+    for (const r of existing) {
+      const m = /^INT-(\d+)$/.exec(r.id);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+      }
+    }
+    return `INT-${String(max + 1).padStart(6, "0")}`;
+  }
+
+  function nextConnectionId(existing: DirectConnection[]): string {
+    let max = 0;
+    for (const c of existing) {
+      const m = /^CONN-(\d+)$/.exec(c.connectionId);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+      }
+    }
+    return `CONN-${String(max + 1).padStart(6, "0")}`;
+  }
+
+  const submitIntroductionRequest = useCallback(
+    (input: {
+      targetMemberId: string;
+      targetMemberName: string;
+      reason: string;
+      message: string;
+      opportunitySlug?: string;
+      opportunityTitle?: string;
+      companyId?: string;
+      companyName?: string;
+    }): string => {
+      let id = "";
+      setIntroductionRequests((prev) => {
+        id = nextIntroductionId(prev);
+        const entry: IntroductionRequest = {
+          id,
+          requesterId: "me",
+          requesterName: profile.name,
+          targetMemberId: input.targetMemberId,
+          targetMemberName: input.targetMemberName,
+          reason: input.reason,
+          message: input.message,
+          opportunitySlug: input.opportunitySlug,
+          opportunityTitle: input.opportunityTitle,
+          companyId: input.companyId,
+          companyName: input.companyName,
+          status: "Pending",
+          createdAt: new Date().toISOString(),
+        };
+        return [entry, ...prev];
+      });
+      return id;
+    },
+    [profile.name]
+  );
+
+  const updateIntroductionStatus = useCallback(
+    (id: string, status: IntroductionStatus, note?: string) => {
+      const now = new Date().toISOString();
+      setIntroductionRequests((prev) =>
+        prev.map((r) => {
+          if (r.id !== id) return r;
+          const next: IntroductionRequest = { ...r, status };
+          if (note !== undefined) next.decisionNote = note;
+          if (status === "Approved" || status === "Rejected") {
+            next.decidedAt = now;
+          }
+          if (status === "Completed") {
+            if (!next.decidedAt) next.decidedAt = now;
+            next.completedAt = now;
+          }
+          return next;
+        })
+      );
+    },
+    []
+  );
+
+  const approveIntroduction = useCallback(
+    (id: string, note?: string) =>
+      updateIntroductionStatus(id, "Approved", note),
+    [updateIntroductionStatus]
+  );
+  const rejectIntroduction = useCallback(
+    (id: string, note?: string) =>
+      updateIntroductionStatus(id, "Rejected", note),
+    [updateIntroductionStatus]
+  );
+  const completeIntroduction = useCallback(
+    (id: string, note?: string) =>
+      updateIntroductionStatus(id, "Completed", note),
+    [updateIntroductionStatus]
+  );
+
+  const createDirectConnection = useCallback(
+    (input: { memberA: string; memberB: string; introductionId?: string }): string => {
+      let connId = "";
+      setDirectConnections((prev) => {
+        connId = nextConnectionId(prev);
+        const entry: DirectConnection = {
+          connectionId: connId,
+          memberA: input.memberA,
+          memberB: input.memberB,
+          approvedBy: "me",
+          approvedDate: new Date().toISOString(),
+          status: "Active",
+          introductionId: input.introductionId,
+        };
+        return [entry, ...prev];
+      });
+      return connId;
+    },
+    []
+  );
 
   const upsertConversation = useCallback(
     (
@@ -1657,6 +1853,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     profile,
     updateProfile,
     resetProfile,
+    introductionRequests,
+    submitIntroductionRequest,
+    updateIntroductionStatus,
+    approveIntroduction,
+    rejectIntroduction,
+    completeIntroduction,
+    directConnections,
+    createDirectConnection,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
