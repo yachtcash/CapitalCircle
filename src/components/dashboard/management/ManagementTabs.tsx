@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import {
   LayoutGrid,
   Pencil,
-  Images,
   FileText,
   BarChart3,
   Activity,
@@ -20,13 +19,11 @@ import ListingInformationBlock from "./ListingInformationBlock";
 import ListingEditor from "./ListingEditor";
 import ListingAnalyticsDetail from "./ListingAnalyticsDetail";
 import ListingActivityFeed from "./ListingActivityFeed";
-import ImageManager from "./ImageManager";
 import DocumentManager from "./DocumentManager";
 
 type TabKey =
   | "overview"
   | "edit"
-  | "gallery"
   | "documents"
   | "analytics"
   | "activity";
@@ -34,13 +31,23 @@ type TabKey =
 const TABS: { key: TabKey; label: string; Icon: typeof LayoutGrid }[] = [
   { key: "overview", label: "Overview", Icon: LayoutGrid },
   { key: "edit", label: "Edit Details", Icon: Pencil },
-  { key: "gallery", label: "Gallery", Icon: Images },
   { key: "documents", label: "Documents", Icon: FileText },
   { key: "analytics", label: "Analytics", Icon: BarChart3 },
   { key: "activity", label: "Activity", Icon: Activity },
 ];
 
 const VALID_TABS = new Set<TabKey>(TABS.map((t) => t.key));
+
+/**
+ * The Gallery tab was retired — the Gallery Manager now sits permanently
+ * above the tab strip. Legacy `?tab=gallery` deep links resolve to the
+ * overview tab, which lands the user right next to the always-visible panel.
+ */
+function normalizeTab(raw: string | null): TabKey | null {
+  if (!raw) return null;
+  if (raw === "gallery") return "overview";
+  return VALID_TABS.has(raw as TabKey) ? (raw as TabKey) : null;
+}
 
 type Props = {
   listing: ListingRecord;
@@ -52,20 +59,15 @@ export default function ManagementTabs({ listing, opportunity }: Props) {
   const searchParams = useSearchParams();
   // Honor `?tab=edit` (and similar) so deep links from the Edit / Manage
   // CTAs across the app land on the right surface. Falls back to overview.
-  const initialTab = (() => {
-    const raw = searchParams?.get("tab");
-    return raw && VALID_TABS.has(raw as TabKey) ? (raw as TabKey) : "overview";
-  })();
+  const initialTab = normalizeTab(searchParams?.get("tab") ?? null) ?? "overview";
   const [active, setActive] = useState<TabKey>(initialTab);
 
   // If the URL param changes after mount (e.g. user clicks an in-app link),
   // sync the active tab. We deliberately don't push back to the URL on tab
   // change to keep navigation cheap.
   useEffect(() => {
-    const raw = searchParams?.get("tab");
-    if (raw && VALID_TABS.has(raw as TabKey)) {
-      setActive(raw as TabKey);
-    }
+    const next = normalizeTab(searchParams?.get("tab") ?? null);
+    if (next) setActive(next);
   }, [searchParams]);
 
   return (
@@ -110,13 +112,6 @@ export default function ManagementTabs({ listing, opportunity }: Props) {
         ) : null}
         {active === "edit" ? (
           <ListingEditor listing={listing} opportunity={opportunity} />
-        ) : null}
-        {active === "gallery" ? (
-          <ImageManager
-            initialImages={opportunity?.images ?? []}
-            title={listing.title}
-            listingId={listing.id}
-          />
         ) : null}
         {active === "documents" ? (
           <DocumentManager

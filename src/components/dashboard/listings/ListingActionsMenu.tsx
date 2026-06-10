@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Copy,
   Eye,
+  Images,
   MoreHorizontal,
   Pencil,
   RotateCcw,
@@ -80,6 +81,12 @@ export default function ListingActionsMenu({
       label: "Edit Details",
       icon: Pencil,
       href: `/dashboard/listings/${listing.id}?tab=edit`,
+    },
+    {
+      key: "gallery",
+      label: "Manage Gallery",
+      icon: Images,
+      href: `/dashboard/listings/${listing.id}#gallery-manager`,
     },
     {
       key: "duplicate",

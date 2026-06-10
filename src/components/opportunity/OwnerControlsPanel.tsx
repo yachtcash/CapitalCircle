@@ -16,6 +16,7 @@ import {
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { canManageListing, CURRENT_USER_ROLE } from "@/lib/roles";
 import type { Opportunity } from "@/data/opportunities";
 
 type Props = {
@@ -25,15 +26,14 @@ type Props = {
 type DialogKind = "archive" | "close" | "delete" | null;
 
 /**
- * Owner-only action strip rendered on /opportunity/[slug] when the current
- * user owns the listing. Visible inline above the action panel so sponsors
- * can jump straight into manage / edit without leaving the public surface.
+ * Owner/admin action strip rendered on /opportunity/[slug]. Visible inline
+ * above the action panel so the manager can jump straight into edit /
+ * gallery / documents without leaving the public surface.
  *
- * Ownership rule: the opportunity is a user-created one (sits in
- * `userOpportunities`). Seed opportunities have no current owner.
- *
- * Public visitors never see this strip — `useAllOpportunitiesOwnerView`
- * is not consulted; we explicitly check `userOpportunities`.
+ * Visibility rule: the listing owner always sees it (their opportunity sits
+ * in `userOpportunities`); on top of that, `canManageListing` grants the
+ * platform owner (Super Admin in this build) the same controls on EVERY
+ * listing-backed opportunity — including the seed catalog.
  */
 export default function OwnerControlsPanel({ opportunity }: Props) {
   const router = useRouter();
@@ -58,7 +58,7 @@ export default function OwnerControlsPanel({ opportunity }: Props) {
 
   const [dialog, setDialog] = useState<DialogKind>(null);
 
-  if (!isOwned || !listing) return null;
+  if (!canManageListing(isOwned) || !listing) return null;
 
   const listingHref = `/dashboard/listings/${listing.id}`;
   const dupAndRedirect = () => {
@@ -98,10 +98,10 @@ export default function OwnerControlsPanel({ opportunity }: Props) {
         </span>
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-gold-400 font-bold">
-            Owner controls · {listing.id}
+            {isOwned ? "Owner controls" : `Admin controls · ${CURRENT_USER_ROLE}`} · {listing.id}
           </div>
           <h3 className="mt-0.5 text-base font-semibold">
-            You manage this listing
+            {isOwned ? "You manage this listing" : "You can manage every listing"}
           </h3>
           <p className="mt-0.5 text-xs text-white/75 leading-relaxed">
             Public visitors don&apos;t see these actions. Everything below
@@ -118,8 +118,8 @@ export default function OwnerControlsPanel({ opportunity }: Props) {
           primary
         />
         <CTA
-          href={`${listingHref}?tab=gallery`}
-          label="Manage Images"
+          href={`${listingHref}#gallery-manager`}
+          label="Manage Gallery"
           icon={Images}
         />
         <CTA

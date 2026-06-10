@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import Image from "next/image";
 import {
-  ArrowDown,
-  ArrowUp,
-  ChevronsUp,
-  ChevronsDown,
+  ArrowLeft,
+  ArrowRight,
+  ChevronsLeft,
+  ChevronsRight,
   CloudUpload,
   Image as ImageIcon,
   Plus,
@@ -32,30 +32,28 @@ type Props = {
   /** Optional human-readable label for image alt text. */
   title?: string;
   /**
-   * When provided AND the listing's backing opportunity is user-created,
-   * every change is persisted through `updateListingImages`. Seed listings
-   * keep local-only state (provider call is a no-op) and the panel shows a
-   * "Local only — refresh resets" note.
+   * When provided, every change persists through `updateListingImages`,
+   * which writes the opportunity-patch overlay — so seed-backed and
+   * user-created listings behave identically.
    */
   listingId?: string;
 };
 
 /**
- * Live image manager for `/dashboard/listings/[id]` Gallery tab.
+ * Gallery Manager — the always-visible image panel on
+ * `/dashboard/listings/[id]` (rendered above the tab strip).
  *
- * Capabilities (all individual — no full-gallery re-upload):
- *  - Add image (file picker, multi-select)
- *  - Replace an individual image (preserves its index)
+ * Capabilities, with every action overlaid directly on the image:
+ *  - Add Images (button + drag-and-drop dropzone, multi-select)
+ *  - Replace an individual image (preserves its position)
  *  - Delete an individual image (with confirmation)
- *  - Reorder: move up / move down / move to first / move to last
- *  - Set cover (move to index 0)
- *  - Preview every image in the universal Lightbox
+ *  - Reorder: move left / move right / move to first / move to last
+ *  - Set cover (move to index 0; gold Cover badge marks it)
+ *  - Preview in the universal Lightbox (click the photo)
  *
- * Persistence: changes flow through `updateListingImages` when a
- * `listingId` is provided. For user-created opportunities that means the
- * public marketplace surfaces (directory, search, map, detail) update
- * immediately. Seed opportunities remain immutable (the persistence call
- * silently no-ops in the provider).
+ * Persistence: changes flow through `updateListingImages` into the
+ * provider's opportunity-patch overlay, so the public marketplace
+ * (directory, search, map, detail) updates immediately for every listing.
  */
 export default function ImageManager({
   initialImages,
@@ -215,25 +213,33 @@ export default function ImageManager({
     deleteIndex != null ? images[deleteIndex] : undefined;
 
   return (
-    <section>
+    <section
+      id="gallery-manager"
+      className="scroll-mt-24 rounded-3xl bg-white ring-2 ring-gold-500/40 shadow-sm p-5 md:p-7"
+    >
       <header className="mb-5 flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold inline-flex items-center gap-1.5">
-            <ImageIcon className="h-3.5 w-3.5" strokeWidth={2.2} />
-            Image manager
+          <div className="text-[11px] uppercase tracking-[0.22em] text-gold-700 font-bold inline-flex items-center gap-1.5">
+            <ImageIcon className="h-3.5 w-3.5" strokeWidth={2.4} />
+            Gallery Manager
           </div>
-          <h3 className="mt-1.5 text-lg md:text-xl font-semibold text-navy-900 tracking-tight">
+          <h3 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">
             {images.length} {images.length === 1 ? "photo" : "photos"} ·{" "}
             <span className="text-navy-700/65 font-medium">first is cover</span>
           </h3>
+          <p className="mt-1 text-xs text-navy-700/65 max-w-xl leading-relaxed">
+            Add, replace, delete, reorder, or set the cover — every action is
+            right on the image. Changes go live across the marketplace
+            immediately.
+          </p>
         </div>
         <button
           type="button"
           onClick={handleAdd}
-          className="inline-flex items-center gap-1.5 rounded-full bg-navy-900 hover:bg-navy-900/90 text-white font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
         >
-          <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
-          Add photo
+          <Plus className="h-4 w-4" strokeWidth={2.4} />
+          Add Images
         </button>
         <input
           ref={fileInput}
@@ -315,13 +321,14 @@ export default function ImageManager({
                 ) : (
                   <div className="absolute inset-0 bg-navy-900/[0.06] animate-pulse" />
                 )}
+                {/* Click anywhere on the photo (outside the action bar) to preview. */}
                 <button
                   type="button"
                   onClick={() => lb.openAt(i)}
                   aria-label={`Preview photo ${i + 1}`}
-                  className="absolute inset-0 bg-navy-900/0 hover:bg-navy-900/35 focus-visible:bg-navy-900/35 transition-colors flex items-center justify-center text-white opacity-0 hover:opacity-100 focus-visible:opacity-100"
+                  className="absolute inset-0 bg-navy-900/0 hover:bg-navy-900/25 focus-visible:bg-navy-900/25 transition-colors flex items-center justify-center text-white opacity-0 hover:opacity-100 focus-visible:opacity-100"
                 >
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur ring-1 ring-white/35 px-3 py-1.5 text-xs uppercase tracking-[0.14em] font-bold">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur ring-1 ring-white/35 px-3 py-1.5 text-xs uppercase tracking-[0.14em] font-bold -translate-y-4">
                     <ZoomIn className="h-3.5 w-3.5" strokeWidth={2.4} />
                     Preview
                   </span>
@@ -335,62 +342,67 @@ export default function ImageManager({
                 <span className="absolute top-2 right-2 inline-flex items-center text-[10px] uppercase tracking-[0.14em] font-bold bg-navy-900/65 text-white rounded-full px-2 py-0.5 backdrop-blur">
                   {i + 1} / {images.length}
                 </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 p-2.5">
-                <div className="flex items-center gap-1">
-                  <IconBtn
-                    onClick={() => moveTo(i, "first")}
-                    disabled={i === 0}
-                    label="Move to first"
-                  >
-                    <ChevronsUp className="h-3.5 w-3.5" strokeWidth={2.4} />
-                  </IconBtn>
-                  <IconBtn
-                    onClick={() => move(i, -1)}
-                    disabled={i === 0}
-                    label="Move up"
-                  >
-                    <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.4} />
-                  </IconBtn>
-                  <IconBtn
-                    onClick={() => move(i, 1)}
-                    disabled={i === images.length - 1}
-                    label="Move down"
-                  >
-                    <ArrowDown className="h-3.5 w-3.5" strokeWidth={2.4} />
-                  </IconBtn>
-                  <IconBtn
-                    onClick={() => moveTo(i, "last")}
-                    disabled={i === images.length - 1}
-                    label="Move to last"
-                  >
-                    <ChevronsDown className="h-3.5 w-3.5" strokeWidth={2.4} />
-                  </IconBtn>
-                </div>
-                <div className="flex items-center justify-end gap-1">
-                  <IconBtn
-                    onClick={() => setCover(i)}
-                    disabled={i === coverIndex}
-                    label={i === coverIndex ? "Already cover" : "Set as cover"}
-                  >
-                    <Star
-                      className={cn(
-                        "h-3.5 w-3.5",
-                        i === coverIndex && "fill-gold-500"
-                      )}
-                      strokeWidth={2.4}
-                    />
-                  </IconBtn>
-                  <IconBtn onClick={() => handleReplace(i)} label="Replace photo">
-                    <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.4} />
-                  </IconBtn>
-                  <IconBtn
-                    onClick={() => setDeleteIndex(i)}
-                    label="Delete photo"
-                    tone="danger"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" strokeWidth={2.4} />
-                  </IconBtn>
+
+                {/* Always-visible action bar overlaid on the image — no hunting. */}
+                <div className="absolute inset-x-0 bottom-0 px-2 pb-2 pt-8 bg-gradient-to-t from-navy-900/85 via-navy-900/40 to-transparent flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1">
+                    <OverlayBtn
+                      onClick={() => moveTo(i, "first")}
+                      disabled={i === 0}
+                      label="Move to first"
+                    >
+                      <ChevronsLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
+                    </OverlayBtn>
+                    <OverlayBtn
+                      onClick={() => move(i, -1)}
+                      disabled={i === 0}
+                      label="Move left"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
+                    </OverlayBtn>
+                    <OverlayBtn
+                      onClick={() => move(i, 1)}
+                      disabled={i === images.length - 1}
+                      label="Move right"
+                    >
+                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.4} />
+                    </OverlayBtn>
+                    <OverlayBtn
+                      onClick={() => moveTo(i, "last")}
+                      disabled={i === images.length - 1}
+                      label="Move to last"
+                    >
+                      <ChevronsRight className="h-3.5 w-3.5" strokeWidth={2.4} />
+                    </OverlayBtn>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <OverlayBtn
+                      onClick={() => setCover(i)}
+                      disabled={i === coverIndex}
+                      label={i === coverIndex ? "Already cover" : "Set as cover"}
+                    >
+                      <Star
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          i === coverIndex && "fill-gold-400 text-gold-400"
+                        )}
+                        strokeWidth={2.4}
+                      />
+                    </OverlayBtn>
+                    <OverlayBtn
+                      onClick={() => handleReplace(i)}
+                      label="Replace photo"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.4} />
+                    </OverlayBtn>
+                    <OverlayBtn
+                      onClick={() => setDeleteIndex(i)}
+                      label="Delete photo"
+                      tone="danger"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={2.4} />
+                    </OverlayBtn>
+                  </div>
                 </div>
               </div>
             </li>
@@ -432,7 +444,8 @@ export default function ImageManager({
   );
 }
 
-function IconBtn({
+/** White-on-scrim icon button rendered directly on the image. */
+function OverlayBtn({
   onClick,
   disabled,
   label,
@@ -453,12 +466,12 @@ function IconBtn({
       aria-label={label}
       title={label}
       className={cn(
-        "h-9 w-9 inline-flex items-center justify-center rounded-full transition-colors",
+        "h-8 w-8 inline-flex items-center justify-center rounded-full backdrop-blur transition-colors",
         disabled
-          ? "text-navy-700/25 cursor-not-allowed"
+          ? "bg-white/10 text-white/30 cursor-not-allowed"
           : tone === "danger"
-          ? "text-rose-700 hover:bg-rose-500/10"
-          : "text-navy-700 hover:bg-navy-900/[0.06] hover:text-navy-900"
+          ? "bg-white/15 text-rose-200 hover:bg-rose-500/80 hover:text-white ring-1 ring-rose-400/40"
+          : "bg-white/15 text-white hover:bg-white/35 ring-1 ring-white/25"
       )}
     >
       {children}
