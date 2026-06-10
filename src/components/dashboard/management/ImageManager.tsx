@@ -61,8 +61,8 @@ export default function ImageManager({
   listingId,
 }: Props) {
   const { updateListingImages } = useMessaging();
-  // `images` holds canonical references — either seed paths like
-  // "/listings/.../1.jpg" or persistent IDB tokens like "idb://img-abc.jpg".
+  // `images` holds canonical references — remote seed URLs, local paths
+  // under /images/…, or persistent IDB tokens like "idb://img-abc.jpg".
   // Display URLs are derived via `useResolvedImages` below.
   const [images, setImages] = useState<string[]>(initialImages);
   const fileInput = useRef<HTMLInputElement>(null);

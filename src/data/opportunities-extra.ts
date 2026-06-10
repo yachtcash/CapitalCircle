@@ -1,12 +1,10 @@
 // Expanded opportunity catalog — adds 40 listings across all 13 categories so
 // the marketplace feels populated and active.
 //
-// Image paths follow the new ID-keyed convention:
-//   public/opportunities/OPP-XXXXXX/N.svg
-//
-// Internal IDs use the existing `cc-NNN` form (cc-007..cc-046). The public
-// OPP-XXXXXX id is derived via `publicOpportunityId()` and matches the
-// directory name — e.g. `cc-007` → `OPP-000007` → `/opportunities/OPP-000007/`.
+// Images resolve at module load through src/data/imageSets.ts (topic-tagged
+// Loremflickr pools) — see public/images/README.md for the full storage
+// convention. Internal IDs use the existing `cc-NNN` form (cc-007..cc-046);
+// the public OPP-XXXXXX id is derived via `publicOpportunityId()`.
 //
 // All postedAt timestamps are anchored to 2026-06-06 for determinism.
 

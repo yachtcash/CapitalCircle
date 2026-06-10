@@ -1,10 +1,12 @@
-// ID and storage helpers for listing images.
+// ID and storage-path helpers for listing images.
 //
-// Going forward, listing images should live under /public/listings/<OPP-ID>/
-// using stable padded IDs like OPP-000001, not the listing title or slug.
-// Existing listings still reference slug-based folders for backward
-// compatibility; new listings (or migrated ones) should use these helpers
-// to derive their image paths from the listing record's `id`.
+// Canonical layout (see public/images/README.md for the full convention):
+//   public/images/opportunities/<OPP-ID>/cover.jpg
+//   public/images/opportunities/<OPP-ID>/gallery/1.jpg … N.jpg
+//
+// Folder ids are stable padded public ids (OPP-000001), never titles or
+// slugs. Always build local image paths through these helpers — no
+// hand-written paths in seeds or components.
 
 const FOLDER_PREFIX = "OPP";
 const ID_WIDTH = 6;
@@ -22,22 +24,21 @@ export function listingFolderId(idOrEntity: string | { id: string }): string {
 
 /**
  * Path to the canonical cover image for a listing folder.
- *   listingCoverPath({ id: "cc-001" }) → "/listings/OPP-000001/cover.jpg"
+ *   listingCoverPath({ id: "cc-001" }) → "/images/opportunities/OPP-000001/cover.jpg"
  */
 export function listingCoverPath(idOrEntity: string | { id: string }): string {
-  return `/listings/${listingFolderId(idOrEntity)}/cover.jpg`;
+  return `/images/opportunities/${listingFolderId(idOrEntity)}/cover.jpg`;
 }
 
 /**
  * Path to a numbered gallery image for a listing folder.
- *   listingGalleryPath({ id: "cc-001" }, 1) → "/listings/OPP-000001/gallery-01.jpg"
+ *   listingGalleryPath({ id: "cc-001" }, 1) → "/images/opportunities/OPP-000001/gallery/1.jpg"
  */
 export function listingGalleryPath(
   idOrEntity: string | { id: string },
   index: number
 ): string {
-  const padded = String(index).padStart(2, "0");
-  return `/listings/${listingFolderId(idOrEntity)}/gallery-${padded}.jpg`;
+  return `/images/opportunities/${listingFolderId(idOrEntity)}/gallery/${index}.jpg`;
 }
 
 /**
@@ -45,8 +46,8 @@ export function listingGalleryPath(
  * `galleryCount` is the number of gallery images alongside the cover.
  *
  *   listingImageSet({ id: "cc-001" }, 6) → [
- *     "/listings/OPP-000001/cover.jpg",
- *     "/listings/OPP-000001/gallery-01.jpg",
+ *     "/images/opportunities/OPP-000001/cover.jpg",
+ *     "/images/opportunities/OPP-000001/gallery/1.jpg",
  *     ...
  *   ]
  */

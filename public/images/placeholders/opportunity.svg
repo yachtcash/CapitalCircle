@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Opportunity image placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A1628"/>
+      <stop offset="0.55" stop-color="#112344"/>
+      <stop offset="1" stop-color="#0A1628"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <g stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1">
+    <path d="M0 250H1600M0 500H1600M0 750H1600M400 0V1000M800 0V1000M1200 0V1000"/>
+  </g>
+  <g transform="translate(800 460)">
+    <circle r="92" fill="none" stroke="#D4AF37" stroke-width="6" opacity="0.85"/>
+    <circle r="58" fill="none" stroke="#D4AF37" stroke-width="3" opacity="0.45"/>
+    <circle r="10" fill="#D4AF37"/>
+  </g>
+  <text x="800" y="640" text-anchor="middle" font-family="Georgia, serif" font-size="44" fill="#D4AF37" letter-spacing="10">CAPITAL CIRCLE</text>
+  <text x="800" y="690" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#FFFFFF" fill-opacity="0.55" letter-spacing="6">IMAGES COMING SOON</text>
+</svg>

@@ -1,10 +1,12 @@
-// ID and storage helpers for company-owned assets.
+// ID and storage-path helpers for company-owned assets.
 //
-// Going forward, company-owned media (logos, cover photos, office and
-// project galleries) lives under /public/companies/<COMP-ID>/ using stable
-// padded IDs like COMP-000001 — not the company name or slug. Mock data
-// today references listing folders (since each company maps 1:1 to a
-// listing) but new uploads should use these helpers.
+// Canonical layout (see public/images/README.md for the full convention):
+//   public/images/companies/<COMP-ID>/logo.svg
+//   public/images/companies/<COMP-ID>/cover.jpg
+//   public/images/companies/<COMP-ID>/gallery/1.jpg … N.jpg
+//
+// Folder ids are stable padded public ids (COMP-000001), never company
+// names or slugs. Always build local image paths through these helpers.
 
 const FOLDER_PREFIX = "COMP";
 const ID_WIDTH = 6;
@@ -25,28 +27,27 @@ export function companyFolderId(idOrEntity: string | { id: string }): string {
 
 /**
  * Path to the canonical cover image for a company folder.
- *   companyCoverPath({ id: "COMP-000001" }) → "/companies/COMP-000001/cover.jpg"
+ *   companyCoverPath({ id: "COMP-000001" }) → "/images/companies/COMP-000001/cover.jpg"
  */
 export function companyCoverPath(idOrEntity: string | { id: string }): string {
-  return `/companies/${companyFolderId(idOrEntity)}/cover.jpg`;
+  return `/images/companies/${companyFolderId(idOrEntity)}/cover.jpg`;
 }
 
 /**
  * Path to the canonical company logo file.
- *   companyLogoPath({ id: "COMP-000001" }) → "/companies/COMP-000001/logo.svg"
+ *   companyLogoPath({ id: "COMP-000001" }) → "/images/companies/COMP-000001/logo.svg"
  */
 export function companyLogoPath(idOrEntity: string | { id: string }): string {
-  return `/companies/${companyFolderId(idOrEntity)}/logo.svg`;
+  return `/images/companies/${companyFolderId(idOrEntity)}/logo.svg`;
 }
 
 /**
  * Path to a numbered gallery image for a company folder.
- *   companyGalleryPath({ id: "COMP-000001" }, 1) → "/companies/COMP-000001/gallery-01.jpg"
+ *   companyGalleryPath({ id: "COMP-000001" }, 1) → "/images/companies/COMP-000001/gallery/1.jpg"
  */
 export function companyGalleryPath(
   idOrEntity: string | { id: string },
   index: number
 ): string {
-  const padded = String(index).padStart(2, "0");
-  return `/companies/${companyFolderId(idOrEntity)}/gallery-${padded}.jpg`;
+  return `/images/companies/${companyFolderId(idOrEntity)}/gallery/${index}.jpg`;
 }

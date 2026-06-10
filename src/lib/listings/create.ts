@@ -120,14 +120,13 @@ function documentsFrom(
   }));
 }
 
-function fallbackImage(opportunityId: string, index: number): string {
-  return `/opportunities/${publicOpportunityIdFromInternal(opportunityId)}/${index + 1}.svg`;
-}
+// Generic committed placeholder — used when a listing is created with no
+// uploaded photos. Lives at public/images/placeholders/ (see the README
+// there for the full image-storage convention).
+const FALLBACK_OPPORTUNITY_IMAGE = "/images/placeholders/opportunity.svg";
 
-function publicOpportunityIdFromInternal(internalId: string): string {
-  const digits = internalId.replace(/\D/g, "");
-  if (!digits) return "OPP-000000";
-  return `OPP-${digits.padStart(6, "0")}`;
+function fallbackImage(): string {
+  return FALLBACK_OPPORTUNITY_IMAGE;
 }
 
 /**
@@ -155,7 +154,7 @@ export function formStateToOpportunity(
   const images =
     formData.images.length > 0
       ? formData.images.map((m) => m.previewUrl)
-      : [fallbackImage(context.opportunityId, 0)];
+      : [fallbackImage()];
 
   const fundingAmount = parseAmount(formData.amount);
   const investmentRange = formatRange(formData.currency, formData.amount);

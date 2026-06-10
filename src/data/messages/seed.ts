@@ -1,10 +1,19 @@
 import type { Conversation, Notification } from "./types";
+import { getOpportunityBySlug } from "../opportunities";
 
 // Mock seed data — populated on first visit into localStorage.
 //
 // Each conversation references real company + opportunity records so that
 // the OpportunitySummaryCard, sender initials and stage all render against
 // the rest of the app cohesively.
+
+/**
+ * Resolve a conversation's thumbnail from the opportunity catalog instead
+ * of hardcoding image paths. Keeps message seeds in lockstep with whatever
+ * image set the opportunity currently carries — no stale references.
+ */
+const oppImage = (slug: string): string | undefined =>
+  getOpportunityBySlug(slug)?.images[0];
 
 export const SEED_CONVERSATIONS: Conversation[] = [
   {
@@ -14,7 +23,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Mixed-Use Tower Development",
     opportunityCategory: "Real Estate Development",
     opportunityLocation: "Miami, FL",
-    opportunityImage: "/listings/mixed-use-tower-development/1.jpg",
+    opportunityImage: oppImage("mixed-use-tower-development"),
     startedAt: "2026-05-30T14:12:00Z",
     lastMessageAt: "2026-06-04T15:08:00Z",
     lastMessagePreview: "We can provide additional financial projections.",
@@ -90,7 +99,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Beachfront Boutique Hotel — 42 Keys",
     opportunityCategory: "Hotels & Resorts",
     opportunityLocation: "Cabo San Lucas, Mexico",
-    opportunityImage: "/listings/beachfront-boutique-hotel/1.jpg",
+    opportunityImage: oppImage("beachfront-boutique-hotel"),
     startedAt: "2026-05-25T09:00:00Z",
     lastMessageAt: "2026-06-04T11:42:00Z",
     lastMessagePreview: "Term sheet attached. Open to refining the pref.",
@@ -168,7 +177,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Coastal Development Land — 84 Acres",
     opportunityCategory: "Land Opportunities",
     opportunityLocation: "Punta Mita, Mexico",
-    opportunityImage: "/listings/coastal-development-land/1.jpg",
+    opportunityImage: oppImage("coastal-development-land"),
     startedAt: "2026-05-29T18:30:00Z",
     lastMessageAt: "2026-06-03T10:14:00Z",
     lastMessagePreview: "Surveyor delivered the updated topo last Friday.",
@@ -212,7 +221,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Solar + Storage Portfolio — 120 MW",
     opportunityCategory: "Energy",
     opportunityLocation: "Sonora, Mexico",
-    opportunityImage: "/listings/sonora-solar-storage-portfolio/1.jpg",
+    opportunityImage: oppImage("sonora-solar-storage-portfolio"),
     startedAt: "2026-06-03T20:05:00Z",
     lastMessageAt: "2026-06-03T20:05:00Z",
     lastMessagePreview: "Interest submitted to Sonora Energy Partners.",
@@ -246,7 +255,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Marble Supplier — Carrara Direct",
     opportunityCategory: "Suppliers & Logistics",
     opportunityLocation: "Carrara, Italy",
-    opportunityImage: "/opportunities/OPP-000028/1.svg",
+    opportunityImage: oppImage("marble-supplier-carrara"),
     startedAt: "2026-05-28T11:00:00Z",
     lastMessageAt: "2026-06-04T16:30:00Z",
     lastMessagePreview: "Container pricing attached — 8-week lead from quarry.",
@@ -316,7 +325,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Tiny Home Factory — 80 Units/Year",
     opportunityCategory: "Manufacturing & Materials",
     opportunityLocation: "Bend, OR",
-    opportunityImage: "/opportunities/OPP-000019/1.svg",
+    opportunityImage: oppImage("tiny-home-factory"),
     startedAt: "2026-06-01T13:30:00Z",
     lastMessageAt: "2026-06-04T09:45:00Z",
     lastMessagePreview: "Backlog detail attached — would love to walk you through.",
@@ -385,7 +394,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Highway Expansion — 38 km Toll Road",
     opportunityCategory: "Infrastructure",
     opportunityLocation: "Querétaro, Mexico",
-    opportunityImage: "/opportunities/OPP-000022/1.svg",
+    opportunityImage: oppImage("highway-expansion-38km"),
     startedAt: "2026-05-22T15:00:00Z",
     lastMessageAt: "2026-06-03T11:00:00Z",
     lastMessagePreview: "Traffic model is in the data room — base, P50, downside.",
@@ -459,7 +468,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Solar Farm — 80 MW",
     opportunityCategory: "Energy",
     opportunityLocation: "Bakersfield, CA",
-    opportunityImage: "/opportunities/OPP-000025/1.svg",
+    opportunityImage: oppImage("solar-farm-80mw"),
     startedAt: "2026-06-02T18:30:00Z",
     lastMessageAt: "2026-06-04T13:20:00Z",
     lastMessagePreview: "Construction kickoff in 60 days — happy to walk you through the schedule.",
@@ -516,7 +525,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
     opportunityTitle: "Joint Venture — Branded Residences",
     opportunityCategory: "Joint Ventures",
     opportunityLocation: "Tulum, Mexico",
-    opportunityImage: "/listings/branded-residences-tulum-jv/1.jpg",
+    opportunityImage: oppImage("branded-residences-tulum-jv"),
     startedAt: "2026-05-20T12:00:00Z",
     lastMessageAt: "2026-06-01T09:30:00Z",
     lastMessagePreview: "Brand operator agreement is with our counsel for final markup.",
