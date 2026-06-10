@@ -56,26 +56,38 @@ function applyOverlay(
  * provider's overlay patch so edits to seed-backed listings appear here too.
  */
 export function useAllOpportunities(): Opportunity[] {
-  const { userOpportunities, listings, opportunityPatches, hydrated } =
-    useMessaging();
+  const {
+    userOpportunities,
+    listings,
+    opportunityPatches,
+    opportunityAdminState,
+    hydrated,
+  } = useMessaging();
   return useMemo(() => {
     // Pre-hydration we render only the seed catalog so the server-rendered
     // HTML matches the client's first paint.
     if (!hydrated) return featuredOpportunities;
+
+    // Moderation gate — admin-rejected / archived / deleted opportunities
+    // never reach public surfaces.
+    const adminHidden = (id: string): boolean => {
+      const s = opportunityAdminState[id];
+      return !!s && (s.deleted || s.archived || s.moderation === "Rejected");
+    };
 
     const listingByOppId = new Map<string, ListingRecord>();
     for (const l of listings) {
       if (l.opportunityId) listingByOppId.set(l.opportunityId, l);
     }
     const visibleUserOpps = userOpportunities
-      .filter((o) => isPublicallyVisible(listingByOppId.get(o.id)))
+      .filter((o) => isPublicallyVisible(listingByOppId.get(o.id)) && !adminHidden(o.id))
       .map((o) => applyOverlay(o, opportunityPatches));
-    const patchedSeed = featuredOpportunities.map((o) =>
-      applyOverlay(o, opportunityPatches)
-    );
+    const patchedSeed = featuredOpportunities
+      .filter((o) => !adminHidden(o.id))
+      .map((o) => applyOverlay(o, opportunityPatches));
     if (visibleUserOpps.length === 0) return patchedSeed;
     return [...visibleUserOpps, ...patchedSeed];
-  }, [userOpportunities, listings, opportunityPatches, hydrated]);
+  }, [userOpportunities, listings, opportunityPatches, opportunityAdminState, hydrated]);
 }
 
 /**

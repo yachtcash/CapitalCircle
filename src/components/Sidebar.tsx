@@ -4,12 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItems } from "@/data/nav";
 import { cn } from "@/lib/cn";
+import { canAccessAdmin } from "@/lib/roles";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { totalUnreadConversations, hydrated } = useMessaging();
+  const { totalUnreadConversations, hydrated, currentRole } = useMessaging();
+  const visibleItems = navItems.filter(
+    (i) => !i.adminOnly || canAccessAdmin(currentRole)
+  );
 
   return (
     <aside className="hidden md:flex fixed inset-y-0 left-0 w-64 flex-col bg-navy-900 text-white border-r border-white/5 z-30">
@@ -31,7 +35,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-6 space-y-1">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
           const isMessages = item.href === "/messages";

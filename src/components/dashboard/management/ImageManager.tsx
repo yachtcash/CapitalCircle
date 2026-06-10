@@ -60,7 +60,7 @@ export default function ImageManager({
   title = "Listing",
   listingId,
 }: Props) {
-  const { updateListingImages } = useMessaging();
+  const { updateListingImages, recordAudit } = useMessaging();
   // `images` holds canonical references — remote seed URLs, local paths
   // under /images/…, or persistent IDB tokens like "idb://img-abc.jpg".
   // Display URLs are derived via `useResolvedImages` below.
@@ -114,6 +114,13 @@ export default function ImageManager({
     if (removed && isStoredImageToken(removed)) {
       // Best-effort: free the IDB blob so the user doesn't leak storage.
       void deleteStoredImage(removed);
+    }
+    if (listingId) {
+      recordAudit(
+        "Image Deleted",
+        { kind: "image", id: `${listingId}#${i + 1}`, label: title },
+        `Photo ${i + 1} removed from ${listingId}`
+      );
     }
     setDeleteIndex(null);
   };
@@ -175,6 +182,13 @@ export default function ImageManager({
       }
       return prev.concat(tokens);
     });
+    if (listingId && targetIndex != null) {
+      recordAudit(
+        "Image Replaced",
+        { kind: "image", id: `${listingId}#${targetIndex + 1}`, label: title },
+        `Photo ${targetIndex + 1} replaced on ${listingId}`
+      );
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

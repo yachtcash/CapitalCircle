@@ -4,16 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItems } from "@/data/nav";
 import { cn } from "@/lib/cn";
+import { canAccessAdmin } from "@/lib/roles";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { totalUnreadConversations, hydrated } = useMessaging();
-  const mobileItems = navItems.filter((i) => !i.hideOnMobile);
+  const { totalUnreadConversations, hydrated, currentRole } = useMessaging();
+  const mobileItems = navItems.filter(
+    (i) => !i.hideOnMobile && (!i.adminOnly || canAccessAdmin(currentRole))
+  );
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-navy-900/95 backdrop-blur-lg border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-7">
+      <div
+        className="grid"
+        style={{ gridTemplateColumns: `repeat(${mobileItems.length}, minmax(0, 1fr))` }}
+      >
         {mobileItems.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;

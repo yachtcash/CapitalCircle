@@ -47,7 +47,7 @@ import {
 import { getCompanyById } from "@/data/companies";
 import { getMemberById } from "@/data/members";
 import { featuredOpportunities } from "@/data/opportunities";
-import { canViewInternalNotes, CURRENT_USER_ROLE } from "@/lib/roles";
+import { canViewInternalNotes } from "@/lib/roles";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 import {
@@ -97,6 +97,7 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
   const router = useRouter();
   const {
     conversations,
+    currentRole,
     updateDealStage,
     updateDealFields,
     addDealNote,
@@ -372,12 +373,12 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
                     onAdd={(text) => addDealNote(deal.dealId, text, false)}
                   />
                 </Section>
-                {canViewInternalNotes() ? (
+                {canViewInternalNotes(currentRole) ? (
                   <Section title="Internal Notes" Icon={Lock}>
                     <div className="mb-3 rounded-xl bg-navy-900 text-white/85 px-4 py-2.5 text-xs inline-flex items-center gap-2">
                       <Lock className="h-3.5 w-3.5 text-gold-400" strokeWidth={2.4} />
                       Visible to Editor, Admin, and Super Admin only — you are{" "}
-                      {CURRENT_USER_ROLE}.
+                      {currentRole}.
                     </div>
                     <DealNotes
                       notes={deal.internalNotes}

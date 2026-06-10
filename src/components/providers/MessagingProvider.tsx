@@ -69,8 +69,17 @@ import {
   type DealPriority,
   type DealStage,
 } from "@/data/deals";
-import { CURRENT_USER_ROLE } from "@/lib/roles";
+import { CURRENT_USER_ROLE, type Role } from "@/lib/roles";
 import { getMemberById } from "@/data/members";
+import { SEED_AUDIT_EVENTS, type AuditAction, type AuditEvent, type AuditTargetKind } from "@/data/audit";
+import {
+  SEED_COMPANY_ADMIN,
+  SEED_MEMBER_ADMIN,
+  SEED_OPP_ADMIN,
+  type CompanyAdminState,
+  type MemberAdminState,
+  type OpportunityAdminState,
+} from "@/data/admin";
 import { isStoredImageToken, prewarmTokens } from "@/lib/imageStore";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
@@ -87,6 +96,11 @@ const KEY_OPPORTUNITY_PATCHES = "cc:opp-patches:v1";
 const KEY_INTRODUCTIONS = "cc:introductions:v1";
 const KEY_CONNECTIONS = "cc:connections:v1";
 const KEY_DEALS = "cc:deals:v1";
+const KEY_ROLE = "cc:role:v1";
+const KEY_MEMBER_ADMIN = "cc:member-admin:v1";
+const KEY_COMPANY_ADMIN = "cc:company-admin:v1";
+const KEY_OPP_ADMIN = "cc:opp-admin:v1";
+const KEY_AUDIT = "cc:audit:v1";
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -378,6 +392,42 @@ type MessagingValue = {
     input: { name: string; type: DealDocumentType; linkedDocumentId?: string }
   ) => void;
   removeDealDocument: (dealId: string, documentId: string) => void;
+
+  // ---- Admin Control Center ----
+  /** Live role (persisted). Super Admin can impersonate lower roles. */
+  currentRole: Role;
+  setCurrentRole: (role: Role) => void;
+
+  /** Per-member admin overrides (role / account status). */
+  memberAdminState: Record<string, MemberAdminState>;
+  setMemberRole: (memberId: string, role: Role, memberName?: string) => void;
+  suspendMember: (memberId: string, memberName?: string) => void;
+  activateMember: (memberId: string, memberName?: string) => void;
+  deleteMember: (memberId: string, memberName?: string) => void;
+
+  /** Per-company admin overrides (verification / featured / status). */
+  companyAdminState: Record<string, CompanyAdminState>;
+  verifyCompany: (companyId: string, companyName?: string, premium?: boolean) => void;
+  toggleCompanyFeatured: (companyId: string, featured: boolean, companyName?: string) => void;
+  suspendCompany: (companyId: string, companyName?: string) => void;
+  activateCompany: (companyId: string) => void;
+  deleteCompany: (companyId: string, companyName?: string) => void;
+
+  /** Per-opportunity moderation overrides. */
+  opportunityAdminState: Record<string, OpportunityAdminState>;
+  approveOpportunity: (oppId: string, title?: string) => void;
+  rejectOpportunity: (oppId: string, title?: string) => void;
+  archiveOpportunityAdmin: (oppId: string, title?: string) => void;
+  deleteOpportunityAdmin: (oppId: string, title?: string) => void;
+  toggleOpportunityFeatured: (oppId: string, featured: boolean, title?: string) => void;
+
+  /** Central audit stream (the future /admin/audit renders this). */
+  auditEvents: AuditEvent[];
+  recordAudit: (
+    action: AuditAction,
+    target: { kind: AuditTargetKind; id: string; label?: string },
+    detail?: string
+  ) => void;
 };
 
 const Ctx = createContext<MessagingValue | null>(null);
@@ -423,6 +473,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     SEED_DIRECT_CONNECTIONS
   );
   const [deals, setDeals] = useState<Deal[]>(SEED_DEALS);
+  const [currentRole, setCurrentRoleState] = useState<Role>(CURRENT_USER_ROLE);
+  const [memberAdminState, setMemberAdminState] =
+    useState<Record<string, MemberAdminState>>(SEED_MEMBER_ADMIN);
+  const [companyAdminState, setCompanyAdminState] =
+    useState<Record<string, CompanyAdminState>>(SEED_COMPANY_ADMIN);
+  const [opportunityAdminState, setOpportunityAdminState] =
+    useState<Record<string, OpportunityAdminState>>(SEED_OPP_ADMIN);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(SEED_AUDIT_EVENTS);
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -494,6 +552,25 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     ) {
       setDeals(storedDeals);
     }
+    const storedRole = readStored<Role | null>(KEY_ROLE, null);
+    if (storedRole) setCurrentRoleState(storedRole);
+    const storedMemberAdmin = readStored<Record<string, MemberAdminState> | null>(
+      KEY_MEMBER_ADMIN,
+      null
+    );
+    if (storedMemberAdmin) setMemberAdminState(storedMemberAdmin);
+    const storedCompanyAdmin = readStored<Record<string, CompanyAdminState> | null>(
+      KEY_COMPANY_ADMIN,
+      null
+    );
+    if (storedCompanyAdmin) setCompanyAdminState(storedCompanyAdmin);
+    const storedOppAdmin = readStored<Record<string, OpportunityAdminState> | null>(
+      KEY_OPP_ADMIN,
+      null
+    );
+    if (storedOppAdmin) setOpportunityAdminState(storedOppAdmin);
+    const storedAudit = readStored<AuditEvent[] | null>(KEY_AUDIT, null);
+    if (storedAudit) setAuditEvents(storedAudit);
     setHydrated(true);
   }, []);
 
@@ -554,6 +631,26 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_DEALS, deals);
   }, [deals, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_ROLE, currentRole);
+  }, [currentRole, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_MEMBER_ADMIN, memberAdminState);
+  }, [memberAdminState, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_COMPANY_ADMIN, companyAdminState);
+  }, [companyAdminState, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_OPP_ADMIN, opportunityAdminState);
+  }, [opportunityAdminState, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_AUDIT, auditEvents);
+  }, [auditEvents, hydrated]);
 
   // After hydration, scan all known opportunity image lists for IDB-backed
   // tokens and eagerly resolve each to a cached object URL. This way the
@@ -583,6 +680,227 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const resetProfile = useCallback(() => {
     setProfile(SEED_PROFILE);
   }, []);
+
+  // ---- Audit architecture (central event stream; /admin/audit comes later) ----
+
+  const recordAudit = useCallback(
+    (
+      action: AuditAction,
+      target: { kind: AuditTargetKind; id: string; label?: string },
+      detail?: string
+    ) => {
+      setAuditEvents((prev) => {
+        let max = 0;
+        for (const e of prev) {
+          const m = /^AUD-(\d+)$/.exec(e.id);
+          if (m) max = Math.max(max, parseInt(m[1], 10));
+        }
+        const entry: AuditEvent = {
+          id: `AUD-${String(max + 1).padStart(6, "0")}`,
+          action,
+          actorName: profile.name,
+          actorRole: currentRole,
+          targetKind: target.kind,
+          targetId: target.id,
+          targetLabel: target.label,
+          detail,
+          createdAt: new Date().toISOString(),
+        };
+        return [entry, ...prev];
+      });
+    },
+    [profile.name, currentRole]
+  );
+
+  // ---- Role switcher (Super Admin impersonation, testing only) ----
+
+  const setCurrentRole = useCallback(
+    (role: Role) => {
+      setCurrentRoleState((prev) => {
+        if (prev !== role) {
+          // Stamped against the platform account itself.
+          recordAudit(
+            "Role Changed",
+            { kind: "role", id: "me", label: profile.name },
+            `Active role switched ${prev} → ${role} (impersonation)`
+          );
+        }
+        return role;
+      });
+    },
+    [recordAudit, profile.name]
+  );
+
+  // ---- Member administration ----
+
+  const setMemberRole = useCallback(
+    (memberId: string, role: Role, memberName?: string) => {
+      setMemberAdminState((prev) => ({
+        ...prev,
+        [memberId]: { ...prev[memberId], role },
+      }));
+      recordAudit(
+        "Role Changed",
+        { kind: "member", id: memberId, label: memberName },
+        `Role set to ${role}`
+      );
+    },
+    [recordAudit]
+  );
+
+  const suspendMember = useCallback(
+    (memberId: string, memberName?: string) => {
+      setMemberAdminState((prev) => ({
+        ...prev,
+        [memberId]: { ...prev[memberId], status: "Suspended" },
+      }));
+      recordAudit("Member Suspended", { kind: "member", id: memberId, label: memberName });
+    },
+    [recordAudit]
+  );
+
+  const activateMember = useCallback(
+    (memberId: string, memberName?: string) => {
+      setMemberAdminState((prev) => ({
+        ...prev,
+        [memberId]: { ...prev[memberId], status: "Active" },
+      }));
+      recordAudit("Member Activated", { kind: "member", id: memberId, label: memberName });
+    },
+    [recordAudit]
+  );
+
+  const deleteMember = useCallback(
+    (memberId: string, memberName?: string) => {
+      setMemberAdminState((prev) => ({
+        ...prev,
+        [memberId]: { ...prev[memberId], status: "Deleted" },
+      }));
+      recordAudit("Member Deleted", { kind: "member", id: memberId, label: memberName });
+    },
+    [recordAudit]
+  );
+
+  // ---- Company administration ----
+
+  const verifyCompany = useCallback(
+    (companyId: string, companyName?: string, premium = false) => {
+      setCompanyAdminState((prev) => ({
+        ...prev,
+        [companyId]: {
+          ...prev[companyId],
+          verificationOverride: premium ? "Premium Verified" : "Verified",
+        },
+      }));
+      recordAudit("Company Verified", { kind: "company", id: companyId, label: companyName });
+    },
+    [recordAudit]
+  );
+
+  const toggleCompanyFeatured = useCallback(
+    (companyId: string, featured: boolean, companyName?: string) => {
+      setCompanyAdminState((prev) => ({
+        ...prev,
+        [companyId]: { ...prev[companyId], featuredOverride: featured },
+      }));
+      recordAudit(
+        "Company Featured",
+        { kind: "company", id: companyId, label: companyName },
+        featured ? "Featured on the directory" : "Removed from featured"
+      );
+    },
+    [recordAudit]
+  );
+
+  const suspendCompany = useCallback(
+    (companyId: string, companyName?: string) => {
+      setCompanyAdminState((prev) => ({
+        ...prev,
+        [companyId]: { ...prev[companyId], status: "Suspended" },
+      }));
+      recordAudit("Company Suspended", { kind: "company", id: companyId, label: companyName });
+    },
+    [recordAudit]
+  );
+
+  const activateCompany = useCallback((companyId: string) => {
+    setCompanyAdminState((prev) => ({
+      ...prev,
+      [companyId]: { ...prev[companyId], status: "Active" },
+    }));
+  }, []);
+
+  const deleteCompany = useCallback(
+    (companyId: string, companyName?: string) => {
+      setCompanyAdminState((prev) => ({
+        ...prev,
+        [companyId]: { ...prev[companyId], status: "Deleted" },
+      }));
+      recordAudit("Company Deleted", { kind: "company", id: companyId, label: companyName });
+    },
+    [recordAudit]
+  );
+
+  // ---- Opportunity administration / moderation ----
+
+  const approveOpportunity = useCallback(
+    (oppId: string, title?: string) => {
+      setOpportunityAdminState((prev) => ({
+        ...prev,
+        [oppId]: { ...prev[oppId], moderation: "Approved" },
+      }));
+      recordAudit("Opportunity Approved", { kind: "opportunity", id: oppId, label: title });
+    },
+    [recordAudit]
+  );
+
+  const rejectOpportunity = useCallback(
+    (oppId: string, title?: string) => {
+      setOpportunityAdminState((prev) => ({
+        ...prev,
+        [oppId]: { ...prev[oppId], moderation: "Rejected" },
+      }));
+      recordAudit("Opportunity Rejected", { kind: "opportunity", id: oppId, label: title });
+    },
+    [recordAudit]
+  );
+
+  const archiveOpportunityAdmin = useCallback(
+    (oppId: string, title?: string) => {
+      setOpportunityAdminState((prev) => ({
+        ...prev,
+        [oppId]: { ...prev[oppId], archived: true },
+      }));
+      recordAudit("Opportunity Archived", { kind: "opportunity", id: oppId, label: title });
+    },
+    [recordAudit]
+  );
+
+  const deleteOpportunityAdmin = useCallback(
+    (oppId: string, title?: string) => {
+      setOpportunityAdminState((prev) => ({
+        ...prev,
+        [oppId]: { ...prev[oppId], deleted: true },
+      }));
+      recordAudit("Opportunity Deleted", { kind: "opportunity", id: oppId, label: title });
+    },
+    [recordAudit]
+  );
+
+  const toggleOpportunityFeatured = useCallback(
+    (oppId: string, featured: boolean, title?: string) => {
+      setOpportunityPatches((prev) => ({
+        ...prev,
+        [oppId]: { ...(prev[oppId] ?? {}), featured },
+      }));
+      recordAudit(
+        "Opportunity Featured",
+        { kind: "opportunity", id: oppId, label: title },
+        featured ? "Featured" : "Unfeatured"
+      );
+    },
+    [recordAudit]
+  );
 
   // ---- Introductions / Direct Connections ----
 
@@ -669,19 +987,25 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   );
 
   const approveIntroduction = useCallback(
-    (id: string, note?: string) =>
-      updateIntroductionStatus(id, "Approved", note),
-    [updateIntroductionStatus]
+    (id: string, note?: string) => {
+      updateIntroductionStatus(id, "Approved", note);
+      recordAudit("Introduction Approved", { kind: "introduction", id }, note);
+    },
+    [updateIntroductionStatus, recordAudit]
   );
   const rejectIntroduction = useCallback(
-    (id: string, note?: string) =>
-      updateIntroductionStatus(id, "Rejected", note),
-    [updateIntroductionStatus]
+    (id: string, note?: string) => {
+      updateIntroductionStatus(id, "Rejected", note);
+      recordAudit("Introduction Rejected", { kind: "introduction", id }, note);
+    },
+    [updateIntroductionStatus, recordAudit]
   );
   const completeIntroduction = useCallback(
-    (id: string, note?: string) =>
-      updateIntroductionStatus(id, "Completed", note),
-    [updateIntroductionStatus]
+    (id: string, note?: string) => {
+      updateIntroductionStatus(id, "Completed", note);
+      recordAudit("Introduction Completed", { kind: "introduction", id }, note);
+    },
+    [updateIntroductionStatus, recordAudit]
   );
 
   const createDirectConnection = useCallback(
@@ -734,7 +1058,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       body,
       createdAt: new Date().toISOString(),
       actor: profile.name,
-      actorRole: CURRENT_USER_ROLE,
+      actorRole: currentRole,
       ref,
     };
   }
@@ -910,9 +1234,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         title: "Introduction approved",
         ref: { kind: "introduction", id: introductionId },
       });
+      recordAudit(
+        "Introduction Converted",
+        { kind: "introduction", id: introductionId },
+        `Converted to ${id}`
+      );
       return id;
     },
-    [introductionRequests, deals, profile.name, createDeal, mutateDeal]
+    [introductionRequests, deals, profile.name, createDeal, mutateDeal, recordAudit]
   );
 
   const updateDealStage = useCallback(
@@ -1012,8 +1341,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         kind: "assigned",
         title: `Assigned to ${admin}`,
       });
+      recordAudit("Deal Assigned", { kind: "deal", id: dealId }, `Assigned to ${admin}`);
     },
-    [mutateDeal]
+    [mutateDeal, recordAudit]
   );
 
   const closeDeal = useCallback(
@@ -1027,8 +1357,13 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
             Math.round(((d.actualInvestment ?? d.targetInvestment) * d.commissionPct) / 100),
         }));
       }
+      recordAudit(
+        "Deal Closed",
+        { kind: "deal", id: dealId },
+        outcome === "won" ? "Closed Won" : "Closed Lost"
+      );
     },
-    [updateDealStage, mutateDeal]
+    [updateDealStage, mutateDeal, recordAudit]
   );
 
   const reopenDeal = useCallback(
@@ -1038,13 +1373,17 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         { stage: "Negotiating", status: "Open" },
         { kind: "reopened", title: "Deal reopened", body: "Returned to Negotiating." }
       );
+      recordAudit("Deal Reopened", { kind: "deal", id: dealId });
     },
-    [mutateDeal]
+    [mutateDeal, recordAudit]
   );
 
   const archiveDeal = useCallback(
-    (dealId: string) => updateDealStage(dealId, "Archived"),
-    [updateDealStage]
+    (dealId: string) => {
+      updateDealStage(dealId, "Archived");
+      recordAudit("Deal Archived", { kind: "deal", id: dealId });
+    },
+    [updateDealStage, recordAudit]
   );
 
   const restoreDeal = useCallback(
@@ -1054,13 +1393,18 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         { stage: "New Lead", status: "Open" },
         { kind: "restored", title: "Deal restored", body: "Returned to New Lead." }
       );
+      recordAudit("Deal Restored", { kind: "deal", id: dealId });
     },
-    [mutateDeal]
+    [mutateDeal, recordAudit]
   );
 
-  const deleteDeal = useCallback((dealId: string) => {
-    setDeals((prev) => prev.filter((d) => d.dealId !== dealId));
-  }, []);
+  const deleteDeal = useCallback(
+    (dealId: string) => {
+      setDeals((prev) => prev.filter((d) => d.dealId !== dealId));
+      recordAudit("Deal Deleted", { kind: "deal", id: dealId });
+    },
+    [recordAudit]
+  );
 
   const addDealParticipant = useCallback(
     (dealId: string, input: Omit<DealParticipant, "id">) => {
@@ -1530,30 +1874,34 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     return newId;
   }, []);
 
-  const archiveListing = useCallback((id: string) => {
-    setListings((prev) =>
-      prev.map((l) =>
-        l.id === id
-          ? {
-              ...l,
-              status: "Archived",
-              lastUpdatedAt: new Date().toISOString(),
-              activity: [
-                ...l.activity,
-                makeActivityEntry(
-                  l.id,
-                  l.activity,
-                  "edit",
-                  "Archived",
-                  "Listing was archived and removed from the active marketplace.",
-                  { opportunitySlug: l.opportunitySlug }
-                ),
-              ],
-            }
-          : l
-      )
-    );
-  }, []);
+  const archiveListing = useCallback(
+    (id: string) => {
+      setListings((prev) =>
+        prev.map((l) =>
+          l.id === id
+            ? {
+                ...l,
+                status: "Archived",
+                lastUpdatedAt: new Date().toISOString(),
+                activity: [
+                  ...l.activity,
+                  makeActivityEntry(
+                    l.id,
+                    l.activity,
+                    "edit",
+                    "Archived",
+                    "Listing was archived and removed from the active marketplace.",
+                    { opportunitySlug: l.opportunitySlug }
+                  ),
+                ],
+              }
+            : l
+        )
+      );
+      recordAudit("Listing Archived", { kind: "listing", id });
+    },
+    [recordAudit]
+  );
 
   const restoreListing = useCallback((id: string) => {
     setListings((prev) =>
@@ -1578,7 +1926,8 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           : l
       )
     );
-  }, []);
+    recordAudit("Listing Restored", { kind: "listing", id });
+  }, [recordAudit]);
 
   const markListingClosed = useCallback((id: string) => {
     setListings((prev) =>
@@ -1661,22 +2010,26 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const deleteListing = useCallback((id: string) => {
-    let deletedOpportunityId: string | undefined;
-    setListings((prev) => {
-      const target = prev.find((l) => l.id === id);
-      if (target) deletedOpportunityId = target.opportunityId;
-      return prev.filter((l) => l.id !== id);
-    });
-    if (deletedOpportunityId) {
-      setUserOpportunities((prev) =>
-        prev.filter((o) => o.id !== deletedOpportunityId)
-      );
-    }
-    setDocuments((prev) => prev.filter((d) => d.listingId !== id));
-    setAccessRequests((prev) => prev.filter((r) => r.listingId !== id));
-    setDocumentActivity((prev) => prev.filter((a) => a.listingId !== id));
-  }, []);
+  const deleteListing = useCallback(
+    (id: string) => {
+      let deletedOpportunityId: string | undefined;
+      setListings((prev) => {
+        const target = prev.find((l) => l.id === id);
+        if (target) deletedOpportunityId = target.opportunityId;
+        return prev.filter((l) => l.id !== id);
+      });
+      if (deletedOpportunityId) {
+        setUserOpportunities((prev) =>
+          prev.filter((o) => o.id !== deletedOpportunityId)
+        );
+      }
+      setDocuments((prev) => prev.filter((d) => d.listingId !== id));
+      setAccessRequests((prev) => prev.filter((r) => r.listingId !== id));
+      setDocumentActivity((prev) => prev.filter((a) => a.listingId !== id));
+      recordAudit("Listing Deleted", { kind: "listing", id });
+    },
+    [recordAudit]
+  );
 
   const updateListingFields = useCallback(
     (
@@ -2092,9 +2445,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
             : l
         )
       );
+      recordAudit(
+        "Document Uploaded",
+        { kind: "document", id, label: input.name },
+        `Listing ${input.listingId}`
+      );
       return id;
     },
-    [pushDocActivity]
+    [pushDocActivity, recordAudit]
   );
 
   const deleteDocument = useCallback(
@@ -2118,8 +2476,13 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           ME.authorName
         );
       }
+      recordAudit(
+        "Document Deleted",
+        { kind: "document", id: documentId, label: targetName },
+        targetListingId ? `Listing ${targetListingId}` : undefined
+      );
     },
-    [pushDocActivity]
+    [pushDocActivity, recordAudit]
   );
 
   const replaceDocument = useCallback(
@@ -2408,6 +2771,27 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     removeDealParticipant,
     addDealDocument,
     removeDealDocument,
+    currentRole,
+    setCurrentRole,
+    memberAdminState,
+    setMemberRole,
+    suspendMember,
+    activateMember,
+    deleteMember,
+    companyAdminState,
+    verifyCompany,
+    toggleCompanyFeatured,
+    suspendCompany,
+    activateCompany,
+    deleteCompany,
+    opportunityAdminState,
+    approveOpportunity,
+    rejectOpportunity,
+    archiveOpportunityAdmin,
+    deleteOpportunityAdmin,
+    toggleOpportunityFeatured,
+    auditEvents,
+    recordAudit,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

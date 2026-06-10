@@ -5,6 +5,7 @@ import {
   Building2,
   Users,
   Briefcase,
+  ShieldCheck,
   Map as MapIcon,
   PlusCircle,
   MessageSquare,
@@ -19,6 +20,8 @@ export type NavItem = {
   icon: LucideIcon;
   /** When true, hide from the mobile bottom nav (still in desktop sidebar). */
   hideOnMobile?: boolean;
+  /** When true, only render for roles with canAccessAdmin (Admin+). */
+  adminOnly?: boolean;
 };
 
 export const navItems: NavItem[] = [
@@ -28,6 +31,7 @@ export const navItems: NavItem[] = [
   { label: "Members", shortLabel: "Members", href: "/members", icon: Users },
   { label: "Map", shortLabel: "Map", href: "/map", icon: MapIcon },
   { label: "Deal Desk", shortLabel: "Deals", href: "/deal-desk", icon: Briefcase },
+  { label: "Admin", shortLabel: "Admin", href: "/admin", icon: ShieldCheck, adminOnly: true },
   { label: "Dashboard", shortLabel: "Dash", href: "/dashboard", icon: LayoutDashboard, hideOnMobile: true },
   { label: "Create Listing", shortLabel: "Create", href: "/create-listing", icon: PlusCircle, hideOnMobile: true },
   { label: "Messages", shortLabel: "Messages", href: "/messages", icon: MessageSquare },

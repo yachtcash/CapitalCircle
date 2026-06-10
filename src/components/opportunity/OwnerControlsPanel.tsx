@@ -16,7 +16,7 @@ import {
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import { canManageListing, CURRENT_USER_ROLE } from "@/lib/roles";
+import { canManageListing } from "@/lib/roles";
 import type { Opportunity } from "@/data/opportunities";
 
 type Props = {
@@ -44,6 +44,7 @@ export default function OwnerControlsPanel({ opportunity }: Props) {
     archiveListing,
     markListingClosed,
     deleteListing,
+    currentRole,
   } = useMessaging();
 
   const isOwned = useMemo(
@@ -58,7 +59,7 @@ export default function OwnerControlsPanel({ opportunity }: Props) {
 
   const [dialog, setDialog] = useState<DialogKind>(null);
 
-  if (!canManageListing(isOwned) || !listing) return null;
+  if (!canManageListing(isOwned, currentRole) || !listing) return null;
 
   const listingHref = `/dashboard/listings/${listing.id}`;
   const dupAndRedirect = () => {
@@ -98,7 +99,7 @@ export default function OwnerControlsPanel({ opportunity }: Props) {
         </span>
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-gold-400 font-bold">
-            {isOwned ? "Owner controls" : `Admin controls · ${CURRENT_USER_ROLE}`} · {listing.id}
+            {isOwned ? "Owner controls" : `Admin controls · ${currentRole}`} · {listing.id}
           </div>
           <h3 className="mt-0.5 text-base font-semibold">
             {isOwned ? "You manage this listing" : "You can manage every listing"}
