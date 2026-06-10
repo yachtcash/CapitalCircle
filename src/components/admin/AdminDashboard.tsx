@@ -81,7 +81,7 @@ export default function AdminDashboard() {
     { label: "Pending Approvals", value: pendingApprovals, Icon: Clock, href: "/admin/moderation", tone: "amber" },
     { label: "Flagged Content", value: flagged, Icon: Flag, href: "/admin/moderation", tone: "rose" },
     { label: "Suspended Members", value: suspendedMembers, Icon: ShieldAlert, href: "/admin/moderation", tone: "rose" },
-    { label: "Audit Events", value: auditEvents.length, Icon: ScrollText, href: "/admin", tone: "gold" },
+    { label: "Audit Events", value: auditEvents.length, Icon: ScrollText, href: "/admin/audit", tone: "gold" },
   ];
 
   return (
@@ -119,8 +119,16 @@ export default function AdminDashboard() {
       </div>
 
       <div className="rounded-2xl bg-navy-900 text-white p-5 md:p-6">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-gold-400 font-bold">
-          Recent audit events
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-gold-400 font-bold">
+            Recent Audit Activity
+          </div>
+          <Link
+            href="/admin/audit"
+            className="text-[11px] uppercase tracking-[0.14em] font-semibold text-gold-400 hover:text-gold-300"
+          >
+            View all →
+          </Link>
         </div>
         {auditEvents.length === 0 ? (
           <p className="mt-2 text-sm text-white/65">
@@ -128,20 +136,25 @@ export default function AdminDashboard() {
             suspensions, approvals, deletions — lands here automatically.
           </p>
         ) : (
-          <ul className="mt-3 space-y-2">
-            {auditEvents.slice(0, 6).map((e) => (
-              <li key={e.id} className="flex items-center gap-3 text-sm">
-                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-gold-400 tabular-nums shrink-0">
-                  {e.id}
-                </span>
-                <span className="font-semibold">{e.action}</span>
-                <span className="text-white/60 truncate">
-                  {e.targetLabel ?? e.targetId}
-                  {e.detail ? ` — ${e.detail}` : ""}
-                </span>
-                <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-white/45 shrink-0">
-                  {e.actorRole}
-                </span>
+          <ul className="mt-3 space-y-1">
+            {auditEvents.slice(0, 10).map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/admin/audit/${e.id}`}
+                  className="flex items-center gap-3 text-sm rounded-lg px-2 py-1.5 -mx-2 hover:bg-white/[0.06] transition-colors"
+                >
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-gold-400 tabular-nums shrink-0">
+                    {e.id}
+                  </span>
+                  <span className="font-semibold">{e.action}</span>
+                  <span className="text-white/60 truncate">
+                    {e.targetLabel ?? e.targetId}
+                    {e.before && e.after ? ` · ${e.before} → ${e.after}` : e.detail ? ` — ${e.detail}` : ""}
+                  </span>
+                  <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-white/45 shrink-0">
+                    {e.actorRole}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

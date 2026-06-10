@@ -13,6 +13,7 @@ import {
   UserPlus,
   Flag,
   ShieldAlert,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ const SECTIONS: { label: string; href: string; icon: LucideIcon; exact?: boolean
   { label: "Deals", href: "/admin/deals", icon: Briefcase },
   { label: "Introductions", href: "/admin/introductions", icon: UserPlus },
   { label: "Moderation", href: "/admin/moderation", icon: Flag },
+  { label: "Audit Log", href: "/admin/audit", icon: ScrollText },
 ];
 
 /**

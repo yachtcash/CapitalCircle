@@ -106,6 +106,14 @@ export default function ImageManager({
       next.unshift(picked);
       return next;
     });
+    if (listingId) {
+      recordAudit(
+        "Cover Image Changed",
+        { kind: "image", id: listingId, label: title },
+        `Photo ${i + 1} promoted to cover on ${listingId}`,
+        { before: "Photo 1", after: `Photo ${i + 1}` }
+      );
+    }
   };
 
   const performRemove = (i: number) => {
@@ -125,6 +133,15 @@ export default function ImageManager({
     setDeleteIndex(null);
   };
 
+  const auditReorder = (detail: string) => {
+    if (!listingId) return;
+    recordAudit(
+      "Gallery Reordered",
+      { kind: "image", id: listingId, label: title },
+      `${detail} on ${listingId}`
+    );
+  };
+
   const move = (i: number, delta: -1 | 1) => {
     updateAndPersist((prev) => {
       const target = i + delta;
@@ -133,6 +150,7 @@ export default function ImageManager({
       [next[i], next[target]] = [next[target], next[i]];
       return next;
     });
+    auditReorder(`Photo ${i + 1} moved ${delta < 0 ? "left" : "right"}`);
   };
 
   const moveTo = (i: number, position: "first" | "last") => {
@@ -144,6 +162,7 @@ export default function ImageManager({
       else next.push(picked);
       return next;
     });
+    auditReorder(`Photo ${i + 1} moved to ${position}`);
   };
 
   const handleAdd = () => {
@@ -182,12 +201,20 @@ export default function ImageManager({
       }
       return prev.concat(tokens);
     });
-    if (listingId && targetIndex != null) {
-      recordAudit(
-        "Image Replaced",
-        { kind: "image", id: `${listingId}#${targetIndex + 1}`, label: title },
-        `Photo ${targetIndex + 1} replaced on ${listingId}`
-      );
+    if (listingId) {
+      if (targetIndex != null) {
+        recordAudit(
+          "Image Replaced",
+          { kind: "image", id: `${listingId}#${targetIndex + 1}`, label: title },
+          `Photo ${targetIndex + 1} replaced on ${listingId}`
+        );
+      } else {
+        recordAudit(
+          "Image Uploaded",
+          { kind: "image", id: listingId, label: title },
+          `${tokens.length} ${tokens.length === 1 ? "photo" : "photos"} added to ${listingId}`
+        );
+      }
     }
   };
 

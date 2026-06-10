@@ -98,6 +98,7 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
   const {
     conversations,
     currentRole,
+    auditEvents,
     updateDealStage,
     updateDealFields,
     addDealNote,
@@ -530,6 +531,32 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
                   className={fieldCls}
                 />
               </FieldShell>
+            </SidePanel>
+
+            <SidePanel title="Recent Audit Activity">
+              {auditEvents.filter((e) => e.targetId === deal.dealId).length === 0 ? (
+                <p className="text-xs text-navy-700/55">
+                  No audit events recorded for this deal yet.
+                </p>
+              ) : (
+                auditEvents
+                  .filter((e) => e.targetId === deal.dealId)
+                  .slice(0, 5)
+                  .map((e) => (
+                    <Link
+                      key={e.id}
+                      href={`/admin/audit/${e.id}`}
+                      className="block rounded-lg bg-bone/50 hover:bg-bone px-3 py-2 transition-colors"
+                    >
+                      <div className="text-sm font-semibold text-navy-900">{e.action}</div>
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-navy-700/55 font-semibold mt-0.5">
+                        {e.before && e.after
+                          ? `${e.before} → ${e.after}`
+                          : formatDate(e.createdAt)}
+                      </div>
+                    </Link>
+                  ))
+              )}
             </SidePanel>
           </aside>
         </div>
