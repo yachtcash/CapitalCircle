@@ -20,9 +20,14 @@ import type {
   IntroductionRequest,
   IntroductionStatus,
 } from "@/data/introductions";
+import type { Deal } from "@/data/deals";
 import { getMemberById } from "@/data/members";
 import { useRouter } from "next/navigation";
 import { Briefcase } from "lucide-react";
+import {
+  DealHealthBadge,
+  DealStageBadge,
+} from "@/components/dashboard/deals/DealBadges";
 import { cn } from "@/lib/cn";
 
 type TabKey = "Pending" | "Approved" | "Rejected" | "Completed" | "All";
@@ -167,13 +172,12 @@ export default function IntroductionsClient() {
                     const id = convertIntroductionToDeal(r.id);
                     if (id) router.push(`/deal-desk/${id}`);
                   }}
-                  existingDealId={
-                    deals.find(
-                      (d) =>
-                        d.sourceType === "Introduction Request" &&
-                        d.sourceId === r.id
-                    )?.dealId
-                  }
+                  existingDeal={deals.find(
+                    (d) =>
+                      d.introductionId === r.id ||
+                      (d.sourceType === "Introduction Request" &&
+                        d.sourceId === r.id)
+                  )}
                 />
               </li>
             ))}
@@ -192,7 +196,7 @@ function Row({
   onCreateConnection,
   hasConnection,
   onConvertToDeal,
-  existingDealId,
+  existingDeal,
 }: {
   request: IntroductionRequest;
   onApprove: (note?: string) => void;
@@ -201,7 +205,7 @@ function Row({
   onCreateConnection: () => void;
   hasConnection: boolean;
   onConvertToDeal: () => void;
-  existingDealId?: string;
+  existingDeal?: Deal;
 }) {
   const [note, setNote] = useState("");
   const targetSlug = getMemberById(request.targetMemberId)?.slug;
@@ -294,6 +298,30 @@ function Row({
         </div>
       ) : null}
 
+      {existingDeal ? (
+        <div className="mt-3 rounded-xl bg-gold-500/[0.08] ring-1 ring-gold-500/40 p-4 flex items-center gap-2.5 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] font-bold text-gold-700">
+            <Briefcase className="h-3.5 w-3.5" strokeWidth={2.4} />
+            Deal Created
+          </span>
+          <span className="text-xs font-bold text-navy-900 tabular-nums">
+            {existingDeal.dealId}
+          </span>
+          <DealStageBadge stage={existingDeal.stage} />
+          <DealHealthBadge health={existingDeal.health} hideHealthy />
+          <span className="text-xs text-navy-700/70">
+            Admin · {existingDeal.assignedAdmin || "Unassigned"}
+          </span>
+          <Link
+            href={`/deal-desk/${existingDeal.dealId}`}
+            className="ml-auto inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.14em] font-semibold text-gold-700 hover:text-gold-600 transition-colors"
+          >
+            Open Deal
+            <ChevronRight className="h-3 w-3" strokeWidth={2.4} />
+          </Link>
+        </div>
+      ) : null}
+
       {!decided ? (
         <div className="mt-4 space-y-3">
           <textarea
@@ -332,13 +360,13 @@ function Row({
         </div>
       ) : (
         <div className="mt-4 flex flex-wrap gap-2">
-          {existingDealId ? (
+          {existingDeal ? (
             <Link
-              href={`/deal-desk/${existingDealId}`}
+              href={`/deal-desk/${existingDeal.dealId}`}
               className="inline-flex items-center gap-1.5 rounded-full bg-navy-900 hover:bg-navy-800 text-white font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
             >
               <Briefcase className="h-3.5 w-3.5" strokeWidth={2.4} />
-              Open {existingDealId}
+              Open {existingDeal.dealId}
             </Link>
           ) : request.status === "Approved" || request.status === "Completed" ? (
             <button

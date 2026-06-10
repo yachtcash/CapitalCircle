@@ -10,6 +10,7 @@ import {
 import CompanyHero from "@/components/company/CompanyHero";
 import CompanyKeyInfo from "@/components/company/CompanyKeyInfo";
 import CompanyAbout from "@/components/company/CompanyAbout";
+import { CompanyDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
 import CompanyActiveOpportunities from "@/components/company/CompanyActiveOpportunities";
 import CompanyPastProjects from "@/components/company/CompanyPastProjects";
 import CompanyTeam from "@/components/company/CompanyTeam";
@@ -54,6 +55,7 @@ export default async function CompanyPage({
 
       <div className="max-w-6xl mx-auto px-5 md:px-10 py-10 md:py-14 space-y-10 md:space-y-14">
         <CompanyKeyInfo company={company} activeOpportunitiesCount={active.length} />
+        <CompanyDealsPanel company={company} />
         <CompanyAbout company={company} />
         <CompanyActiveOpportunities
           opportunities={active}

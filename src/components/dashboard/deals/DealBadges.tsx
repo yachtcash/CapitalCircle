@@ -7,8 +7,9 @@ import {
   Activity,
   CalendarClock,
   Clock,
+  HeartPulse,
 } from "lucide-react";
-import type { DealPriority, DealStage } from "@/data/deals";
+import type { DealHealth, DealPriority, DealStage } from "@/data/deals";
 import { cn } from "@/lib/cn";
 
 export const STAGE_STYLES: Record<DealStage, string> = {
@@ -78,6 +79,35 @@ export function DealPriorityBadge({ priority }: { priority: DealPriority }) {
     >
       <Icon className="h-3 w-3" strokeWidth={2.4} />
       {priority}
+    </span>
+  );
+}
+
+const HEALTH_STYLES: Record<DealHealth, string> = {
+  Healthy: "bg-emerald-500/15 text-emerald-700 ring-emerald-500/30",
+  "Needs Attention": "bg-amber-500/15 text-amber-700 ring-amber-500/30",
+  "At Risk": "bg-orange-500/15 text-orange-700 ring-orange-500/30",
+  Critical: "bg-rose-500/15 text-rose-700 ring-rose-500/30",
+};
+
+export function DealHealthBadge({
+  health,
+  hideHealthy = false,
+}: {
+  health?: DealHealth;
+  hideHealthy?: boolean;
+}) {
+  const h = health ?? "Healthy";
+  if (hideHealthy && h === "Healthy") return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1 whitespace-nowrap",
+        HEALTH_STYLES[h]
+      )}
+    >
+      <HeartPulse className="h-3 w-3" strokeWidth={2.4} />
+      {h}
     </span>
   );
 }

@@ -18,6 +18,7 @@ import { DEAL_DESK_NOW_MS, STAGE_RANK, isOpenStage } from "@/data/deals";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
+  DealHealthBadge,
   DealPriorityBadge,
   DealStageBadge,
   FollowUpBadge,
@@ -101,7 +102,7 @@ export default function DealTableView({ deals }: { deals: Deal[] }) {
   return (
     <div className="bg-white rounded-2xl ring-1 ring-navy-900/[0.06] overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-[1240px] w-full text-sm">
+        <table className="min-w-[1360px] w-full text-sm">
           <thead className="bg-bone/60">
             <tr className="text-[10px] uppercase tracking-[0.14em] text-navy-700/65 font-bold">
               <Th k="dealId" s={sort} t={toggle}>Deal ID</Th>
@@ -110,6 +111,7 @@ export default function DealTableView({ deals }: { deals: Deal[] }) {
               <Th k="investor" s={sort} t={toggle}>Investor</Th>
               <Th k="stage" s={sort} t={toggle}>Stage</Th>
               <Th k="priority" s={sort} t={toggle}>Priority</Th>
+              <th className="px-3 py-3 text-left">Health</th>
               <Th k="value" s={sort} t={toggle} right>Value</Th>
               <Th k="expectedClose" s={sort} t={toggle}>Expected Close</Th>
               <Th k="admin" s={sort} t={toggle}>Assigned Admin</Th>
@@ -147,6 +149,9 @@ export default function DealTableView({ deals }: { deals: Deal[] }) {
                 </td>
                 <td className="px-3 py-3 align-middle">
                   <DealPriorityBadge priority={deal.priority} />
+                </td>
+                <td className="px-3 py-3 align-middle">
+                  <DealHealthBadge health={deal.health} />
                 </td>
                 <td className="px-3 py-3 align-middle text-right whitespace-nowrap font-semibold text-navy-900 tabular-nums">
                   {formatCurrency(deal.targetInvestment)}

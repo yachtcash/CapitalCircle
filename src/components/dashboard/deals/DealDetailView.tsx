@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Activity,
   Archive,
+  Banknote,
   Briefcase,
   Building2,
   Calendar,
@@ -14,13 +15,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  FileCheck2,
+  FileSignature,
   FileText,
   HandCoins,
+  HeartPulse,
   Lock,
   MessageSquare,
   Pencil,
   Plus,
   RotateCcw,
+  SearchCheck,
+  Send,
   Sparkles,
   Tag,
   Trash2,
@@ -34,12 +40,17 @@ import { useMessaging } from "@/components/providers/MessagingProvider";
 import {
   DEAL_DESK_NOW_MS,
   DEAL_DOCUMENT_TYPES,
+  DEAL_HEALTHS,
+  DEAL_MILESTONES,
   DEAL_PRIORITIES,
   DEAL_STAGES,
   SAMPLE_ADMINS,
+  dealAlerts,
   isOpenStage,
   type Deal,
+  type DealActivityKind,
   type DealDocumentType,
+  type DealHealth,
   type DealParticipantRole,
   type DealPriority,
   type DealStage,
@@ -51,6 +62,7 @@ import { canViewInternalNotes } from "@/lib/roles";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 import {
+  DealHealthBadge,
   DealPriorityBadge,
   DealStageBadge,
   FollowUpBadge,
@@ -76,7 +88,17 @@ const ACTIVITY_ICONS: Partial<Record<Deal["activity"][number]["kind"], typeof Ac
   document_removed: Trash2,
   assigned: Users,
   priority_change: Activity,
+  health_change: HeartPulse,
   meeting_scheduled: Calendar,
+  conversation_started: MessageSquare,
+  nda_signed: FileSignature,
+  documents_shared: FileText,
+  loi_received: FileCheck2,
+  dd_started: SearchCheck,
+  dd_completed: CheckCircle2,
+  contract_sent: Send,
+  contract_signed: FileSignature,
+  funding_received: Banknote,
   closed_won: CheckCircle2,
   closed_lost: XCircle,
   archived: Archive,
@@ -103,6 +125,8 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
     updateDealFields,
     addDealNote,
     setDealPriority,
+    setDealHealth,
+    logDealMilestone,
     setDealFollowUp,
     assignDealAdmin,
     closeDeal,
@@ -154,6 +178,7 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
               <div className="flex items-center gap-2 flex-wrap">
                 <DealStageBadge stage={deal.stage} />
                 <DealPriorityBadge priority={deal.priority} />
+                <DealHealthBadge health={deal.health} />
                 <FollowUpBadge iso={deal.nextFollowUpDate} nowMs={nowMs} />
                 {deal.tags.map((t) => (
                   <span
@@ -209,8 +234,22 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
             </div>
           </div>
 
+          {/* Operational alerts */}
+          {dealAlerts(deal, nowMs).length > 0 ? (
+            <div className="mt-4 rounded-xl bg-rose-500/[0.07] ring-1 ring-rose-500/30 px-4 py-3 flex items-start gap-2.5">
+              <span className="text-rose-700 mt-0.5">⚠</span>
+              <div className="text-sm text-navy-900/90">
+                <span className="font-semibold text-rose-700">
+                  {dealAlerts(deal, nowMs).length}{" "}
+                  {dealAlerts(deal, nowMs).length === 1 ? "alert" : "alerts"}:
+                </span>{" "}
+                {dealAlerts(deal, nowMs).join(" · ")}
+              </div>
+            </div>
+          ) : null}
+
           {/* Inline controls */}
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <Selector
               label="Stage"
               value={deal.stage}
@@ -222,6 +261,12 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
               value={deal.priority}
               options={DEAL_PRIORITIES}
               onChange={(v) => setDealPriority(deal.dealId, v as DealPriority)}
+            />
+            <Selector
+              label="Health"
+              value={deal.health ?? "Healthy"}
+              options={DEAL_HEALTHS}
+              onChange={(v) => setDealHealth(deal.dealId, v as DealHealth)}
             />
             <Selector
               label="Assigned Admin"
@@ -362,7 +407,14 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
 
             {tab === "timeline" ? (
               <Section title="Timeline" Icon={Calendar}>
-                <ActivityList deal={deal} timelineStyle />
+                <MilestoneLogger
+                  onLog={(kind, title, note) =>
+                    logDealMilestone(deal.dealId, kind, title, note)
+                  }
+                />
+                <div className="mt-4">
+                  <ActivityList deal={deal} timelineStyle />
+                </div>
               </Section>
             ) : null}
 
@@ -477,6 +529,13 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
             <SidePanel title="Source">
               <Row label="Type" value={deal.sourceType} />
               {deal.sourceId ? <Row label="Source ID" value={deal.sourceId} /> : null}
+              {deal.introductionId ? (
+                <Row
+                  label="Introduction"
+                  value={deal.introductionId}
+                  href="/admin/introductions"
+                />
+              ) : null}
             </SidePanel>
             <SidePanel title="Identifiers">
               {deal.opportunityId ? (
@@ -914,6 +973,60 @@ function FieldShell({ label, children }: { label: string; children: React.ReactN
       </span>
       {children}
     </label>
+  );
+}
+
+/**
+ * Records lifecycle milestones (NDA Signed, LOI Received, Funding Received, …)
+ * onto the deal timeline without forcing a stage move — the stage selector
+ * stays the single source of truth for pipeline position.
+ */
+function MilestoneLogger({
+  onLog,
+}: {
+  onLog: (kind: DealActivityKind, title: string, note?: string) => void;
+}) {
+  const [kind, setKind] = useState<DealActivityKind>(DEAL_MILESTONES[0].kind);
+  const [note, setNote] = useState("");
+
+  return (
+    <div className="rounded-xl bg-bone/50 ring-1 ring-navy-900/[0.05] p-4">
+      <div className="text-[10px] uppercase tracking-[0.16em] font-bold text-navy-700/60 mb-2.5">
+        Log Milestone
+      </div>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <select
+          value={kind}
+          onChange={(e) => setKind(e.target.value as DealActivityKind)}
+          className={cn(fieldCls, "sm:max-w-[240px]")}
+        >
+          {DEAL_MILESTONES.map((m) => (
+            <option key={m.kind} value={m.kind}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Optional note (e.g. signed by both parties)…"
+          className={cn(fieldCls, "flex-1")}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const milestone = DEAL_MILESTONES.find((m) => m.kind === kind);
+            if (!milestone) return;
+            onLog(kind, milestone.label, note.trim() || undefined);
+            setNote("");
+          }}
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-navy-900 hover:bg-navy-800 text-white font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors shrink-0"
+        >
+          Log Milestone
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -11,6 +11,7 @@ import { STAGE_META } from "@/data/negotiations";
 import MessageBubble from "./MessageBubble";
 import SystemMessage from "./SystemMessage";
 import OpportunitySummaryCard from "./OpportunitySummaryCard";
+import { ConversationDealBar } from "@/components/dashboard/deals/DealIntegrations";
 import MessageComposer from "./MessageComposer";
 import DateSeparator from "./DateSeparator";
 import NegotiationTimeline from "@/components/negotiations/NegotiationTimeline";
@@ -166,6 +167,8 @@ export default function ConversationThread({
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 space-y-5">
         <NegotiationTimeline current={conversation.stage} />
+
+        <ConversationDealBar conversation={conversation} />
 
         <OpportunitySummaryCard conversation={conversation} companyName={companyName} />
 

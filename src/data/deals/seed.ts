@@ -4,6 +4,7 @@ import {
   type Deal,
   type DealActivity,
   type DealDocumentRef,
+  type DealHealth,
   type DealNote,
   type DealParticipant,
   type DealParty,
@@ -21,6 +22,8 @@ type SeedConfig = {
   title: string;
   stage: DealStage;
   priority?: DealPriority;
+  health?: DealHealth;
+  introductionId?: string;
   sponsor: DealParty & { company?: string };
   investor?: DealParty & { company?: string };
   admin?: string;
@@ -138,6 +141,8 @@ function mkDeal(c: SeedConfig): Deal {
     stage: c.stage,
     status: statusForStage(c.stage),
     priority: c.priority ?? "Normal",
+    health: c.health,
+    introductionId: c.introductionId,
     createdDate: created,
     updatedDate: updated,
     expectedCloseDate:
@@ -227,6 +232,7 @@ export const SEED_DEALS: Deal[] = [
     companyId: "COMP-000006",
     source: "Introduction Request",
     sourceId: "INT-000003",
+    introductionId: "INT-000003",
     summary: "Crescent countersigned; KYC cleared; closing scheduled week of June 22.",
     tags: ["Branded Residences", "JV", "LP"],
     conversationIds: ["conv-yucatan-residences"],
@@ -280,6 +286,7 @@ export const SEED_DEALS: Deal[] = [
     companyId: "COMP-000003",
     source: "Introduction Request",
     sourceId: "INT-000002",
+    introductionId: "INT-000002",
     summary: "JV at $16M ascribed land basis; contribution agreement in redlines.",
     tags: ["Land", "JV", "Mexico"],
     conversationIds: ["conv-riviera-land"],
@@ -349,6 +356,7 @@ export const SEED_DEALS: Deal[] = [
     companyId: "COMP-000001",
     source: "Introduction Request",
     sourceId: "INT-000001",
+    introductionId: "INT-000001",
     summary: "Aurora in QofE-style cash trace; pref at 9% coupon / 14% IRR cap.",
     tags: ["Hotel", "Pref Equity", "Mexico"],
     conversationIds: ["conv-pacific-coast"],
@@ -406,6 +414,7 @@ export const SEED_DEALS: Deal[] = [
     title: "Hoekstra Build — Tulum GC Engagement",
     stage: "Negotiating",
     priority: "Normal",
+    health: "Needs Attention",
     sponsor: { name: "Petra Hoekstra", memberId: "MEM-000025", company: "Hoekstra Build BV" },
     target: 78_000_000,
     pct: 1,
@@ -425,6 +434,7 @@ export const SEED_DEALS: Deal[] = [
     title: "Industrial Park Development — Queretaro Phase 1",
     stage: "Sponsor Review",
     priority: "Normal",
+    health: "At Risk",
     sponsor: { name: "Sunrise Land Holdings", companyId: "COMP-000019", company: "Sunrise Land Holdings" },
     investor: { name: "Hassan Diallo", memberId: "MEM-000026", company: "Sahel Frontier Holdings" },
     target: 45_000_000,

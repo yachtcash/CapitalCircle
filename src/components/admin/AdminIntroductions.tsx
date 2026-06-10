@@ -1,9 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { AdminPage, TableShell, THead, ActBtn, StatusPill } from "./AdminShell";
-import { formatDate } from "@/components/dashboard/deals/DealBadges";
+import {
+  DealStageBadge,
+  formatDate,
+} from "@/components/dashboard/deals/DealBadges";
 
 export default function AdminIntroductions() {
   const {
@@ -22,7 +26,7 @@ export default function AdminIntroductions() {
       count={introductionRequests.length}
       subtitle="Approve, reject, complete, or convert platform-brokered introductions into deals."
     >
-      <TableShell minWidth={1100}>
+      <TableShell minWidth={1280}>
         <THead
           cols={[
             "Introduction ID",
@@ -31,13 +35,16 @@ export default function AdminIntroductions() {
             "Opportunity",
             "Status",
             "Created",
+            "Linked Deal",
             "Actions",
           ]}
         />
         <tbody className="divide-y divide-navy-900/[0.06]">
           {introductionRequests.map((r) => {
             const existingDeal = deals.find(
-              (d) => d.sourceType === "Introduction Request" && d.sourceId === r.id
+              (d) =>
+                d.introductionId === r.id ||
+                (d.sourceType === "Introduction Request" && d.sourceId === r.id)
             );
             return (
               <tr key={r.id} className="hover:bg-bone/40 transition-colors">
@@ -70,6 +77,24 @@ export default function AdminIntroductions() {
                 <td className="px-3 py-3 text-xs text-navy-700/65 whitespace-nowrap">
                   {formatDate(r.createdAt)}
                 </td>
+                <td className="px-3 py-3 whitespace-nowrap">
+                  {existingDeal ? (
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/deal-desk/${existingDeal.dealId}`}
+                        className="text-[11px] uppercase tracking-[0.12em] font-bold text-gold-700 hover:text-gold-600 tabular-nums"
+                      >
+                        {existingDeal.dealId}
+                      </Link>
+                      <DealStageBadge stage={existingDeal.stage} />
+                      <span className="text-[10px] text-navy-700/55 truncate max-w-[110px]">
+                        {existingDeal.assignedAdmin || "Unassigned"}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-navy-700/40">—</span>
+                  )}
+                </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center justify-end gap-1.5 flex-wrap">
                     {r.status === "Pending" ? (
@@ -87,7 +112,7 @@ export default function AdminIntroductions() {
                     ) : null}
                     {existingDeal ? (
                       <ActBtn href={`/deal-desk/${existingDeal.dealId}`} tone="gold">
-                        {existingDeal.dealId}
+                        Open Deal
                       </ActBtn>
                     ) : r.status === "Approved" || r.status === "Completed" ? (
                       <ActBtn

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   KanbanSquare,
   LayoutList,
@@ -30,19 +29,18 @@ import {
   type DealPriority,
   type DealStage,
 } from "@/data/deals";
-import Modal from "@/components/negotiations/Modal";
 import { cn } from "@/lib/cn";
 
 import DealPipelineView from "./DealPipelineView";
 import DealTableView from "./DealTableView";
+import CreateDealModal from "./CreateDealModal";
 import { formatCurrency } from "./DealBadges";
 
 type ViewMode = "kanban" | "table";
 type StatusBucket = "all" | "open" | "closed" | "archived";
 
 export default function DealsWorkspace() {
-  const { deals, introductionRequests, createDeal } = useMessaging();
-  const router = useRouter();
+  const { deals, introductionRequests } = useMessaging();
   const [view, setView] = useState<ViewMode>("kanban");
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<DealStage | "all">("all");
@@ -284,170 +282,8 @@ export default function DealsWorkspace() {
         {view === "table" ? <DealTableView deals={filtered} /> : null}
       </div>
 
-      <CreateDealModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreate={(input) => {
-          const id = createDeal(input);
-          setCreateOpen(false);
-          router.push(`/deal-desk/${id}`);
-        }}
-      />
+      <CreateDealModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
-  );
-}
-
-// ---- Create Deal modal ----
-
-type CreateInput = Parameters<ReturnType<typeof useMessaging>["createDeal"]>[0];
-
-function CreateDealModal({
-  open,
-  onClose,
-  onCreate,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onCreate: (input: CreateInput) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [sponsorName, setSponsorName] = useState("");
-  const [investorName, setInvestorName] = useState("");
-  const [target, setTarget] = useState("");
-  const [stage, setStage] = useState<DealStage>("New Lead");
-  const [priority, setPriority] = useState<DealPriority>("Normal");
-
-  const canSubmit = title.trim() && sponsorName.trim() && Number(target.replace(/[^\d]/g, "")) >= 0;
-
-  const submit = () => {
-    if (!canSubmit) return;
-    const t = Number(target.replace(/[^\d]/g, "")) || 0;
-    const pct = 2.5;
-    onCreate({
-      title: title.trim(),
-      sponsor: { name: sponsorName.trim() },
-      investor: investorName.trim() ? { name: investorName.trim() } : undefined,
-      assignedAdmin: SAMPLE_ADMINS[0],
-      stage,
-      priority,
-      targetInvestment: t,
-      commissionPct: pct,
-      estimatedCommission: Math.round((t * pct) / 100),
-      sourceType: "Manual Entry",
-      tags: [],
-    });
-    setTitle("");
-    setSponsorName("");
-    setInvestorName("");
-    setTarget("");
-    setStage("New Lead");
-    setPriority("Normal");
-  };
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="New Deal"
-      description="Open a deal record manually. Introductions can also be converted from the Introductions queue."
-      maxWidth="md"
-      footer={
-        <>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-navy-900 hover:bg-bone transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={submit}
-            disabled={!canSubmit}
-            className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-6 py-2.5 text-sm transition-colors disabled:bg-navy-900/10 disabled:text-navy-700/40 disabled:cursor-not-allowed"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.4} />
-            Create Deal
-          </button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <Field label="Title">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Solar Portfolio Funding — 120 MW"
-            className={inputCls}
-          />
-        </Field>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Sponsor">
-            <input
-              type="text"
-              value={sponsorName}
-              onChange={(e) => setSponsorName(e.target.value)}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Investor (optional)">
-            <input
-              type="text"
-              value={investorName}
-              onChange={(e) => setInvestorName(e.target.value)}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Target investment (USD)">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              placeholder="10,000,000"
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Stage">
-            <select
-              value={stage}
-              onChange={(e) => setStage(e.target.value as DealStage)}
-              className={inputCls}
-            >
-              {DEAL_STAGES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Priority">
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as DealPriority)}
-              className={inputCls}
-            >
-              {DEAL_PRIORITIES.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </Field>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-const inputCls =
-  "w-full rounded-lg bg-bone/60 ring-1 ring-navy-900/5 focus:ring-2 focus:ring-gold-500 outline-none px-3 py-2 text-sm text-navy-900 placeholder:text-navy-700/40";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-xs uppercase tracking-[0.14em] text-navy-700/70 font-semibold mb-1.5">
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }
 

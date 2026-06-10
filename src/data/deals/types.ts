@@ -82,6 +82,14 @@ export function statusForStage(stage: DealStage): DealStatus {
 export type DealPriority = "Low" | "Normal" | "High" | "Urgent";
 export const DEAL_PRIORITIES: DealPriority[] = ["Low", "Normal", "High", "Urgent"];
 
+export type DealHealth = "Healthy" | "Needs Attention" | "At Risk" | "Critical";
+export const DEAL_HEALTHS: DealHealth[] = [
+  "Healthy",
+  "Needs Attention",
+  "At Risk",
+  "Critical",
+];
+
 export type DealSource =
   | "Introduction Request"
   | "Opportunity Inquiry"
@@ -107,13 +115,37 @@ export type DealActivityKind =
   | "document_removed"
   | "assigned"
   | "priority_change"
+  | "health_change"
+  | "conversation_started"
+  | "nda_signed"
+  | "documents_shared"
   | "meeting_scheduled"
+  | "loi_received"
+  | "dd_started"
+  | "dd_completed"
+  | "contract_sent"
+  | "contract_signed"
+  | "funding_received"
   | "closed_won"
   | "closed_lost"
   | "archived"
   | "restored"
   | "reopened"
   | "deleted";
+
+/** Loggable lifecycle milestones, surfaced as a picker on the Timeline tab. */
+export const DEAL_MILESTONES: { kind: DealActivityKind; label: string }[] = [
+  { kind: "conversation_started", label: "Conversation Started" },
+  { kind: "nda_signed", label: "NDA Signed" },
+  { kind: "documents_shared", label: "Documents Shared" },
+  { kind: "meeting_scheduled", label: "Meeting Scheduled" },
+  { kind: "loi_received", label: "LOI Received" },
+  { kind: "dd_started", label: "Due Diligence Started" },
+  { kind: "dd_completed", label: "Due Diligence Completed" },
+  { kind: "contract_sent", label: "Contract Sent" },
+  { kind: "contract_signed", label: "Contract Signed" },
+  { kind: "funding_received", label: "Funding Received" },
+];
 
 /**
  * Structured activity record. Doubles as the audit-log row: every mutation
@@ -221,6 +253,10 @@ export type Deal = {
   stage: DealStage;
   status: DealStatus;
   priority: DealPriority;
+  /** Manual health flag; defaults to "Healthy" when unset. */
+  health?: DealHealth;
+  /** First-class link back to the introduction that opened this deal. */
+  introductionId?: string;
 
   createdDate: string;
   updatedDate: string;
@@ -326,3 +362,25 @@ export function computeDealDeskMetrics(deals: Deal[], nowMs: number): DealDeskMe
 
 /** Admins assignable to deals (mock roster until auth exists). */
 export const SAMPLE_ADMINS = ["Stevie Cabrera", "Mariana Reyes", "Diego Salinas"];
+
+// ---- Alerts ----
+
+/**
+ * Operational warnings for an open deal. Closed/archived deals never alert.
+ */
+export function dealAlerts(deal: Deal, nowMs: number): string[] {
+  if (!isOpenStage(deal.stage)) return [];
+  const alerts: string[] = [];
+  const updatedMs = new Date(deal.updatedDate).getTime();
+  if (!Number.isNaN(updatedMs) && nowMs - updatedMs > 7 * 24 * 60 * 60 * 1000) {
+    const days = Math.floor((nowMs - updatedMs) / (24 * 60 * 60 * 1000));
+    alerts.push(`No activity for ${days} days`);
+  }
+  if (!deal.assignedAdmin.trim()) alerts.push("No assigned admin");
+  const due = daysUntil(deal.expectedCloseDate, nowMs);
+  if (due !== null && due < 0) alerts.push("Expected close date passed");
+  if (!deal.sponsor.name.trim()) alerts.push("Missing sponsor");
+  if (!deal.investor?.name) alerts.push("Missing investor");
+  if (!deal.opportunityId && !deal.opportunitySlug) alerts.push("Missing opportunity");
+  return alerts;
+}

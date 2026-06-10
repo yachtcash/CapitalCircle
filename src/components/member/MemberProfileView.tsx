@@ -22,6 +22,7 @@ import type { Member } from "@/data/members";
 import { featuredOpportunities } from "@/data/opportunities";
 import { companies } from "@/data/companies";
 import RequestIntroductionModal from "@/components/members/RequestIntroductionModal";
+import { MemberDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
 import { cn } from "@/lib/cn";
 
 const verificationStyles: Record<Member["verification"], string> = {
@@ -424,6 +425,8 @@ export default function MemberProfileView({ member }: { member: Member }) {
                 <Stat label="Cos" value={member.companiesCount} />
               </div>
             </div>
+
+            <MemberDealsPanel member={member} />
           </aside>
         </div>
       </div>

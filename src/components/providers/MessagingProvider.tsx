@@ -64,6 +64,7 @@ import {
   type DealActivity,
   type DealActivityKind,
   type DealDocumentType,
+  type DealHealth,
   type DealNote,
   type DealParticipant,
   type DealPriority,
@@ -367,6 +368,15 @@ type MessagingValue = {
   addDealNote: (dealId: string, text: string, internal?: boolean) => string;
   /** Set the deal's priority. */
   setDealPriority: (dealId: string, priority: DealPriority) => void;
+  /** Set the deal's health flag (manual). */
+  setDealHealth: (dealId: string, health: DealHealth) => void;
+  /** Log a lifecycle milestone (NDA Signed, LOI Received, …). */
+  logDealMilestone: (
+    dealId: string,
+    kind: DealActivityKind,
+    title: string,
+    body?: string
+  ) => void;
   /** Update follow-up dates (last contact / next follow up). */
   setDealFollowUp: (
     dealId: string,
@@ -1228,6 +1238,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         estimatedCommission: Math.round((target * pct) / 100),
         sourceType: "Introduction Request",
         sourceId: introductionId,
+        introductionId,
         sourceName: `${introductionId} — ${intro.requesterName} → ${intro.targetMemberName}`,
         summaryNote: intro.reason,
         tags: ["Introduction"],
@@ -1366,6 +1377,24 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         kind: "priority_change",
         title: `Priority → ${priority}`,
       });
+    },
+    [mutateDeal]
+  );
+
+  const setDealHealth = useCallback(
+    (dealId: string, health: DealHealth) => {
+      mutateDeal(dealId, { health }, {
+        kind: "health_change",
+        title: `Health → ${health}`,
+      });
+    },
+    [mutateDeal]
+  );
+
+  /** Log a lifecycle milestone (NDA signed, LOI received, …) onto the timeline. */
+  const logDealMilestone = useCallback(
+    (dealId: string, kind: DealActivityKind, title: string, body?: string) => {
+      mutateDeal(dealId, {}, { kind, title, body });
     },
     [mutateDeal]
   );
@@ -2822,6 +2851,8 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     updateDealFields,
     addDealNote,
     setDealPriority,
+    setDealHealth,
+    logDealMilestone,
     setDealFollowUp,
     assignDealAdmin,
     closeDeal,

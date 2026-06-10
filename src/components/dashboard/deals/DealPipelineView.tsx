@@ -7,6 +7,7 @@ import type { Deal, DealStage } from "@/data/deals";
 import { DEAL_DESK_NOW_MS, KANBAN_STAGES } from "@/data/deals";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import {
+  DealHealthBadge,
   DealPriorityBadge,
   formatCurrency,
   formatDate,
@@ -133,7 +134,10 @@ function KanbanCard({ deal }: { deal: Deal }) {
         <span className="text-[10px] uppercase tracking-[0.14em] font-bold text-navy-700/55 tabular-nums">
           {deal.dealId}
         </span>
-        <DealPriorityBadge priority={deal.priority} />
+        <span className="inline-flex items-center gap-1">
+          <DealHealthBadge health={deal.health} hideHealthy />
+          <DealPriorityBadge priority={deal.priority} />
+        </span>
       </div>
       <h4 className="font-semibold text-navy-900 text-sm leading-snug line-clamp-2">
         {deal.title}
