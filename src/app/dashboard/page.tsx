@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Crown, ArrowRight } from "lucide-react";
 import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import DashboardStats from "@/components/dashboard/DashboardStats";
+import DealDeskCard from "@/components/dashboard/DealDeskCard";
 import MyNegotiations from "@/components/dashboard/MyNegotiations";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import SavedItemsCompact from "@/components/dashboard/SavedItemsCompact";
@@ -21,6 +22,8 @@ export default function DashboardPage() {
     <div className="bg-cream min-h-[calc(100vh-5rem)]">
       <div className="max-w-7xl mx-auto px-5 md:px-10 py-8 md:py-10 space-y-8 md:space-y-10">
         <DashboardWelcome />
+
+        <DealDeskCard />
 
         <DashboardStats />
 

@@ -21,6 +21,8 @@ import type {
   IntroductionStatus,
 } from "@/data/introductions";
 import { getMemberById } from "@/data/members";
+import { useRouter } from "next/navigation";
+import { Briefcase } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 type TabKey = "Pending" | "Approved" | "Rejected" | "Completed" | "All";
@@ -52,7 +54,10 @@ export default function IntroductionsClient() {
     completeIntroduction,
     createDirectConnection,
     directConnections,
+    deals,
+    convertIntroductionToDeal,
   } = useMessaging();
+  const router = useRouter();
   const [tab, setTab] = useState<TabKey>("Pending");
 
   const counts = useMemo(() => {
@@ -158,6 +163,17 @@ export default function IntroductionsClient() {
                   hasConnection={directConnections.some(
                     (c) => c.introductionId === r.id
                   )}
+                  onConvertToDeal={() => {
+                    const id = convertIntroductionToDeal(r.id);
+                    if (id) router.push(`/dashboard/deals/${id}`);
+                  }}
+                  existingDealId={
+                    deals.find(
+                      (d) =>
+                        d.sourceType === "Introduction Request" &&
+                        d.sourceId === r.id
+                    )?.dealId
+                  }
                 />
               </li>
             ))}
@@ -175,6 +191,8 @@ function Row({
   onComplete,
   onCreateConnection,
   hasConnection,
+  onConvertToDeal,
+  existingDealId,
 }: {
   request: IntroductionRequest;
   onApprove: (note?: string) => void;
@@ -182,6 +200,8 @@ function Row({
   onComplete: (note?: string) => void;
   onCreateConnection: () => void;
   hasConnection: boolean;
+  onConvertToDeal: () => void;
+  existingDealId?: string;
 }) {
   const [note, setNote] = useState("");
   const targetSlug = getMemberById(request.targetMemberId)?.slug;
@@ -312,6 +332,24 @@ function Row({
         </div>
       ) : (
         <div className="mt-4 flex flex-wrap gap-2">
+          {existingDealId ? (
+            <Link
+              href={`/dashboard/deals/${existingDealId}`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-navy-900 hover:bg-navy-800 text-white font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
+            >
+              <Briefcase className="h-3.5 w-3.5" strokeWidth={2.4} />
+              Open {existingDealId}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={onConvertToDeal}
+              className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
+            >
+              <Briefcase className="h-3.5 w-3.5" strokeWidth={2.4} />
+              Convert to Deal
+            </button>
+          )}
           {request.status === "Approved" || request.status === "Completed" ? (
             <button
               type="button"
@@ -321,7 +359,7 @@ function Row({
                 "inline-flex items-center gap-1.5 rounded-full font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors",
                 hasConnection
                   ? "bg-navy-900/10 text-navy-700/40 cursor-not-allowed"
-                  : "bg-gold-500 hover:bg-gold-400 text-navy-900"
+                  : "bg-white ring-1 ring-navy-900/15 hover:ring-navy-900/30 text-navy-900"
               )}
             >
               <UserPlus className="h-3.5 w-3.5" strokeWidth={2.4} />

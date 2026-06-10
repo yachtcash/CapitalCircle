@@ -57,6 +57,15 @@ import {
   SEED_DIRECT_CONNECTIONS,
   type DirectConnection,
 } from "@/data/connections";
+import {
+  SEED_DEALS,
+  type Deal,
+  type DealActivity,
+  type DealActivityKind,
+  type DealNote,
+  type DealPriority,
+  type DealStage,
+} from "@/data/deals";
 import { isStoredImageToken, prewarmTokens } from "@/lib/imageStore";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
@@ -72,6 +81,7 @@ const KEY_USER_OPPORTUNITIES = "cc:user-opps:v1";
 const KEY_OPPORTUNITY_PATCHES = "cc:opp-patches:v1";
 const KEY_INTRODUCTIONS = "cc:introductions:v1";
 const KEY_CONNECTIONS = "cc:connections:v1";
+const KEY_DEALS = "cc:deals:v1";
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -297,6 +307,39 @@ type MessagingValue = {
     memberB: string;
     introductionId?: string;
   }) => string;
+
+  // ---- Deal Desk (pipeline / CRM) ----
+  deals: Deal[];
+  /** Get a single deal by DEAL-XXXXXX id. */
+  getDeal: (dealId: string) => Deal | undefined;
+  /** Create a new deal manually. Returns the new id. */
+  createDeal: (input: Omit<Deal, "dealId" | "createdDate" | "updatedDate" | "notes" | "activity" | "contacts"> & {
+    notes?: DealNote[];
+    activity?: DealActivity[];
+    contacts?: Deal["contacts"];
+  }) => string;
+  /** Convert an introduction request into a deal record. Returns the new id. */
+  convertIntroductionToDeal: (introductionId: string) => string | null;
+  /** Update a deal's pipeline stage. Stamps an activity entry. */
+  updateDealStage: (dealId: string, stage: DealStage, note?: string) => void;
+  /** Patch any subset of editable deal fields. Stamps an "updated" activity. */
+  updateDealFields: (dealId: string, patch: Partial<Deal>) => void;
+  /** Append a free-text note. Stamps an activity entry. */
+  addDealNote: (dealId: string, text: string) => string;
+  /** Append a structured activity event to the deal. */
+  addDealActivity: (
+    dealId: string,
+    kind: DealActivityKind,
+    title: string,
+    body?: string
+  ) => void;
+  /** Set the deal's priority. */
+  setDealPriority: (dealId: string, priority: DealPriority) => void;
+  /** Update follow-up dates (last contact / next follow up). */
+  setDealFollowUp: (
+    dealId: string,
+    patch: { lastContactDate?: string; nextFollowUpDate?: string }
+  ) => void;
 };
 
 const Ctx = createContext<MessagingValue | null>(null);
@@ -341,6 +384,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [directConnections, setDirectConnections] = useState<DirectConnection[]>(
     SEED_DIRECT_CONNECTIONS
   );
+  const [deals, setDeals] = useState<Deal[]>(SEED_DEALS);
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -399,6 +443,8 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       null
     );
     if (storedConnections) setDirectConnections(storedConnections);
+    const storedDeals = readStored<Deal[] | null>(KEY_DEALS, null);
+    if (storedDeals) setDeals(storedDeals);
     setHydrated(true);
   }, []);
 
@@ -455,6 +501,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_CONNECTIONS, directConnections);
   }, [directConnections, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_DEALS, deals);
+  }, [deals, hydrated]);
 
   // After hydration, scan all known opportunity image lists for IDB-backed
   // tokens and eagerly resolve each to a cached object URL. This way the
@@ -602,6 +652,260 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         return [entry, ...prev];
       });
       return connId;
+    },
+    []
+  );
+
+  // ---- Deal Desk ----
+
+  function nextDealId(existing: Deal[]): string {
+    let max = 0;
+    for (const d of existing) {
+      const m = /^DEAL-(\d+)$/.exec(d.dealId);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+      }
+    }
+    return `DEAL-${String(max + 1).padStart(6, "0")}`;
+  }
+
+  function makeDealActivity(
+    existing: DealActivity[],
+    kind: DealActivityKind,
+    title: string,
+    body?: string
+  ): DealActivity {
+    return {
+      id: `act-${String(existing.length + 1).padStart(2, "0")}`,
+      kind,
+      title,
+      body,
+      createdAt: new Date().toISOString(),
+      actor: profile.name,
+    };
+  }
+
+  const getDeal = useCallback(
+    (dealId: string): Deal | undefined => deals.find((d) => d.dealId === dealId),
+    [deals]
+  );
+
+  const createDeal = useCallback(
+    (
+      input: Omit<
+        Deal,
+        "dealId" | "createdDate" | "updatedDate" | "notes" | "activity" | "contacts"
+      > & {
+        notes?: DealNote[];
+        activity?: DealActivity[];
+        contacts?: Deal["contacts"];
+      }
+    ): string => {
+      let id = "";
+      setDeals((prev) => {
+        id = nextDealId(prev);
+        const now = new Date().toISOString();
+        const seedActivity = input.activity ?? [];
+        const initialActivity = [
+          ...seedActivity,
+          makeDealActivity(seedActivity, "created", "Deal created", undefined),
+        ];
+        const record: Deal = {
+          ...input,
+          dealId: id,
+          createdDate: now,
+          updatedDate: now,
+          notes: input.notes ?? [],
+          activity: initialActivity,
+          contacts: input.contacts ?? [],
+        };
+        return [record, ...prev];
+      });
+      return id;
+    },
+    [profile.name]
+  );
+
+  const convertIntroductionToDeal = useCallback(
+    (introductionId: string): string | null => {
+      const intro = introductionRequests.find((r) => r.id === introductionId);
+      if (!intro) return null;
+      const existing = deals.find(
+        (d) => d.sourceType === "Introduction Request" && d.sourceId === introductionId
+      );
+      if (existing) return existing.dealId;
+      const opp = intro.opportunitySlug
+        ? featuredOpportunities.find((o) => o.slug === intro.opportunitySlug)
+        : undefined;
+      const id = createDeal({
+        title: `${intro.requesterName} → ${intro.targetMemberName}`,
+        status: intro.status === "Pending" ? "New Lead" : "Introduction Sent",
+        owner: profile.name,
+        sourceType: "Introduction Request",
+        sourceId: introductionId,
+        sourceName: `${introductionId} — ${intro.requesterName} → ${intro.targetMemberName}`,
+        memberId: intro.targetMemberId,
+        companyId: intro.companyId,
+        opportunityId: opp?.id,
+        opportunitySlug: intro.opportunitySlug,
+        estimatedValue: opp?.fundingAmount ?? 0,
+        commissionPotential: Math.round((opp?.fundingAmount ?? 0) * 0.025),
+        summaryNote: intro.reason,
+        priority: "Medium",
+        tags: ["Introduction"],
+        lastContactDate: new Date().toISOString(),
+      });
+      return id;
+    },
+    [introductionRequests, deals, profile.name, createDeal]
+  );
+
+  const updateDealStage = useCallback(
+    (dealId: string, stage: DealStage, note?: string) => {
+      const now = new Date().toISOString();
+      setDeals((prev) =>
+        prev.map((d) => {
+          if (d.dealId !== dealId) return d;
+          const kind: DealActivityKind =
+            stage === "Closed"
+              ? "closed"
+              : stage === "Lost"
+                ? "lost"
+                : stage === "Meeting Scheduled"
+                  ? "meeting_scheduled"
+                  : "stage_change";
+          return {
+            ...d,
+            status: stage,
+            updatedDate: now,
+            activity: [
+              ...d.activity,
+              makeDealActivity(
+                d.activity,
+                kind,
+                `Stage → ${stage}`,
+                note
+              ),
+            ],
+          };
+        })
+      );
+    },
+    []
+  );
+
+  const updateDealFields = useCallback((dealId: string, patch: Partial<Deal>) => {
+    const now = new Date().toISOString();
+    setDeals((prev) =>
+      prev.map((d) => {
+        if (d.dealId !== dealId) return d;
+        return {
+          ...d,
+          ...patch,
+          updatedDate: now,
+          activity: [
+            ...d.activity,
+            makeDealActivity(d.activity, "updated", "Deal updated"),
+          ],
+        };
+      })
+    );
+  }, []);
+
+  const addDealNote = useCallback(
+    (dealId: string, text: string): string => {
+      const now = new Date().toISOString();
+      let noteId = "";
+      setDeals((prev) =>
+        prev.map((d) => {
+          if (d.dealId !== dealId) return d;
+          const seq = d.notes.length + 1;
+          noteId = `note-${String(seq).padStart(2, "0")}`;
+          const noteEntry: DealNote = {
+            id: noteId,
+            text,
+            authorId: "me",
+            authorName: profile.name,
+            createdAt: now,
+          };
+          return {
+            ...d,
+            updatedDate: now,
+            notes: [noteEntry, ...d.notes],
+            activity: [
+              ...d.activity,
+              makeDealActivity(d.activity, "note_added", "Note added", text.slice(0, 120)),
+            ],
+          };
+        })
+      );
+      return noteId;
+    },
+    [profile.name]
+  );
+
+  const addDealActivityCb = useCallback(
+    (dealId: string, kind: DealActivityKind, title: string, body?: string) => {
+      setDeals((prev) =>
+        prev.map((d) =>
+          d.dealId === dealId
+            ? {
+                ...d,
+                updatedDate: new Date().toISOString(),
+                activity: [
+                  ...d.activity,
+                  makeDealActivity(d.activity, kind, title, body),
+                ],
+              }
+            : d
+        )
+      );
+    },
+    []
+  );
+
+  const setDealPriority = useCallback(
+    (dealId: string, priority: DealPriority) => {
+      setDeals((prev) =>
+        prev.map((d) =>
+          d.dealId === dealId
+            ? {
+                ...d,
+                priority,
+                updatedDate: new Date().toISOString(),
+                activity: [
+                  ...d.activity,
+                  makeDealActivity(d.activity, "updated", `Priority → ${priority}`),
+                ],
+              }
+            : d
+        )
+      );
+    },
+    []
+  );
+
+  const setDealFollowUp = useCallback(
+    (
+      dealId: string,
+      patch: { lastContactDate?: string; nextFollowUpDate?: string }
+    ) => {
+      setDeals((prev) =>
+        prev.map((d) =>
+          d.dealId === dealId
+            ? {
+                ...d,
+                ...patch,
+                updatedDate: new Date().toISOString(),
+                activity: [
+                  ...d.activity,
+                  makeDealActivity(d.activity, "updated", "Follow-up updated"),
+                ],
+              }
+            : d
+        )
+      );
     },
     []
   );
@@ -1861,6 +2165,16 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     completeIntroduction,
     directConnections,
     createDirectConnection,
+    deals,
+    getDeal,
+    createDeal,
+    convertIntroductionToDeal,
+    updateDealStage,
+    updateDealFields,
+    addDealNote,
+    addDealActivity: addDealActivityCb,
+    setDealPriority,
+    setDealFollowUp,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
