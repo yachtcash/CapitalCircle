@@ -61,6 +61,12 @@ export type Company = {
   employees: string; // "50-100", "100-250", etc.
   verification: VerificationStatus;
   coverImage: string;
+  /**
+   * Optional logo image (URL or idb:// token). When unset, the UI renders
+   * the company's initials monogram. Editable via the Company Media Manager
+   * through the provider's companyMediaPatches overlay.
+   */
+  logo?: string;
 
   about: {
     overview: string;

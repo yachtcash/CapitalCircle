@@ -54,6 +54,15 @@ export type Member = {
   initials: string;
   /** Optional cover gradient name; mirrors the profile cover palette set. */
   coverGradient: "navy-gold" | "navy-deep" | "twilight" | "sunrise";
+  /**
+   * Optional media (URLs or idb:// tokens) editable via the Member Media
+   * Manager through the provider's memberMediaPatches overlay. Avatar falls
+   * back to initials; coverImage overlays the gradient; gallery powers the
+   * Portfolio & Media section on the member profile.
+   */
+  avatar?: string;
+  coverImage?: string;
+  gallery?: string[];
 
   memberType: MemberType;
   title: string;

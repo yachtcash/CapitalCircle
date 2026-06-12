@@ -15,6 +15,7 @@ import type { Company } from "@/data/companies";
 import VerificationBadge from "./VerificationBadge";
 import SaveCompanyButton from "@/components/profile/SaveCompanyButton";
 import { useMessaging } from "@/components/providers/MessagingProvider";
+import { useResolvedImage } from "@/lib/imageStore";
 
 function initialsFor(name: string): string {
   return name
@@ -26,9 +27,13 @@ function initialsFor(name: string): string {
     .toUpperCase();
 }
 
-export default function CompanyHero({ company }: { company: Company }) {
+export default function CompanyHero({ company: seedCompany }: { company: Company }) {
   const router = useRouter();
-  const { createInterestConversation } = useMessaging();
+  const { createInterestConversation, getCompanyLive } = useMessaging();
+  // Live overlay-applied record so logo / cover edits show instantly.
+  const company = getCompanyLive(seedCompany.id) ?? seedCompany;
+  const cover = useResolvedImage(company.coverImage);
+  const logo = useResolvedImage(company.logo);
 
   const headquarters = [
     company.headquarters.city,
@@ -47,14 +52,17 @@ export default function CompanyHero({ company }: { company: Company }) {
     <section className="bg-white">
       {/* Cover band */}
       <div className="relative h-44 md:h-72 bg-navy-900 overflow-hidden">
-        <Image
-          src={company.coverImage}
-          alt={`${company.name} — cover`}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover opacity-95"
-        />
+        {cover ? (
+          <Image
+            src={cover}
+            alt={`${company.name} — cover`}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover opacity-95"
+            unoptimized
+          />
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-b from-navy-900/40 via-navy-900/10 to-navy-900/40 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-r from-navy-900/35 to-transparent pointer-events-none" />
 
@@ -75,9 +83,20 @@ export default function CompanyHero({ company }: { company: Company }) {
       {/* Identity card overlapping cover */}
       <div className="max-w-6xl mx-auto px-5 md:px-10">
         <div className="relative -mt-12 md:-mt-16 bg-white rounded-2xl ring-1 ring-navy-900/[0.06] shadow-sm p-5 md:p-7 flex flex-col md:flex-row items-start gap-5">
-          {/* Logo (initials) */}
-          <div className="shrink-0 h-20 w-20 md:h-24 md:w-24 rounded-2xl bg-navy-900 text-gold-500 ring-1 ring-navy-900/5 flex items-center justify-center text-2xl md:text-3xl font-semibold tracking-wide">
-            {initialsFor(company.name)}
+          {/* Logo — uploaded image when set, initials monogram otherwise */}
+          <div className="relative shrink-0 h-20 w-20 md:h-24 md:w-24 rounded-2xl bg-navy-900 text-gold-500 ring-1 ring-navy-900/5 flex items-center justify-center text-2xl md:text-3xl font-semibold tracking-wide overflow-hidden">
+            {logo ? (
+              <Image
+                src={logo}
+                alt={`${company.name} — logo`}
+                fill
+                sizes="96px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              initialsFor(company.name)
+            )}
           </div>
 
           <div className="flex-1 min-w-0">

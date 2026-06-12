@@ -38,6 +38,20 @@ export type AuditAction =
   | "Cover Image Changed"
   | "Gallery Reordered"
   | "Gallery Cleared"
+  | "Company Image Uploaded"
+  | "Company Image Replaced"
+  | "Company Image Deleted"
+  | "Company Cover Changed"
+  | "Company Logo Changed"
+  | "Company Gallery Reordered"
+  | "Company Gallery Cleared"
+  | "Member Image Uploaded"
+  | "Member Image Replaced"
+  | "Member Image Deleted"
+  | "Member Cover Changed"
+  | "Member Avatar Changed"
+  | "Member Gallery Reordered"
+  | "Member Gallery Cleared"
   | "Document Uploaded"
   | "Document Deleted"
   | "Document Replaced"
@@ -123,6 +137,20 @@ const GROUP_MAP: Record<AuditAction, AuditGroup> = {
   "Cover Image Changed": "Image Actions",
   "Gallery Reordered": "Image Actions",
   "Gallery Cleared": "Image Actions",
+  "Company Image Uploaded": "Image Actions",
+  "Company Image Replaced": "Image Actions",
+  "Company Image Deleted": "Image Actions",
+  "Company Cover Changed": "Image Actions",
+  "Company Logo Changed": "Image Actions",
+  "Company Gallery Reordered": "Image Actions",
+  "Company Gallery Cleared": "Image Actions",
+  "Member Image Uploaded": "Image Actions",
+  "Member Image Replaced": "Image Actions",
+  "Member Image Deleted": "Image Actions",
+  "Member Cover Changed": "Image Actions",
+  "Member Avatar Changed": "Image Actions",
+  "Member Gallery Reordered": "Image Actions",
+  "Member Gallery Cleared": "Image Actions",
   "Document Uploaded": "Document Actions",
   "Document Deleted": "Document Actions",
   "Document Replaced": "Document Actions",

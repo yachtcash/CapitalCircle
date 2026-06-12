@@ -12,6 +12,8 @@ import type { Company } from "@/data/companies";
 import { getActiveOpportunitiesForCompany } from "@/data/companies";
 import VerificationBadge from "@/components/company/VerificationBadge";
 import MessageCompanyButton from "@/components/common/MessageCompanyButton";
+import { useMessaging } from "@/components/providers/MessagingProvider";
+import { useResolvedImage } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 
 function initialsFor(name: string): string {
@@ -29,7 +31,11 @@ type Props = {
   priority?: boolean;
 };
 
-export default function CompanyCard({ company, priority = false }: Props) {
+export default function CompanyCard({ company: seedCompany, priority = false }: Props) {
+  // Live overlay-applied record — Media Manager cover/logo edits show here.
+  const { getCompanyLive } = useMessaging();
+  const company = getCompanyLive(seedCompany.id) ?? seedCompany;
+  const cover = useResolvedImage(company.coverImage);
   const active = getActiveOpportunitiesForCompany(company.id).length;
   const hq = [
     company.headquarters.city,
@@ -52,14 +58,17 @@ export default function CompanyCard({ company, priority = false }: Props) {
         aria-label={`Open ${company.name} profile`}
         className="relative block aspect-[16/8] overflow-hidden bg-navy-900/5"
       >
-        <Image
-          src={company.coverImage}
-          alt={`${company.name} — cover`}
-          fill
-          priority={priority}
-          sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {cover ? (
+          <Image
+            src={cover}
+            alt={`${company.name} — cover`}
+            fill
+            priority={priority}
+            sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            unoptimized
+          />
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-navy-900/55 to-transparent pointer-events-none" />
         {company.featured ? (
           <span className="absolute top-3 left-3 inline-flex items-center text-[10px] uppercase tracking-[0.16em] font-bold bg-navy-900 text-gold-400 ring-1 ring-gold-500/40 rounded-full px-2.5 py-1">

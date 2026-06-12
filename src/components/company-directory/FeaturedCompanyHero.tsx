@@ -1,9 +1,13 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, MapPin, CalendarDays, Briefcase, Star } from "lucide-react";
 import type { Company } from "@/data/companies";
 import { getActiveOpportunitiesForCompany } from "@/data/companies";
 import VerificationBadge from "@/components/company/VerificationBadge";
+import { useMessaging } from "@/components/providers/MessagingProvider";
+import { useResolvedImage } from "@/lib/imageStore";
 
 function initialsFor(name: string): string {
   return name
@@ -15,7 +19,11 @@ function initialsFor(name: string): string {
     .toUpperCase();
 }
 
-export default function FeaturedCompanyHero({ company }: { company: Company }) {
+export default function FeaturedCompanyHero({ company: seedCompany }: { company: Company }) {
+  // Live overlay-applied record — Media Manager cover edits show here.
+  const { getCompanyLive } = useMessaging();
+  const company = getCompanyLive(seedCompany.id) ?? seedCompany;
+  const cover = useResolvedImage(company.coverImage);
   const hq = [
     company.headquarters.city,
     company.headquarters.state,
@@ -32,14 +40,17 @@ export default function FeaturedCompanyHero({ company }: { company: Company }) {
           <div className="grid grid-cols-1 md:grid-cols-[1.2fr_minmax(0,1fr)]">
             {/* Cover image */}
             <div className="relative aspect-[16/10] md:aspect-auto md:h-full min-h-[260px]">
-              <Image
-                src={company.coverImage}
-                alt={`${company.name} — cover`}
-                fill
-                priority
-                sizes="(min-width: 768px) 60vw, 100vw"
-                className="object-cover"
-              />
+              {cover ? (
+                <Image
+                  src={cover}
+                  alt={`${company.name} — cover`}
+                  fill
+                  priority
+                  sizes="(min-width: 768px) 60vw, 100vw"
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : null}
               <div className="absolute inset-0 bg-gradient-to-r from-navy-900/40 via-transparent to-transparent md:bg-gradient-to-r md:from-navy-900/20 md:via-transparent md:to-navy-900/60 pointer-events-none" />
             </div>
 

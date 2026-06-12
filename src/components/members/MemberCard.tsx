@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   MapPin,
@@ -14,6 +15,8 @@ import {
   Layers,
 } from "lucide-react";
 import type { Member } from "@/data/members";
+import { useMessaging } from "@/components/providers/MessagingProvider";
+import { useResolvedImage } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 import RequestIntroductionModal from "./RequestIntroductionModal";
 
@@ -33,8 +36,13 @@ function joinedLabel(year: number): string {
   return `Joined ${year}`;
 }
 
-export default function MemberCard({ member, priority = false }: Props) {
+export default function MemberCard({ member: seedMember, priority = false }: Props) {
   void priority;
+  // Live overlay-applied record — avatar / cover edits show here.
+  const { getMemberLive } = useMessaging();
+  const member = getMemberLive(seedMember.id) ?? seedMember;
+  const avatar = useResolvedImage(member.avatar);
+  const cardCover = useResolvedImage(member.coverImage);
   const [introOpen, setIntroOpen] = useState(false);
   const location = [member.city, member.state, member.country]
     .filter((x): x is string => Boolean(x))
@@ -50,10 +58,20 @@ export default function MemberCard({ member, priority = false }: Props) {
       {/* Cover band — gradient by coverGradient key */}
       <div
         className={cn(
-          "relative h-24 md:h-28",
+          "relative h-24 md:h-28 overflow-hidden",
           `cover-${member.coverGradient}`
         )}
       >
+        {cardCover ? (
+          <Image
+            src={cardCover}
+            alt={`${member.name} — cover`}
+            fill
+            sizes="(min-width: 1280px) 380px, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+            unoptimized
+          />
+        ) : null}
         <div
           className="absolute inset-0 opacity-[0.06] pointer-events-none"
           style={{
@@ -85,9 +103,20 @@ export default function MemberCard({ member, priority = false }: Props) {
           <Link
             href={`/member/${member.slug}`}
             aria-label={`${member.name} profile`}
-            className="shrink-0 h-16 w-16 rounded-2xl bg-navy-900 text-gold-500 ring-2 ring-white shadow flex items-center justify-center text-base font-semibold tracking-wide"
+            className="relative shrink-0 h-16 w-16 rounded-2xl bg-navy-900 text-gold-500 ring-2 ring-white shadow flex items-center justify-center text-base font-semibold tracking-wide overflow-hidden"
           >
-            {member.initials}
+            {avatar ? (
+              <Image
+                src={avatar}
+                alt={`${member.name} — avatar`}
+                fill
+                sizes="64px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              member.initials
+            )}
           </Link>
           <div className="flex-1 min-w-0 pb-1">
             <span className="text-[10px] uppercase tracking-[0.16em] font-semibold text-navy-700/60 tabular-nums">

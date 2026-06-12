@@ -9,6 +9,7 @@ import {
 
 import CompanyHero from "@/components/company/CompanyHero";
 import CompanyKeyInfo from "@/components/company/CompanyKeyInfo";
+import CompanyMediaManager from "@/components/company/CompanyMediaManager";
 import CompanyAbout from "@/components/company/CompanyAbout";
 import { CompanyDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
 import CompanyActiveOpportunities from "@/components/company/CompanyActiveOpportunities";
@@ -55,6 +56,7 @@ export default async function CompanyPage({
 
       <div className="max-w-6xl mx-auto px-5 md:px-10 py-10 md:py-14 space-y-10 md:space-y-14">
         <CompanyKeyInfo company={company} activeOpportunitiesCount={active.length} />
+        <CompanyMediaManager company={company} />
         <CompanyDealsPanel company={company} />
         <CompanyAbout company={company} />
         <CompanyActiveOpportunities
@@ -63,7 +65,7 @@ export default async function CompanyPage({
         />
         <CompanyPastProjects projects={company.pastProjects} />
         <CompanyTeam team={company.team} />
-        <CompanyGallery gallery={company.gallery} />
+        <CompanyGallery company={company} />
       </div>
     </div>
   );

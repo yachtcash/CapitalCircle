@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   MapPin,
@@ -12,6 +13,7 @@ import {
   FileText,
   Activity,
   HandCoins,
+  Images,
   Layers,
   MessageSquare,
   ArrowUpRight,
@@ -23,6 +25,10 @@ import { featuredOpportunities } from "@/data/opportunities";
 import { companies } from "@/data/companies";
 import RequestIntroductionModal from "@/components/members/RequestIntroductionModal";
 import { MemberDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
+import MemberMediaManager from "@/components/member/MemberMediaManager";
+import Lightbox, { useLightbox } from "@/components/common/Lightbox";
+import { useMessaging } from "@/components/providers/MessagingProvider";
+import { useResolvedImage, useResolvedImages } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 
 const verificationStyles: Record<Member["verification"], string> = {
@@ -44,6 +50,19 @@ function fmtDate(iso: string): string {
 
 export default function MemberProfileView({ member }: { member: Member }) {
   const [introOpen, setIntroOpen] = useState(false);
+  // Live overlay-applied record so Media Manager edits show instantly.
+  const { getMemberLive } = useMessaging();
+  const live = getMemberLive(member.id) ?? member;
+  const avatar = useResolvedImage(live.avatar);
+  const coverImg = useResolvedImage(live.coverImage);
+  const portfolio = live.gallery ?? [];
+  const portfolioResolved = useResolvedImages(portfolio);
+  const portfolioLb = useLightbox(
+    portfolioResolved.map((src, i) => ({
+      src,
+      alt: `${live.name} — portfolio ${i + 1}`,
+    }))
+  );
   const location = [member.city, member.state, member.country]
     .filter((x): x is string => Boolean(x))
     .join(", ");
@@ -60,8 +79,19 @@ export default function MemberProfileView({ member }: { member: Member }) {
       {/* Hero */}
       <section className="bg-white">
         <div
-          className={cn("relative h-40 md:h-56", `cover-${member.coverGradient}`)}
+          className={cn("relative h-40 md:h-56 overflow-hidden", `cover-${member.coverGradient}`)}
         >
+          {coverImg ? (
+            <Image
+              src={coverImg}
+              alt={`${live.name} — cover`}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+              unoptimized
+            />
+          ) : null}
           <div
             className="absolute inset-0 opacity-[0.06] pointer-events-none"
             style={{
@@ -74,8 +104,19 @@ export default function MemberProfileView({ member }: { member: Member }) {
 
         <div className="max-w-6xl mx-auto px-5 md:px-10">
           <div className="relative -mt-14 md:-mt-20 bg-white rounded-3xl ring-1 ring-navy-900/[0.06] shadow-sm p-5 md:p-7 flex flex-col md:flex-row items-start gap-5">
-            <div className="shrink-0 h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-navy-900 text-gold-500 ring-4 ring-white shadow flex items-center justify-center text-3xl md:text-4xl font-semibold tracking-wide">
-              {member.initials}
+            <div className="relative shrink-0 h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-navy-900 text-gold-500 ring-4 ring-white shadow flex items-center justify-center text-3xl md:text-4xl font-semibold tracking-wide overflow-hidden">
+              {avatar ? (
+                <Image
+                  src={avatar}
+                  alt={`${live.name} — avatar`}
+                  fill
+                  sizes="112px"
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                member.initials
+              )}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -150,6 +191,11 @@ export default function MemberProfileView({ member }: { member: Member }) {
         </div>
       </section>
 
+      {/* Media management — self-gates to owner / Admin / Super Admin */}
+      <div className="max-w-6xl mx-auto px-5 md:px-10 pt-8">
+        <MemberMediaManager member={member} />
+      </div>
+
       {/* Body */}
       <div className="max-w-6xl mx-auto px-5 md:px-10 py-10 md:py-14">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
@@ -163,6 +209,42 @@ export default function MemberProfileView({ member }: { member: Member }) {
                 {member.bio}
               </p>
             </Section>
+
+            {/* Portfolio & Media — public display of the member gallery */}
+            {portfolio.length > 0 ? (
+              <Section title="Portfolio & Media" Icon={Images}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {portfolio.map((src, i) => (
+                    <button
+                      key={src + i}
+                      type="button"
+                      onClick={() => portfolioLb.openAt(i)}
+                      aria-label={`Open portfolio photo ${i + 1}`}
+                      className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-navy-900/5 ring-1 ring-navy-900/[0.06] group"
+                    >
+                      {portfolioResolved[i] ? (
+                        <Image
+                          src={portfolioResolved[i]}
+                          alt={`${live.name} — portfolio ${i + 1}`}
+                          fill
+                          sizes="(min-width: 1024px) 280px, 45vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          unoptimized
+                        />
+                      ) : (
+                        <span className="absolute inset-0 bg-navy-900/[0.06] animate-pulse" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <Lightbox
+                  images={portfolioLb.images}
+                  initialIndex={portfolioLb.index}
+                  open={portfolioLb.open}
+                  onClose={portfolioLb.close}
+                />
+              </Section>
+            ) : null}
 
             {/* Company */}
             <Section title="Company" Icon={Building2}>

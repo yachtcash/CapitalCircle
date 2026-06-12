@@ -30,6 +30,7 @@ import {
   type ListingStatus,
 } from "@/data/listings";
 import { featuredOpportunities, type Opportunity } from "@/data/opportunities";
+import { getCompanyById, type Company } from "@/data/companies";
 import {
   formStateToOpportunity,
   formStateToOpportunityPatch,
@@ -71,7 +72,7 @@ import {
   type DealStage,
 } from "@/data/deals";
 import { CURRENT_USER_ROLE, type Role } from "@/lib/roles";
-import { getMemberById } from "@/data/members";
+import { getMemberById, type Member } from "@/data/members";
 import { SEED_AUDIT_EVENTS, type AuditAction, type AuditEvent, type AuditTargetKind } from "@/data/audit";
 import {
   SEED_COMPANY_ADMIN,
@@ -94,6 +95,8 @@ const KEY_DOCUMENT_ACTIVITY = "cc:document-activity:v1";
 const KEY_PROFILE = "cc:profile:v1";
 const KEY_USER_OPPORTUNITIES = "cc:user-opps:v1";
 const KEY_OPPORTUNITY_PATCHES = "cc:opp-patches:v1";
+const KEY_COMPANY_MEDIA = "cc:company-media:v1";
+const KEY_MEMBER_MEDIA = "cc:member-media:v1";
 const KEY_INTRODUCTIONS = "cc:introductions:v1";
 const KEY_CONNECTIONS = "cc:connections:v1";
 const KEY_DEALS = "cc:deals:v1";
@@ -131,6 +134,15 @@ type ConversationContext = {
   opportunityLocation?: string;
   opportunityImage?: string;
 };
+
+/** Media-only overlay for seed companies; mirrors opportunityPatches. */
+export type CompanyMediaPatch = Partial<
+  Pick<Company, "logo" | "coverImage" | "gallery">
+>;
+/** Media-only overlay for seed members. */
+export type MemberMediaPatch = Partial<
+  Pick<Member, "avatar" | "coverImage" | "gallery">
+>;
 
 type MessagingValue = {
   hydrated: boolean;
@@ -186,6 +198,14 @@ type MessagingValue = {
    * (the image manager will keep local-only state).
    */
   updateListingImages: (listingId: string, images: string[]) => void;
+  /** Seed company merged with its media overlay (logo / cover / gallery). */
+  getCompanyLive: (companyId: string) => Company | undefined;
+  /** Seed member merged with its media overlay (avatar / cover / gallery). */
+  getMemberLive: (memberId: string) => Member | undefined;
+  /** Merge media fields into a company overlay. Persists immediately. */
+  updateCompanyMedia: (companyId: string, media: CompanyMediaPatch) => void;
+  /** Merge media fields into a member overlay. Persists immediately. */
+  updateMemberMedia: (memberId: string, media: MemberMediaPatch) => void;
   /**
    * Patch listing-level fields AND (where allowed) the backing user
    * opportunity. Used by the inline Listing Editor so sponsors can update
@@ -477,6 +497,12 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [opportunityPatches, setOpportunityPatches] = useState<
     Record<string, Partial<Opportunity>>
   >({});
+  const [companyMediaPatches, setCompanyMediaPatches] = useState<
+    Record<string, CompanyMediaPatch>
+  >({});
+  const [memberMediaPatches, setMemberMediaPatches] = useState<
+    Record<string, MemberMediaPatch>
+  >({});
   const [introductionRequests, setIntroductionRequests] = useState<
     IntroductionRequest[]
   >(SEED_INTRODUCTIONS);
@@ -540,6 +566,16 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       null
     );
     if (storedPatches) setOpportunityPatches(storedPatches);
+    const storedCompanyMedia = readStored<Record<string, CompanyMediaPatch> | null>(
+      KEY_COMPANY_MEDIA,
+      null
+    );
+    if (storedCompanyMedia) setCompanyMediaPatches(storedCompanyMedia);
+    const storedMemberMedia = readStored<Record<string, MemberMediaPatch> | null>(
+      KEY_MEMBER_MEDIA,
+      null
+    );
+    if (storedMemberMedia) setMemberMediaPatches(storedMemberMedia);
     const storedIntros = readStored<IntroductionRequest[] | null>(
       KEY_INTRODUCTIONS,
       null
@@ -635,6 +671,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   }, [opportunityPatches, hydrated]);
   useEffect(() => {
     if (!hydrated) return;
+    writeStored(KEY_COMPANY_MEDIA, companyMediaPatches);
+  }, [companyMediaPatches, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_MEMBER_MEDIA, memberMediaPatches);
+  }, [memberMediaPatches, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
     writeStored(KEY_INTRODUCTIONS, introductionRequests);
   }, [introductionRequests, hydrated]);
   useEffect(() => {
@@ -683,9 +727,29 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         if (isStoredImageToken(src)) tokens.add(src);
       }
     }
+    for (const patch of Object.values(companyMediaPatches)) {
+      if (isStoredImageToken(patch.logo)) tokens.add(patch.logo);
+      if (isStoredImageToken(patch.coverImage)) tokens.add(patch.coverImage);
+      for (const g of patch.gallery ?? []) {
+        if (isStoredImageToken(g.src)) tokens.add(g.src);
+      }
+    }
+    for (const patch of Object.values(memberMediaPatches)) {
+      if (isStoredImageToken(patch.avatar)) tokens.add(patch.avatar);
+      if (isStoredImageToken(patch.coverImage)) tokens.add(patch.coverImage);
+      for (const src of patch.gallery ?? []) {
+        if (isStoredImageToken(src)) tokens.add(src);
+      }
+    }
     if (tokens.size === 0) return;
     void prewarmTokens([...tokens]);
-  }, [hydrated, userOpportunities, opportunityPatches]);
+  }, [
+    hydrated,
+    userOpportunities,
+    opportunityPatches,
+    companyMediaPatches,
+    memberMediaPatches,
+  ]);
 
   const updateProfile = useCallback((partial: Partial<UserProfile>) => {
     setProfile((prev) => ({ ...prev, ...partial }));
@@ -2415,6 +2479,54 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     [userOpportunities, opportunityPatches]
   );
 
+
+  // ---- Company / member media overlays ----
+  //
+  // Same architecture proven by the opportunity overlay: seed records stay
+  // immutable, media edits land in a patch map keyed by id, persisted to
+  // localStorage, and merged at read time. Blobs live in IndexedDB via
+  // idb:// tokens. No second image system.
+
+  const getCompanyLive = useCallback(
+    (companyId: string): Company | undefined => {
+      const base = getCompanyById(companyId);
+      if (!base) return undefined;
+      const patch = companyMediaPatches[companyId];
+      return patch ? { ...base, ...patch } : base;
+    },
+    [companyMediaPatches]
+  );
+
+  const getMemberLive = useCallback(
+    (memberId: string): Member | undefined => {
+      const base = getMemberById(memberId);
+      if (!base) return undefined;
+      const patch = memberMediaPatches[memberId];
+      return patch ? { ...base, ...patch } : base;
+    },
+    [memberMediaPatches]
+  );
+
+  const updateCompanyMedia = useCallback(
+    (companyId: string, media: CompanyMediaPatch) => {
+      setCompanyMediaPatches((prev) => ({
+        ...prev,
+        [companyId]: { ...(prev[companyId] ?? {}), ...media },
+      }));
+    },
+    []
+  );
+
+  const updateMemberMedia = useCallback(
+    (memberId: string, media: MemberMediaPatch) => {
+      setMemberMediaPatches((prev) => ({
+        ...prev,
+        [memberId]: { ...(prev[memberId] ?? {}), ...media },
+      }));
+    },
+    []
+  );
+
   // ---- Document / Access Request actions ----
 
   function nextRequestId(existing: AccessRequest[]): string {
@@ -2821,6 +2933,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     opportunityPatches,
     getOpportunity,
     getOpportunityBySlug,
+    getCompanyLive,
+    getMemberLive,
+    updateCompanyMedia,
+    updateMemberMedia,
     createListing,
     updateUserOpportunity,
     commitListingEdit,
