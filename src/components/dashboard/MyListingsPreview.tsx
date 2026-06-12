@@ -10,14 +10,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
-import {
-  getOpportunityBySlug,
-  type Opportunity,
-} from "@/data/opportunities";
+import type { Opportunity } from "@/data/opportunities";
 import {
   type ListingRecord,
   type ListingStatus,
 } from "@/data/listings";
+import { useResolvedImage } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 
 const STATUS_CLASSES: Record<ListingStatus, string> = {
@@ -91,10 +89,13 @@ export default function MyListingsPreview() {
 }
 
 function ListingRow({ listing }: { listing: ListingRecord }) {
-  const opportunity: Opportunity | undefined = listing.opportunitySlug
-    ? getOpportunityBySlug(listing.opportunitySlug)
+  // Live, overlay-applied record from the provider — gallery and editor
+  // changes (seed-backed and user-created alike) show here immediately.
+  const { getOpportunity } = useMessaging();
+  const opportunity: Opportunity | undefined = listing.opportunityId
+    ? getOpportunity(listing.opportunityId)
     : undefined;
-  const cover = opportunity?.images[0];
+  const cover = useResolvedImage(opportunity?.images[0]);
 
   return (
     <li>

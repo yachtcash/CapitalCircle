@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import type { ListingRecord } from "@/data/listings";
 import { formatRelative } from "@/data/messages";
-import { getOpportunityBySlug } from "@/data/opportunities";
+import { useMessaging } from "@/components/providers/MessagingProvider";
+import { useResolvedImage } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 import ListingActionsMenu from "./ListingActionsMenu";
 import ListingStatusBadge from "./ListingStatusBadge";
@@ -102,10 +103,13 @@ function PlaceholderCover({ title }: { title: string }) {
 }
 
 function CoverThumb({ listing }: { listing: ListingRecord }) {
-  const opp = listing.opportunitySlug
-    ? getOpportunityBySlug(listing.opportunitySlug)
+  // Live overlay-applied record + IDB token resolution — matches the
+  // card grid and the public marketplace exactly.
+  const { getOpportunity } = useMessaging();
+  const opp = listing.opportunityId
+    ? getOpportunity(listing.opportunityId)
     : undefined;
-  const src = opp?.images?.[0];
+  const src = useResolvedImage(opp?.images?.[0]);
 
   if (!src) return <PlaceholderCover title={listing.title} />;
 

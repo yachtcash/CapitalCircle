@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
 import { SEED_LISTINGS, getListingById } from "@/data/listings";
 import {
@@ -9,6 +8,7 @@ import {
 } from "@/data/opportunities";
 import { getCompanyById, type Company } from "@/data/companies";
 import ListingManagementView from "@/components/dashboard/management/ListingManagementView";
+import ListingManagementClientLookup from "@/components/dashboard/management/ListingManagementClientLookup";
 
 type PageParams = { id: string };
 
@@ -41,7 +41,10 @@ export default async function ListingManagementPage({
   const listing = getListingById(id);
 
   if (!listing) {
-    notFound();
+    // Not a seed listing — wizard-created and duplicated listings exist only
+    // in the browser (provider/localStorage), so resolve them client-side
+    // instead of 404ing. Admins and owners manage them identically.
+    return <ListingManagementClientLookup id={id} />;
   }
 
   // Resolve opportunity: prefer slug lookup, fall back to id lookup.

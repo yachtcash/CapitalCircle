@@ -8,9 +8,8 @@ import {
   useState,
 } from "react";
 import {
-  Save,
-  RotateCcw,
   AlertTriangle,
+  Loader2,
   Lock,
   Eye,
   Globe,
@@ -18,7 +17,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
-import ConfirmDialog from "@/components/common/ConfirmDialog";
 import type {
   ContactPreferences,
   ListingRecord,
@@ -151,12 +149,10 @@ function buildDraft(listing: ListingRecord, opp: Opportunity | undefined): Draft
   };
 }
 
-function diffShallow<T extends object>(a: T, b: T): boolean {
-  for (const k of Object.keys(a) as (keyof T)[]) {
-    if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) return true;
-  }
-  return false;
-}
+type SaveStatus = "saved" | "saving" | "error";
+
+/** Debounce window between the last keystroke and the autosave write. */
+const AUTOSAVE_DELAY_MS = 900;
 
 type Props = {
   listing: ListingRecord;
@@ -177,30 +173,46 @@ export default function ListingEditor({ listing, opportunity }: Props) {
   );
 
   const [draft, setDraft] = useState<Draft>(initial);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [status, setStatus] = useState<SaveStatus>("saved");
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
-  const dirty = diffShallow(initial, draft);
-  // Reset draft when the underlying record changes (e.g. after save).
+  // Dirty is computed against the last SAVED draft (not `initial`) so the
+  // autosave loop terminates: normalization on save (trims, parsing) never
+  // re-marks the form dirty.
+  const savedSnapRef = useRef<string>(JSON.stringify(initial));
+  const draftJson = JSON.stringify(draft);
+  const dirty = draftJson !== savedSnapRef.current;
+
+  // When an autosave WE issued bumps listing.lastUpdatedAt, skip the reset
+  // below — the user may already be typing the next edit.
+  const selfSaveRef = useRef(false);
+
+  // Reset draft when the underlying record changes from OUTSIDE the editor
+  // (e.g. a gallery update or an admin action bumps the listing).
   const lastKeyRef = useRef<string>("");
   useEffect(() => {
     const key = `${listing.id}:${listing.lastUpdatedAt}`;
-    if (lastKeyRef.current !== key) {
-      lastKeyRef.current = key;
-      setDraft(initial);
+    if (lastKeyRef.current === key) return;
+    lastKeyRef.current = key;
+    if (selfSaveRef.current) {
+      selfSaveRef.current = false;
+      return;
     }
+    setDraft(initial);
+    savedSnapRef.current = JSON.stringify(initial);
+    setStatus("saved");
   }, [listing.id, listing.lastUpdatedAt, initial]);
 
-  // Warn on tab close / navigate when there are unsaved changes.
+  // Warn on tab close only while a save is pending or in flight.
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty && status !== "saving") return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  }, [dirty, status]);
 
   const set = useCallback(<K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -213,72 +225,85 @@ export default function ListingEditor({ listing, opportunity }: Props) {
     }));
   };
 
-  const handleSave = () => {
+  const doSave = (d: Draft) => {
     const listingPatch: Parameters<typeof updateListingFields>[1]["listing"] = {
-      title: draft.title.trim() || listing.title,
-      subtitle: draft.subtitle.trim() || undefined,
-      category: draft.category || undefined,
-      dealType: draft.dealType || undefined,
-      status: draft.status,
-      visibility: draft.visibility,
-      contactPreferences: draft.contactPreferences,
+      title: d.title.trim() || listing.title,
+      subtitle: d.subtitle.trim() || undefined,
+      category: d.category || undefined,
+      dealType: d.dealType || undefined,
+      status: d.status,
+      visibility: d.visibility,
+      contactPreferences: d.contactPreferences,
     };
 
     const parsedAmount = parseFloat(
-      draft.fundingAmount.replace(/[^\d.-]/g, "")
+      d.fundingAmount.replace(/[^\d.-]/g, "")
     );
     const opportunityPatch: Partial<Opportunity> = {
-      title: draft.title.trim() || listing.title,
-      description: draft.subtitle.trim() || undefined,
-      listingType: draft.listingType,
-      dealType: draft.dealType || undefined,
-      category: draft.category || undefined,
-      industry: draft.industry.trim() || undefined,
-      postedBy: draft.postedBy.trim() || undefined,
-      executiveSummary: draft.executiveSummary,
-      fullDescription: draft.fullDescription
+      title: d.title.trim() || listing.title,
+      description: d.subtitle.trim() || undefined,
+      listingType: d.listingType,
+      dealType: d.dealType || undefined,
+      category: d.category || undefined,
+      industry: d.industry.trim() || undefined,
+      postedBy: d.postedBy.trim() || undefined,
+      executiveSummary: d.executiveSummary,
+      fullDescription: d.fullDescription
         .split(/\n\s*\n/)
         .map((p) => p.trim())
         .filter(Boolean),
-      investmentRange: draft.investmentRange.trim() || undefined,
+      investmentRange: d.investmentRange.trim() || undefined,
       fundingAmount: Number.isFinite(parsedAmount)
         ? Math.round(parsedAmount)
         : opportunity?.fundingAmount,
-      expectedReturn: draft.expectedReturn.trim() || undefined,
-      website: draft.website.trim() || undefined,
-      companyDescription: draft.companyDescription.trim() || undefined,
-      fundingRequired: draft.fundingRequired.trim() || undefined,
-      equityAvailable: draft.equityAvailable.trim() || undefined,
-      minimumInvestment: draft.minimumInvestment.trim() || undefined,
-      expectedReturns: draft.expectedReturns.trim() || undefined,
-      currentStage: draft.currentStage.trim() || undefined,
-      timeline: draft.timeline.trim() || undefined,
-      projectStatus: draft.projectStatus.trim() || undefined,
-      status: draft.oppStatus,
+      expectedReturn: d.expectedReturn.trim() || undefined,
+      website: d.website.trim() || undefined,
+      companyDescription: d.companyDescription.trim() || undefined,
+      fundingRequired: d.fundingRequired.trim() || undefined,
+      equityAvailable: d.equityAvailable.trim() || undefined,
+      minimumInvestment: d.minimumInvestment.trim() || undefined,
+      expectedReturns: d.expectedReturns.trim() || undefined,
+      currentStage: d.currentStage.trim() || undefined,
+      timeline: d.timeline.trim() || undefined,
+      projectStatus: d.projectStatus.trim() || undefined,
+      status: d.oppStatus,
       location:
-        [draft.city, draft.country].filter(Boolean).join(", ") ||
+        [d.city, d.country].filter(Boolean).join(", ") ||
         opportunity?.location,
       place: {
-        country: draft.country.trim() || opportunity?.place?.country || "Unspecified",
-        state: draft.state.trim() || undefined,
-        city: draft.city.trim() || opportunity?.place?.city || "Unspecified",
+        country: d.country.trim() || opportunity?.place?.country || "Unspecified",
+        state: d.state.trim() || undefined,
+        city: d.city.trim() || opportunity?.place?.city || "Unspecified",
         coordinates: opportunity?.place?.coordinates,
       },
     };
 
-    updateListingFields(listing.id, {
-      listing: listingPatch,
-      opportunity: opportunityPatch,
-    });
-    setSavedAt(Date.now());
-    // Hide the toast after a few seconds.
-    window.setTimeout(() => setSavedAt(null), 3500);
+    try {
+      selfSaveRef.current = true;
+      updateListingFields(listing.id, {
+        listing: listingPatch,
+        opportunity: opportunityPatch,
+      });
+      savedSnapRef.current = JSON.stringify(d);
+      setStatus("saved");
+      setLastSavedAt(Date.now());
+    } catch {
+      selfSaveRef.current = false;
+      setStatus("error");
+    }
   };
 
-  const handleCancel = () => {
-    if (dirty) setShowCancelConfirm(true);
-    else setDraft(initial);
-  };
+  // Autosave: debounce after the last edit, then persist. Every keystroke
+  // reschedules the timer, so saves fire only when the user pauses.
+  useEffect(() => {
+    if (!dirty) return;
+    setStatus("saving");
+    const timer = window.setTimeout(() => {
+      doSave(draft);
+    }, AUTOSAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftJson]);
 
   return (
     <section className="space-y-6 md:space-y-8">
@@ -292,15 +317,15 @@ export default function ListingEditor({ listing, opportunity }: Props) {
           </h2>
           <p className="mt-1.5 text-sm text-navy-700/70 max-w-2xl">
             Update every field of your listing without re-entering the Create
-            Listing wizard. Changes persist locally and propagate across the
-            marketplace immediately.
+            Listing wizard. Every change saves automatically — no Save button
+            needed — and propagates across the marketplace immediately.
           </p>
         </div>
-        <SaveBar
+        <AutosaveStatus
+          status={status}
           dirty={dirty}
-          savedAt={savedAt}
-          onSave={handleSave}
-          onCancel={handleCancel}
+          lastSavedAt={lastSavedAt}
+          onRetry={() => doSave(draft)}
         />
       </header>
 
@@ -632,87 +657,85 @@ export default function ListingEditor({ listing, opportunity }: Props) {
         </div>
       </Section>
 
-      <SaveBar
-        dirty={dirty}
-        savedAt={savedAt}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
-
-      <ConfirmDialog
-        open={showCancelConfirm}
-        title="Discard unsaved changes?"
-        body="Your edits will be reverted to the saved listing. This cannot be undone."
-        confirmLabel="Discard changes"
-        tone="danger"
-        onCancel={() => setShowCancelConfirm(false)}
-        onConfirm={() => {
-          setDraft(initial);
-          setShowCancelConfirm(false);
-        }}
-      />
+      <div className="flex justify-end">
+        <AutosaveStatus
+          status={status}
+          dirty={dirty}
+          lastSavedAt={lastSavedAt}
+          onRetry={() => doSave(draft)}
+        />
+      </div>
     </section>
   );
 }
 
 // ---------- Sub-components ----------
 
-function SaveBar({
+/**
+ * Live autosave indicator — the only save UI the editor has. States:
+ *  - "Saving…"     a change is pending or being written
+ *  - "Saved"       everything persisted, with a last-saved timestamp
+ *  - "Save failed" the write threw; a Retry button re-attempts it
+ */
+function AutosaveStatus({
+  status,
   dirty,
-  savedAt,
-  onSave,
-  onCancel,
+  lastSavedAt,
+  onRetry,
 }: {
+  status: SaveStatus;
   dirty: boolean;
-  savedAt: number | null;
-  onSave: () => void;
-  onCancel: () => void;
+  lastSavedAt: number | null;
+  onRetry: () => void;
 }) {
-  return (
-    <div className="flex items-center justify-end gap-2 flex-wrap">
-      {savedAt ? (
-        <span
-          role="status"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-500/10 ring-1 ring-emerald-500/30 rounded-full px-3 py-1.5"
+  if (status === "error") {
+    return (
+      <span
+        role="status"
+        className="inline-flex items-center gap-2 text-xs font-semibold text-rose-700 bg-rose-500/10 ring-1 ring-rose-500/30 rounded-full px-3 py-1.5"
+      >
+        <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.4} />
+        Save failed
+        <button
+          type="button"
+          onClick={onRetry}
+          className="underline underline-offset-2 hover:text-rose-600"
         >
-          <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.4} />
-          Saved · changes are live
-        </span>
-      ) : dirty ? (
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-700 bg-gold-500/10 ring-1 ring-gold-500/30 rounded-full px-3 py-1.5">
-          <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.4} />
-          Unsaved changes
+          Retry
+        </button>
+      </span>
+    );
+  }
+
+  if (status === "saving" || dirty) {
+    return (
+      <span
+        role="status"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-700 bg-gold-500/10 ring-1 ring-gold-500/30 rounded-full px-3 py-1.5"
+      >
+        <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.4} />
+        Saving…
+      </span>
+    );
+  }
+
+  return (
+    <span
+      role="status"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-500/10 ring-1 ring-emerald-500/30 rounded-full px-3 py-1.5"
+    >
+      <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.4} />
+      Saved
+      {lastSavedAt ? (
+        <span className="font-medium text-emerald-700/75">
+          · Last saved{" "}
+          {new Date(lastSavedAt).toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+          })}
         </span>
       ) : null}
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={!dirty}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors ring-1",
-          dirty
-            ? "bg-white hover:bg-bone text-navy-900 ring-navy-900/10"
-            : "bg-white text-navy-700/40 ring-navy-900/[0.05] cursor-not-allowed"
-        )}
-      >
-        <RotateCcw className="h-3.5 w-3.5" strokeWidth={2.4} />
-        Cancel
-      </button>
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={!dirty}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition-colors",
-          dirty
-            ? "bg-gold-500 hover:bg-gold-400 text-navy-900"
-            : "bg-navy-900/10 text-navy-700/40 cursor-not-allowed"
-        )}
-      >
-        <Save className="h-3.5 w-3.5" strokeWidth={2.4} />
-        Save changes
-      </button>
-    </div>
+    </span>
   );
 }
 

@@ -6,6 +6,7 @@ import { MapPin, Clock } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { publicOpportunityId } from "@/lib/opportunities/id";
 import MessageOpportunityButton from "@/components/common/MessageOpportunityButton";
+import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useResolvedImage } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
 
@@ -25,11 +26,18 @@ type Props = {
 };
 
 export default function OpportunityCard({
-  opportunity,
+  opportunity: passedOpportunity,
   priority = false,
   ribbon = null,
   showPublicId = false,
 }: Props) {
+  // Re-read the live record so server-rendered callers (homepage feed,
+  // related sections) reflect gallery / editor changes. Idempotent for
+  // callers that already pass an overlay-applied record.
+  const { getOpportunityBySlug, hydrated } = useMessaging();
+  const opportunity =
+    (hydrated ? getOpportunityBySlug(passedOpportunity.slug) : undefined) ??
+    passedOpportunity;
   const cover = useResolvedImage(opportunity.images[0]);
   const publicId = publicOpportunityId(opportunity);
 

@@ -68,6 +68,7 @@ export default function ImageManager({
   const fileInput = useRef<HTMLInputElement>(null);
   const replaceTargetRef = useRef<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
 
   // Hydrate the canonical image list when the parent passes a new initial
   // set (e.g. another listing is opened in the same workspace). Tokens are
@@ -78,20 +79,31 @@ export default function ImageManager({
 
   const displayImages = useResolvedImages(images);
 
+  // Mirror of `images` for async flows (file uploads) so they compute from
+  // the freshest list even if state moved while awaiting.
+  const imagesRef = useRef<string[]>(images);
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
+
   const persist = (next: string[]) => {
     if (listingId) updateListingImages(listingId, next);
   };
 
+  // IMPORTANT: compute `next` OUTSIDE setImages and call persist() at event
+  // time, never inside the state updater. Updaters must stay pure — calling
+  // the provider from inside one is a render-phase side effect that React
+  // may defer or double-invoke, which is exactly how gallery changes used
+  // to look saved but never reach the overlay (and vanished on refresh).
   const updateAndPersist = (
     updater: (prev: string[]) => string[],
     sideEffect?: (next: string[]) => void
   ) => {
-    setImages((prev) => {
-      const next = updater(prev);
-      sideEffect?.(next);
-      persist(next);
-      return next;
-    });
+    const next = updater(imagesRef.current);
+    imagesRef.current = next;
+    setImages(next);
+    sideEffect?.(next);
+    persist(next);
   };
 
   const lb = useLightbox(
@@ -131,6 +143,21 @@ export default function ImageManager({
       );
     }
     setDeleteIndex(null);
+  };
+
+  const performRemoveAll = () => {
+    const removedTokens = images.filter(isStoredImageToken);
+    updateAndPersist(() => []);
+    // Best-effort: free every IDB blob the gallery owned.
+    for (const token of removedTokens) void deleteStoredImage(token);
+    if (listingId) {
+      recordAudit(
+        "Gallery Cleared",
+        { kind: "image", id: listingId, label: title },
+        `All ${images.length} photos removed from ${listingId}`
+      );
+    }
+    setDeleteAllOpen(false);
   };
 
   const auditReorder = (detail: string) => {
@@ -274,14 +301,26 @@ export default function ImageManager({
             immediately.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.4} />
-          Add Images
-        </button>
+        <div className="flex items-center gap-2">
+          {images.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setDeleteAllOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white ring-1 ring-rose-500/40 hover:bg-rose-500/10 text-rose-700 font-semibold px-4 py-2.5 text-sm transition-colors"
+            >
+              <Trash2 className="h-4 w-4" strokeWidth={2.4} />
+              Delete All
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.4} />
+            Add Images
+          </button>
+        </div>
         <input
           ref={fileInput}
           type="file"
@@ -452,11 +491,11 @@ export default function ImageManager({
       )}
 
       <p className="mt-4 text-xs text-navy-700/55">
-        Changes persist immediately to your listing&apos;s gallery and update
-        the public marketplace, search, and map views. Uploaded images are
-        kept as in-browser blob URLs — they survive within this browser
-        session but will not display after a hard refresh until a real upload
-        backend is wired up.
+        Changes save automatically and persist immediately — the gallery, the
+        public marketplace, search, map, dashboard, and message previews all
+        update at once. Uploaded photos are stored in this browser
+        (IndexedDB) and survive refreshes and restarts; they live on this
+        device only until a real upload backend is wired up.
       </p>
 
       <Lightbox
@@ -480,6 +519,16 @@ export default function ImageManager({
         onConfirm={() => {
           if (deleteIndex != null) performRemove(deleteIndex);
         }}
+      />
+
+      <ConfirmDialog
+        open={deleteAllOpen}
+        title="Delete all photos?"
+        body={`All ${images.length} ${images.length === 1 ? "photo" : "photos"} will be removed from this gallery and the listing will show without images everywhere. This cannot be undone.`}
+        confirmLabel="Delete all photos"
+        tone="danger"
+        onCancel={() => setDeleteAllOpen(false)}
+        onConfirm={performRemoveAll}
       />
     </section>
   );

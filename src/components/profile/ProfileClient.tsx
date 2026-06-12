@@ -50,7 +50,7 @@ export default function ProfileClient() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8 md:mb-10">
             <DashStat
               icon={Layers}
-              label="Active listings"
+              label="My Active Listings"
               value={activeListings}
               href="/dashboard/listings"
             />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MapPin, ArrowUpRight, Pin, Building2 } from "lucide-react";
 import type { Conversation } from "@/data/messages";
 import { getCompanyById } from "@/data/companies";
+import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useResolvedImage } from "@/lib/imageStore";
 
 export default function OpportunitySummaryCard({
@@ -16,7 +17,16 @@ export default function OpportunitySummaryCard({
 }) {
   const hasOpportunity = Boolean(conversation.opportunitySlug);
   const company = getCompanyById(conversation.companyId);
-  const cover = useResolvedImage(conversation.opportunityImage);
+  // Prefer the live cover from the opportunity record over the snapshot
+  // taken at conversation-creation time, so gallery changes (replace,
+  // reorder, set cover, delete) propagate into existing threads.
+  const { getOpportunityBySlug, hydrated } = useMessaging();
+  const liveOpp =
+    hydrated && conversation.opportunitySlug
+      ? getOpportunityBySlug(conversation.opportunitySlug)
+      : undefined;
+  const coverSrc = liveOpp?.images?.[0] ?? conversation.opportunityImage;
+  const cover = useResolvedImage(coverSrc);
 
   // No opportunity attached → render a direct-to-company "Regarding" card.
   // This is the path for company-initiated threads (no listing context).
@@ -69,7 +79,7 @@ export default function OpportunitySummaryCard({
       </header>
 
       <div className="flex items-stretch">
-        {conversation.opportunityImage && cover ? (
+        {coverSrc && cover ? (
           <div className="relative shrink-0 h-24 w-24 md:h-28 md:w-28 bg-navy-900/5">
             <Image
               src={cover}

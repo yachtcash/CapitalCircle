@@ -2125,11 +2125,16 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       }
     ) => {
       const now = new Date().toISOString();
-      let targetOpportunityId: string | undefined;
+      // Resolve BEFORE dispatching. Capturing inside the setListings updater
+      // and branching afterwards only works when React eagerly evaluates the
+      // updater — which it skips whenever another update is already queued,
+      // silently dropping the opportunity patch.
+      const targetOpportunityId = listings.find(
+        (l) => l.id === listingId
+      )?.opportunityId;
       setListings((prev) =>
         prev.map((l) => {
           if (l.id !== listingId) return l;
-          targetOpportunityId = l.opportunityId;
           return {
             ...l,
             ...(patch.listing ?? {}),
@@ -2173,16 +2178,19 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         }));
       }
     },
-    [userOpportunities]
+    [listings, userOpportunities]
   );
 
   const updateListingImages = useCallback(
     (listingId: string, images: string[]) => {
-      let targetOpportunityId: string | undefined;
+      // Same rule as updateListingFields: resolve from current state, not
+      // from inside the updater — eager evaluation is not guaranteed.
+      const targetOpportunityId = listings.find(
+        (l) => l.id === listingId
+      )?.opportunityId;
       setListings((prev) =>
         prev.map((l) => {
           if (l.id !== listingId) return l;
-          targetOpportunityId = l.opportunityId;
           return {
             ...l,
             lastUpdatedAt: new Date().toISOString(),
@@ -2221,7 +2229,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         }));
       }
     },
-    []
+    [listings]
   );
 
   // ---- User-created opportunities (wizard target) ----
@@ -2531,16 +2539,11 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
 
   const deleteDocument = useCallback(
     (documentId: string) => {
-      let targetListingId: string | undefined;
-      let targetName: string | undefined;
-      setDocuments((prev) => {
-        const target = prev.find((d) => d.id === documentId);
-        if (target) {
-          targetListingId = target.listingId;
-          targetName = target.name;
-        }
-        return prev.filter((d) => d.id !== documentId);
-      });
+      // Resolve before dispatching — updater capture is unreliable.
+      const target = documents.find((d) => d.id === documentId);
+      const targetListingId = target?.listingId;
+      const targetName = target?.name;
+      setDocuments((prev) => prev.filter((d) => d.id !== documentId));
       if (targetListingId && targetName) {
         pushDocActivity(
           targetListingId,
@@ -2556,7 +2559,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         targetListingId ? `Listing ${targetListingId}` : undefined
       );
     },
-    [pushDocActivity, recordAudit]
+    [documents, pushDocActivity, recordAudit]
   );
 
   const replaceDocument = useCallback(
@@ -2564,13 +2567,13 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       documentId: string,
       patch: Partial<Omit<DataRoomDocument, "id" | "listingId" | "uploadedAt">>
     ) => {
-      let targetListingId: string | undefined;
-      let nextName: string | undefined;
+      // Resolve before dispatching — updater capture is unreliable.
+      const target = documents.find((d) => d.id === documentId);
+      const targetListingId = target?.listingId;
+      const nextName = target ? patch.name ?? target.name : undefined;
       setDocuments((prev) =>
         prev.map((d) => {
           if (d.id !== documentId) return d;
-          targetListingId = d.listingId;
-          nextName = patch.name ?? d.name;
           return {
             ...d,
             ...patch,
@@ -2594,7 +2597,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         targetListingId ? `Listing ${targetListingId}` : undefined
       );
     },
-    [pushDocActivity, recordAudit]
+    [documents, pushDocActivity, recordAudit]
   );
 
   const requestDocumentAccess = useCallback(
