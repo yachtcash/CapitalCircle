@@ -29,6 +29,7 @@ import {
   downloadDocumentPlaceholder,
   openDocumentPlaceholder,
 } from "@/lib/downloadDocument";
+import ReportButton from "@/components/moderation/ReportButton";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -326,6 +327,12 @@ export default function DocumentManager({ listingId, listingTitle }: Props) {
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={2} />
                   </IconBtn>
+                  <ReportButton
+                    targetKind="document"
+                    targetId={doc.id}
+                    targetLabel={doc.name}
+                    variant="icon"
+                  />
                 </div>
               </li>
             );

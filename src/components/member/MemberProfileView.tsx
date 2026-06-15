@@ -26,6 +26,7 @@ import { companies } from "@/data/companies";
 import RequestIntroductionModal from "@/components/members/RequestIntroductionModal";
 import { MemberDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
 import MemberMediaManager from "@/components/member/MemberMediaManager";
+import ReportButton from "@/components/moderation/ReportButton";
 import Lightbox, { useLightbox } from "@/components/common/Lightbox";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useResolvedImage, useResolvedImages } from "@/lib/imageStore";
@@ -186,6 +187,12 @@ export default function MemberProfileView({ member }: { member: Member }) {
                 <MessageSquare className="h-4 w-4" strokeWidth={2.3} />
                 Message Platform
               </Link>
+              <ReportButton
+                targetKind="member"
+                targetId={member.id}
+                targetLabel={member.name}
+                variant="button"
+              />
             </div>
           </div>
         </div>

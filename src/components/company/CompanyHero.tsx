@@ -14,6 +14,7 @@ import {
 import type { Company } from "@/data/companies";
 import VerificationBadge from "./VerificationBadge";
 import SaveCompanyButton from "@/components/profile/SaveCompanyButton";
+import ReportButton from "@/components/moderation/ReportButton";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useResolvedImage } from "@/lib/imageStore";
 
@@ -121,6 +122,13 @@ export default function CompanyHero({ company: seedCompany }: { company: Company
                   Message Company
                 </button>
                 <SaveCompanyButton companyId={company.id} />
+                <ReportButton
+                  targetKind="company"
+                  targetId={company.id}
+                  targetLabel={company.name}
+                  variant="chip"
+                  className="ml-1"
+                />
               </div>
             </div>
 

@@ -12,6 +12,7 @@ import MessageBubble from "./MessageBubble";
 import SystemMessage from "./SystemMessage";
 import OpportunitySummaryCard from "./OpportunitySummaryCard";
 import { ConversationDealBar } from "@/components/dashboard/deals/DealIntegrations";
+import ReportButton from "@/components/moderation/ReportButton";
 import MessageComposer from "./MessageComposer";
 import DateSeparator from "./DateSeparator";
 import NegotiationTimeline from "@/components/negotiations/NegotiationTimeline";
@@ -161,6 +162,12 @@ export default function ConversationThread({
               <ChevronRight className="h-3 w-3" strokeWidth={2.4} />
             </Link>
           ) : null}
+          <ReportButton
+            targetKind="message"
+            targetId={conversation.id}
+            targetLabel={`${companyName} — ${conversation.opportunityTitle ?? "thread"}`}
+            variant="icon"
+          />
         </div>
       </header>
 

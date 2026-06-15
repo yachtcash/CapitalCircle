@@ -24,6 +24,7 @@ import { useResolvedImage } from "@/lib/imageStore";
 import type { ListingRecord, ListingStatus } from "@/data/listings";
 import type { Opportunity } from "@/data/opportunities";
 import type { Company } from "@/data/companies";
+import ReportButton from "@/components/moderation/ReportButton";
 import { cn } from "@/lib/cn";
 
 const statusStyles: Record<ListingStatus, string> = {
@@ -267,6 +268,12 @@ export default function ManagementHero({ listing, opportunity }: Props) {
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={2.4} />
                 Delete
               </button>
+              <ReportButton
+                targetKind="listing"
+                targetId={listing.id}
+                targetLabel={listing.title}
+                variant="button"
+              />
             </div>
           </div>
 

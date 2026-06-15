@@ -93,6 +93,29 @@ import {
   type CreateCompanyInput,
 } from "@/lib/admin/createRecords";
 import { isStoredImageToken, prewarmTokens } from "@/lib/imageStore";
+import {
+  SEED_MODERATION_REPORTS,
+  SEED_WARNINGS,
+  SEED_RESTRICTIONS,
+  SEED_SUSPENSIONS,
+  SEED_BANS,
+  SEED_CHANGE_REQUESTS,
+  SEED_CONTENT_MODERATION,
+  contentKey,
+  type ModerationReport,
+  type ReportPriority,
+  type ReportTargetKind,
+  type EscalationLevel,
+  type Warning,
+  type Restriction,
+  type RestrictionType,
+  type Suspension,
+  type Ban,
+  type AppealStatus,
+  type ChangeRequest,
+  type ContentModerationState,
+  type ContentModerationStatus,
+} from "@/data/moderation";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
 const KEY_NOTIFICATIONS = "cc:notifications:v1";
@@ -114,6 +137,13 @@ const KEY_ROLE = "cc:role:v1";
 const KEY_MEMBER_ADMIN = "cc:member-admin:v1";
 const KEY_USER_MEMBERS = "cc:user-members:v1";
 const KEY_USER_COMPANIES = "cc:user-companies:v1";
+const KEY_MOD_REPORTS = "cc:mod-reports:v1";
+const KEY_MOD_WARNINGS = "cc:mod-warnings:v1";
+const KEY_MOD_RESTRICTIONS = "cc:mod-restrictions:v1";
+const KEY_MOD_SUSPENSIONS = "cc:mod-suspensions:v1";
+const KEY_MOD_BANS = "cc:mod-bans:v1";
+const KEY_MOD_CHANGES = "cc:mod-changes:v1";
+const KEY_MOD_CONTENT = "cc:mod-content:v1";
 const KEY_COMPANY_ADMIN = "cc:company-admin:v1";
 const KEY_OPP_ADMIN = "cc:opp-admin:v1";
 const KEY_AUDIT = "cc:audit:v1";
@@ -481,6 +511,69 @@ type MessagingValue = {
 
   /** Central audit stream, rendered by /admin/audit. */
   auditEvents: AuditEvent[];
+  // ---- Moderation Center ----
+  moderationReports: ModerationReport[];
+  warnings: Warning[];
+  restrictions: Restriction[];
+  suspensions: Suspension[];
+  bans: Ban[];
+  changeRequests: ChangeRequest[];
+  contentModeration: ContentModerationState;
+  submitReport: (input: {
+    targetKind: ReportTargetKind;
+    targetId: string;
+    targetLabel: string;
+    reason: string;
+    description?: string;
+    evidenceNotes?: string;
+    priority: ReportPriority;
+    imageSrc?: string;
+  }) => string;
+  resolveReport: (id: string, note?: string) => void;
+  dismissReport: (id: string, note?: string) => void;
+  archiveReport: (id: string) => void;
+  deleteReport: (id: string) => void;
+  escalateReport: (id: string, level: EscalationLevel) => void;
+  setReportPriority: (id: string, priority: ReportPriority) => void;
+  requestChanges: (input: {
+    targetKind: ReportTargetKind;
+    targetId: string;
+    targetLabel: string;
+    reason: string;
+    notes?: string;
+    dueDate?: string;
+  }) => void;
+  resolveChangeRequest: (id: string) => void;
+  warnMember: (input: { memberId: string; memberName: string; reason: string; notes?: string }) => void;
+  restrictMember: (input: {
+    memberId: string;
+    memberName: string;
+    types: RestrictionType[];
+    permanent: boolean;
+    until?: string;
+    reason: string;
+    notes?: string;
+  }) => void;
+  liftRestriction: (id: string) => void;
+  suspendMemberFull: (input: {
+    memberId: string;
+    memberName: string;
+    reason: string;
+    endDate?: string;
+    notes?: string;
+  }) => void;
+  unsuspendMember: (memberId: string, memberName?: string) => void;
+  extendSuspension: (id: string, endDate: string) => void;
+  banMember: (input: { memberId: string; memberName: string; reason: string; notes?: string }) => void;
+  unbanMember: (memberId: string, memberName?: string) => void;
+  setAppealStatus: (banId: string, status: AppealStatus) => void;
+  moderateContent: (
+    kind: ReportTargetKind,
+    id: string,
+    label: string,
+    status: ContentModerationStatus,
+    note?: string
+  ) => void;
   recordAudit: (
     action: AuditAction,
     target: { kind: AuditTargetKind; id: string; label?: string },
@@ -524,6 +617,13 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [userOpportunities, setUserOpportunities] = useState<Opportunity[]>([]);
   const [userMembers, setUserMembers] = useState<CreatedMember[]>([]);
   const [userCompanies, setUserCompanies] = useState<CreatedCompany[]>([]);
+  const [moderationReports, setModerationReports] = useState<ModerationReport[]>(SEED_MODERATION_REPORTS);
+  const [warnings, setWarnings] = useState<Warning[]>(SEED_WARNINGS);
+  const [restrictions, setRestrictions] = useState<Restriction[]>(SEED_RESTRICTIONS);
+  const [suspensions, setSuspensions] = useState<Suspension[]>(SEED_SUSPENSIONS);
+  const [bans, setBans] = useState<Ban[]>(SEED_BANS);
+  const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>(SEED_CHANGE_REQUESTS);
+  const [contentModeration, setContentModeration] = useState<ContentModerationState>(SEED_CONTENT_MODERATION);
   const [opportunityPatches, setOpportunityPatches] = useState<
     Record<string, Partial<Opportunity>>
   >({});
@@ -601,6 +701,20 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       null
     );
     if (storedUserCompanies) setUserCompanies(storedUserCompanies);
+    const sReports = readStored<ModerationReport[] | null>(KEY_MOD_REPORTS, null);
+    if (sReports) setModerationReports(sReports);
+    const sWarn = readStored<Warning[] | null>(KEY_MOD_WARNINGS, null);
+    if (sWarn) setWarnings(sWarn);
+    const sRes = readStored<Restriction[] | null>(KEY_MOD_RESTRICTIONS, null);
+    if (sRes) setRestrictions(sRes);
+    const sSus = readStored<Suspension[] | null>(KEY_MOD_SUSPENSIONS, null);
+    if (sSus) setSuspensions(sSus);
+    const sBan = readStored<Ban[] | null>(KEY_MOD_BANS, null);
+    if (sBan) setBans(sBan);
+    const sChg = readStored<ChangeRequest[] | null>(KEY_MOD_CHANGES, null);
+    if (sChg) setChangeRequests(sChg);
+    const sCnt = readStored<ContentModerationState | null>(KEY_MOD_CONTENT, null);
+    if (sCnt) setContentModeration(sCnt);
     const storedPatches = readStored<Record<string, Partial<Opportunity>> | null>(
       KEY_OPPORTUNITY_PATCHES,
       null
@@ -713,6 +827,13 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_USER_COMPANIES, userCompanies);
   }, [userCompanies, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_MOD_REPORTS, moderationReports); }, [moderationReports, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_MOD_WARNINGS, warnings); }, [warnings, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_MOD_RESTRICTIONS, restrictions); }, [restrictions, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_MOD_SUSPENSIONS, suspensions); }, [suspensions, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_MOD_BANS, bans); }, [bans, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_MOD_CHANGES, changeRequests); }, [changeRequests, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_MOD_CONTENT, contentModeration); }, [contentModeration, hydrated]);
   useEffect(() => {
     if (!hydrated) return;
     writeStored(KEY_OPPORTUNITY_PATCHES, opportunityPatches);
@@ -2771,6 +2892,290 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // ---- Moderation Center ----
+
+  const nextSeqId = (prefix: string, existing: { id: string }[]): string => {
+    let max = 0;
+    const re = new RegExp(`^${prefix}-(\\d+)$`);
+    for (const e of existing) {
+      const m = re.exec(e.id);
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    }
+    return `${prefix}-${String(max + 1).padStart(6, "0")}`;
+  };
+
+  const submitReport = useCallback(
+    (input: {
+      targetKind: ReportTargetKind;
+      targetId: string;
+      targetLabel: string;
+      reason: string;
+      description?: string;
+      evidenceNotes?: string;
+      priority: ReportPriority;
+      imageSrc?: string;
+    }): string => {
+      let id = "";
+      setModerationReports((prev) => {
+        id = nextSeqId("REP", prev);
+        const entry: ModerationReport = {
+          id,
+          targetKind: input.targetKind,
+          targetId: input.targetId,
+          targetLabel: input.targetLabel,
+          imageSrc: input.imageSrc,
+          reason: input.reason,
+          description: input.description,
+          evidenceNotes: input.evidenceNotes,
+          priority: input.priority,
+          reportedBy: profile.name,
+          reportedAt: new Date().toISOString(),
+          status: "Open",
+        };
+        return [entry, ...prev];
+      });
+      recordAudit(
+        "Report Submitted",
+        { kind: input.targetKind as AuditTargetKind, id: input.targetId, label: input.targetLabel },
+        `${input.priority} · ${input.reason}`
+      );
+      return id;
+    },
+    [recordAudit, profile.name]
+  );
+
+  const resolveReport = useCallback(
+    (id: string, note?: string) => {
+      const now = new Date().toISOString();
+      setModerationReports((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, status: "Resolved", resolution: note, resolvedBy: profile.name, resolvedAt: now } : r
+        )
+      );
+      recordAudit("Report Resolved", { kind: "system", id }, note);
+    },
+    [recordAudit, profile.name]
+  );
+
+  const dismissReport = useCallback(
+    (id: string, note?: string) => {
+      const now = new Date().toISOString();
+      setModerationReports((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, status: "Dismissed", resolution: note, resolvedBy: profile.name, resolvedAt: now } : r
+        )
+      );
+      recordAudit("Report Dismissed", { kind: "system", id }, note);
+    },
+    [recordAudit, profile.name]
+  );
+
+  const archiveReport = useCallback(
+    (id: string) => {
+      setModerationReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Archived" } : r)));
+      recordAudit("Report Archived", { kind: "system", id });
+    },
+    [recordAudit]
+  );
+
+  const deleteReport = useCallback(
+    (id: string) => {
+      setModerationReports((prev) => prev.filter((r) => r.id !== id));
+      recordAudit("Report Archived", { kind: "system", id }, "Report deleted");
+    },
+    [recordAudit]
+  );
+
+  const escalateReport = useCallback(
+    (id: string, level: EscalationLevel) => {
+      setModerationReports((prev) => prev.map((r) => (r.id === id ? { ...r, escalatedTo: level } : r)));
+      recordAudit("Report Escalated", { kind: "system", id }, `Escalated to ${level}`);
+    },
+    [recordAudit]
+  );
+
+  const setReportPriority = useCallback(
+    (id: string, priority: ReportPriority) => {
+      setModerationReports((prev) => prev.map((r) => (r.id === id ? { ...r, priority } : r)));
+    },
+    []
+  );
+
+  const requestChanges = useCallback(
+    (input: {
+      targetKind: ReportTargetKind;
+      targetId: string;
+      targetLabel: string;
+      reason: string;
+      notes?: string;
+      dueDate?: string;
+    }) => {
+      setChangeRequests((prev) => {
+        const id = nextSeqId("CHG", prev);
+        const entry: ChangeRequest = {
+          id,
+          targetKind: input.targetKind,
+          targetId: input.targetId,
+          targetLabel: input.targetLabel,
+          reason: input.reason,
+          notes: input.notes,
+          dueDate: input.dueDate,
+          moderator: profile.name,
+          createdAt: new Date().toISOString(),
+          status: "Open",
+        };
+        return [entry, ...prev];
+      });
+      recordAudit(
+        "Changes Requested",
+        { kind: input.targetKind as AuditTargetKind, id: input.targetId, label: input.targetLabel },
+        input.dueDate ? `${input.reason} · due ${input.dueDate.slice(0, 10)}` : input.reason
+      );
+    },
+    [recordAudit, profile.name]
+  );
+
+  const resolveChangeRequest = useCallback(
+    (id: string) => {
+      setChangeRequests((prev) => prev.map((c) => (c.id === id ? { ...c, status: "Resolved" } : c)));
+      recordAudit("Changes Resolved", { kind: "system", id });
+    },
+    [recordAudit]
+  );
+
+  const warnMember = useCallback(
+    (input: { memberId: string; memberName: string; reason: string; notes?: string }) => {
+      setWarnings((prev) => {
+        const id = nextSeqId("WARN", prev);
+        return [
+          { id, memberId: input.memberId, memberName: input.memberName, reason: input.reason, notes: input.notes, moderator: profile.name, date: new Date().toISOString() },
+          ...prev,
+        ];
+      });
+      recordAudit("Member Warned", { kind: "member", id: input.memberId, label: input.memberName }, input.reason);
+    },
+    [recordAudit, profile.name]
+  );
+
+  const restrictMember = useCallback(
+    (input: {
+      memberId: string;
+      memberName: string;
+      types: RestrictionType[];
+      permanent: boolean;
+      until?: string;
+      reason: string;
+      notes?: string;
+    }) => {
+      setRestrictions((prev) => {
+        const id = nextSeqId("RES", prev);
+        return [
+          { id, memberId: input.memberId, memberName: input.memberName, types: input.types, permanent: input.permanent, until: input.until, reason: input.reason, notes: input.notes, moderator: profile.name, date: new Date().toISOString(), active: true },
+          ...prev,
+        ];
+      });
+      recordAudit(
+        "Member Restricted",
+        { kind: "member", id: input.memberId, label: input.memberName },
+        `${input.types.join(", ")}${input.permanent ? " · permanent" : input.until ? ` · until ${input.until.slice(0, 10)}` : ""}`
+      );
+    },
+    [recordAudit, profile.name]
+  );
+
+  const liftRestriction = useCallback(
+    (id: string) => {
+      setRestrictions((prev) => prev.map((r) => (r.id === id ? { ...r, active: false } : r)));
+      recordAudit("Restriction Lifted", { kind: "system", id });
+    },
+    [recordAudit]
+  );
+
+  const suspendMemberFull = useCallback(
+    (input: { memberId: string; memberName: string; reason: string; endDate?: string; notes?: string }) => {
+      setSuspensions((prev) => {
+        const id = nextSeqId("SUS", prev);
+        return [
+          { id, memberId: input.memberId, memberName: input.memberName, startDate: new Date().toISOString(), endDate: input.endDate, reason: input.reason, notes: input.notes, moderator: profile.name, active: true },
+          ...prev,
+        ];
+      });
+      setMemberAdminState((prev) => ({ ...prev, [input.memberId]: { ...prev[input.memberId], status: "Suspended" } }));
+      recordAudit(
+        "Member Suspended",
+        { kind: "member", id: input.memberId, label: input.memberName },
+        input.endDate ? `${input.reason} · until ${input.endDate.slice(0, 10)}` : `${input.reason} · indefinite`,
+        { before: "Active", after: "Suspended" }
+      );
+    },
+    [recordAudit, profile.name]
+  );
+
+  const unsuspendMember = useCallback(
+    (memberId: string, memberName?: string) => {
+      setSuspensions((prev) => prev.map((sx) => (sx.memberId === memberId ? { ...sx, active: false } : sx)));
+      setMemberAdminState((prev) => ({ ...prev, [memberId]: { ...prev[memberId], status: "Active" } }));
+      recordAudit("Member Activated", { kind: "member", id: memberId, label: memberName }, "Suspension lifted", { before: "Suspended", after: "Active" });
+    },
+    [recordAudit]
+  );
+
+  const extendSuspension = useCallback(
+    (id: string, endDate: string) => {
+      setSuspensions((prev) => prev.map((sx) => (sx.id === id ? { ...sx, endDate } : sx)));
+      recordAudit("Suspension Extended", { kind: "system", id }, `New end date ${endDate.slice(0, 10)}`);
+    },
+    [recordAudit]
+  );
+
+  const banMember = useCallback(
+    (input: { memberId: string; memberName: string; reason: string; notes?: string }) => {
+      setBans((prev) => {
+        const id = nextSeqId("BAN", prev);
+        return [
+          { id, memberId: input.memberId, memberName: input.memberName, reason: input.reason, notes: input.notes, moderator: profile.name, date: new Date().toISOString(), appealStatus: "None", active: true },
+          ...prev,
+        ];
+      });
+      setMemberAdminState((prev) => ({ ...prev, [input.memberId]: { ...prev[input.memberId], status: "Banned" } }));
+      recordAudit("Member Banned", { kind: "member", id: input.memberId, label: input.memberName }, input.reason, { before: "Active", after: "Banned" });
+    },
+    [recordAudit, profile.name]
+  );
+
+  const unbanMember = useCallback(
+    (memberId: string, memberName?: string) => {
+      setBans((prev) => prev.map((b) => (b.memberId === memberId ? { ...b, active: false } : b)));
+      setMemberAdminState((prev) => ({ ...prev, [memberId]: { ...prev[memberId], status: "Active" } }));
+      recordAudit("Member Unbanned", { kind: "member", id: memberId, label: memberName }, "Ban lifted", { before: "Banned", after: "Active" });
+    },
+    [recordAudit]
+  );
+
+  const setAppealStatus = useCallback(
+    (banId: string, status: AppealStatus) => {
+      setBans((prev) => prev.map((b) => (b.id === banId ? { ...b, appealStatus: status } : b)));
+      recordAudit("Appeal Updated", { kind: "system", id: banId }, `Appeal → ${status}`);
+    },
+    [recordAudit]
+  );
+
+  const moderateContent = useCallback(
+    (kind: ReportTargetKind, id: string, label: string, status: ContentModerationStatus, note?: string) => {
+      const key = contentKey(kind, id);
+      setContentModeration((prev) => ({ ...prev, [key]: { status, note, moderator: profile.name, at: new Date().toISOString() } }));
+      const action: AuditAction =
+        status === "Approved" ? "Content Approved"
+        : status === "Rejected" ? "Content Rejected"
+        : status === "Removed" ? "Content Removed"
+        : status === "Flagged" ? "Content Flagged"
+        : status === "Replacement Requested" ? "Replacement Requested"
+        : "Content Escalated";
+      recordAudit(action, { kind: kind as AuditTargetKind, id, label }, note);
+    },
+    [recordAudit, profile.name]
+  );
+
   // ---- Document / Access Request actions ----
 
   function nextRequestId(existing: AccessRequest[]): string {
@@ -3181,6 +3586,32 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     getMemberLive,
     updateCompanyMedia,
     updateMemberMedia,
+    moderationReports,
+    warnings,
+    restrictions,
+    suspensions,
+    bans,
+    changeRequests,
+    contentModeration,
+    submitReport,
+    resolveReport,
+    dismissReport,
+    archiveReport,
+    deleteReport,
+    escalateReport,
+    setReportPriority,
+    requestChanges,
+    resolveChangeRequest,
+    warnMember,
+    restrictMember,
+    liftRestriction,
+    suspendMemberFull,
+    unsuspendMember,
+    extendSuspension,
+    banMember,
+    unbanMember,
+    setAppealStatus,
+    moderateContent,
     createListing,
     updateUserOpportunity,
     commitListingEdit,

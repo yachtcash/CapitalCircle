@@ -8,7 +8,11 @@ import type { Company } from "@/data/companies";
 
 // ---- Member admin overlay ----
 
-export type MemberAccountStatus = "Active" | "Suspended" | "Deleted";
+export type MemberAccountStatus =
+  | "Active"
+  | "Suspended"
+  | "Banned"
+  | "Deleted";
 
 export type MemberAdminState = {
   role?: Role;

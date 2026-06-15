@@ -24,6 +24,7 @@ import {
   putImage,
   useResolvedImages,
 } from "@/lib/imageStore";
+import ReportButton from "@/components/moderation/ReportButton";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -422,6 +423,17 @@ export default function ImageManager({
                 <span className="absolute top-2 right-2 inline-flex items-center text-[10px] uppercase tracking-[0.14em] font-bold bg-navy-900/65 text-white rounded-full px-2 py-0.5 backdrop-blur">
                   {i + 1} / {images.length}
                 </span>
+                {listingId ? (
+                  <span className="absolute top-2 right-14">
+                    <ReportButton
+                      targetKind="image"
+                      targetId={`${listingId}#${i + 1}`}
+                      targetLabel={`${title} — Photo ${i + 1}`}
+                      imageSrc={token}
+                      variant="icon"
+                    />
+                  </span>
+                ) : null}
 
                 {/* Always-visible action bar overlaid on the image — no hunting. */}
                 <div className="absolute inset-x-0 bottom-0 px-2 pb-2 pt-8 bg-gradient-to-t from-navy-900/85 via-navy-900/40 to-transparent flex items-center justify-between gap-1">

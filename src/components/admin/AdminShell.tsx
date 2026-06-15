@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
-import { canAccessAdmin, ROLES, type Role } from "@/lib/roles";
+import { canAccessAdmin, canReviewQueue, ROLES, type Role } from "@/lib/roles";
 import AdminGlobalSearch from "./AdminGlobalSearch";
 import { cn } from "@/lib/cn";
 
@@ -43,7 +43,15 @@ const SECTIONS: { label: string; href: string; icon: LucideIcon; exact?: boolean
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const { currentRole } = useMessaging();
-  const allowed = canAccessAdmin(currentRole);
+  // Admin+ get the whole control center. Moderator/Editor get the Moderation
+  // Center only — they can reach /admin/moderation but no other admin route.
+  const fullAccess = canAccessAdmin(currentRole);
+  const isModerationPath = pathname.startsWith("/admin/moderation");
+  const moderationOnly = !fullAccess && canReviewQueue(currentRole);
+  const allowed = fullAccess || (moderationOnly && isModerationPath);
+  const sections = fullAccess
+    ? SECTIONS
+    : SECTIONS.filter((s) => s.href === "/admin/moderation");
 
   return (
     <div className="bg-cream min-h-[calc(100vh-5rem)]">
@@ -62,7 +70,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
         {allowed ? (
           <nav className="max-w-[1400px] mx-auto px-5 md:px-10 flex items-stretch gap-0.5 overflow-x-auto">
-            {SECTIONS.map(({ label, href, icon: Icon, exact }) => {
+            {sections.map(({ label, href, icon: Icon, exact }) => {
               const active = exact ? pathname === href : pathname.startsWith(href);
               return (
                 <Link
@@ -108,6 +116,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             The Admin Control Center requires Admin or Super Admin. Use the role
             switcher above to switch back.
           </p>
+          {moderationOnly ? (
+            <Link
+              href="/admin/moderation"
+              className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
+            >
+              Open Moderation Center
+            </Link>
+          ) : null}
         </div>
       )}
     </div>

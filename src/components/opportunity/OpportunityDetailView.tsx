@@ -17,6 +17,7 @@ import ActionPanel from "@/components/ActionPanel";
 import RelatedOpportunities from "@/components/RelatedOpportunities";
 import RequestAccessModal from "@/components/documents/RequestAccessModal";
 import OwnerControlsPanel from "./OwnerControlsPanel";
+import ReportButton from "@/components/moderation/ReportButton";
 import { OpportunityDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
 
 /**
@@ -105,8 +106,16 @@ export default function OpportunityDetailView({
           <aside className="order-1 lg:order-2 lg:w-[360px] space-y-5">
             <OwnerControlsPanel opportunity={opportunity} />
             <OpportunityDealsPanel opportunity={opportunity} />
-            <div className="lg:sticky lg:top-6">
+            <div className="lg:sticky lg:top-6 space-y-3">
               <ActionPanel opportunity={opportunity} />
+              <div className="flex justify-center">
+                <ReportButton
+                  targetKind="opportunity"
+                  targetId={opportunity.id}
+                  targetLabel={opportunity.title}
+                  variant="chip"
+                />
+              </div>
             </div>
           </aside>
         </div>

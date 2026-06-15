@@ -149,3 +149,50 @@ export function canEditContent(role: Role = CURRENT_USER_ROLE): boolean {
 export function canViewInternalNotes(role: Role = CURRENT_USER_ROLE): boolean {
   return hasRole("Editor", role);
 }
+
+// ---- Moderation Center permissions ----
+//
+// Member       — no moderation access
+// Moderator    — review queue, approve/reject content, warn, request changes,
+//                escalate; CANNOT restrict / suspend / ban
+// Editor       — content moderation (approve/reject/flag content, request
+//                changes); CANNOT suspend members
+// Admin        — suspend, restrict, restore, approve, reject
+// Super Admin  — full control incl. ban, delete, override
+
+/** Moderator+ — open the Moderation Center and the queue. */
+export function canReviewQueue(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRole("Moderator", role);
+}
+/** Moderator+ — approve / reject / flag content and request changes. */
+export function canModerateContentItems(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRole("Moderator", role);
+}
+/** Moderator+ — issue member warnings. */
+export function canWarnMembers(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRole("Moderator", role);
+}
+/** Moderator+ — request changes on content. */
+export function canRequestChanges(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRole("Moderator", role);
+}
+/** Moderator+ — escalate an item up the chain. */
+export function canEscalate(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRole("Moderator", role);
+}
+/** Admin+ — restrict members (cannot post / message / upload …). */
+export function canRestrictMembers(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRole("Admin", role);
+}
+/** Admin+ — suspend / unsuspend members. */
+export function canSuspendAccounts(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRole("Admin", role);
+}
+/** Admin+ — restore suspended / restricted members. */
+export function canRestoreMembers(role: Role = CURRENT_USER_ROLE): boolean {
+  return hasRole("Admin", role);
+}
+/** Super Admin only — ban / unban and hard-delete moderation records. */
+export function canBanMembers(role: Role = CURRENT_USER_ROLE): boolean {
+  return isSuperAdmin(role);
+}

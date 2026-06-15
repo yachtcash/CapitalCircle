@@ -21,6 +21,26 @@ export type AuditAction =
   | "Introduction Restored"
   | "Introduction Deleted"
   | "Introduction Created"
+  | "Report Submitted"
+  | "Report Resolved"
+  | "Report Dismissed"
+  | "Report Escalated"
+  | "Report Archived"
+  | "Changes Requested"
+  | "Changes Resolved"
+  | "Member Warned"
+  | "Member Restricted"
+  | "Restriction Lifted"
+  | "Member Banned"
+  | "Member Unbanned"
+  | "Suspension Extended"
+  | "Appeal Updated"
+  | "Content Approved"
+  | "Content Rejected"
+  | "Content Removed"
+  | "Content Flagged"
+  | "Replacement Requested"
+  | "Content Escalated"
   | "Opportunity Approved"
   | "Opportunity Rejected"
   | "Opportunity Featured"
@@ -145,6 +165,26 @@ const GROUP_MAP: Record<AuditAction, AuditGroup> = {
   "Introduction Restored": "Introduction Actions",
   "Introduction Deleted": "Introduction Actions",
   "Introduction Created": "Introduction Actions",
+  "Report Submitted": "Moderation Actions",
+  "Report Resolved": "Moderation Actions",
+  "Report Dismissed": "Moderation Actions",
+  "Report Escalated": "Moderation Actions",
+  "Report Archived": "Moderation Actions",
+  "Changes Requested": "Moderation Actions",
+  "Changes Resolved": "Moderation Actions",
+  "Member Warned": "Moderation Actions",
+  "Member Restricted": "Moderation Actions",
+  "Restriction Lifted": "Moderation Actions",
+  "Member Banned": "Moderation Actions",
+  "Member Unbanned": "Moderation Actions",
+  "Suspension Extended": "Moderation Actions",
+  "Appeal Updated": "Moderation Actions",
+  "Content Approved": "Moderation Actions",
+  "Content Rejected": "Moderation Actions",
+  "Content Removed": "Moderation Actions",
+  "Content Flagged": "Moderation Actions",
+  "Replacement Requested": "Moderation Actions",
+  "Content Escalated": "Moderation Actions",
   "Company Verified": "Company Actions",
   "Company Featured": "Company Actions",
   "Company Suspended": "Company Actions",
