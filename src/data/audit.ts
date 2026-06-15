@@ -8,6 +8,19 @@ export type AuditAction =
   | "Member Suspended"
   | "Member Activated"
   | "Member Deleted"
+  | "Member Verified"
+  | "Member Featured"
+  | "Member Approved"
+  | "Member Created"
+  | "Company Created"
+  | "Company Editor Assigned"
+  | "Company Admin Assigned"
+  | "Opportunity Moderator Assigned"
+  | "Opportunity Editor Assigned"
+  | "Introduction Archived"
+  | "Introduction Restored"
+  | "Introduction Deleted"
+  | "Introduction Created"
   | "Opportunity Approved"
   | "Opportunity Rejected"
   | "Opportunity Featured"
@@ -119,6 +132,19 @@ const GROUP_MAP: Record<AuditAction, AuditGroup> = {
   "Member Suspended": "Member Actions",
   "Member Activated": "Member Actions",
   "Member Deleted": "Member Actions",
+  "Member Verified": "Member Actions",
+  "Member Featured": "Member Actions",
+  "Member Approved": "Member Actions",
+  "Member Created": "Member Actions",
+  "Company Created": "Company Actions",
+  "Company Editor Assigned": "Company Actions",
+  "Company Admin Assigned": "Company Actions",
+  "Opportunity Moderator Assigned": "Opportunity Actions",
+  "Opportunity Editor Assigned": "Opportunity Actions",
+  "Introduction Archived": "Introduction Actions",
+  "Introduction Restored": "Introduction Actions",
+  "Introduction Deleted": "Introduction Actions",
+  "Introduction Created": "Introduction Actions",
   "Company Verified": "Company Actions",
   "Company Featured": "Company Actions",
   "Company Suspended": "Company Actions",

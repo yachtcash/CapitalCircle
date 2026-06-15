@@ -19,6 +19,7 @@ import {
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { canAccessAdmin, ROLES, type Role } from "@/lib/roles";
+import AdminGlobalSearch from "./AdminGlobalSearch";
 import { cn } from "@/lib/cn";
 
 const SECTIONS: { label: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
@@ -88,7 +89,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       </header>
 
       {allowed ? (
-        children
+        <>
+          <div className="max-w-[1400px] mx-auto px-5 md:px-10 pt-5">
+            <AdminGlobalSearch />
+          </div>
+          {children}
+        </>
       ) : (
         <div className="max-w-xl mx-auto px-5 py-20 text-center">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-navy-900 text-gold-500 ring-4 ring-navy-900/10">
@@ -172,10 +178,13 @@ export function TableShell({ children, minWidth = 1100 }: { children: React.Reac
   );
 }
 
-export function THead({ cols }: { cols: string[] }) {
+export function THead({ cols, leading }: { cols: string[]; leading?: React.ReactNode }) {
   return (
     <thead className="bg-bone/60">
       <tr className="text-[10px] uppercase tracking-[0.14em] text-navy-700/65 font-bold">
+        {leading !== undefined ? (
+          <th className="px-3 py-3 text-left w-10">{leading}</th>
+        ) : null}
         {cols.map((c) => (
           <th key={c} className={cn("px-3 py-3 text-left", c === "Actions" && "text-right")}>
             {c}

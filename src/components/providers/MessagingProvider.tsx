@@ -30,7 +30,7 @@ import {
   type ListingStatus,
 } from "@/data/listings";
 import { featuredOpportunities, type Opportunity } from "@/data/opportunities";
-import { getCompanyById, type Company } from "@/data/companies";
+import { getCompanyById, companies as SEED_COMPANIES, type Company } from "@/data/companies";
 import {
   formStateToOpportunity,
   formStateToOpportunityPatch,
@@ -72,7 +72,7 @@ import {
   type DealStage,
 } from "@/data/deals";
 import { CURRENT_USER_ROLE, type Role } from "@/lib/roles";
-import { getMemberById, type Member } from "@/data/members";
+import { getMemberById, MEMBERS as SEED_MEMBERS, type Member } from "@/data/members";
 import { SEED_AUDIT_EVENTS, type AuditAction, type AuditEvent, type AuditTargetKind } from "@/data/audit";
 import {
   SEED_COMPANY_ADMIN,
@@ -81,7 +81,17 @@ import {
   type CompanyAdminState,
   type MemberAdminState,
   type OpportunityAdminState,
+  type CreatedMember,
+  type CreatedCompany,
 } from "@/data/admin";
+import {
+  buildMember,
+  buildCompany,
+  slugify as slugifyName,
+  uniqueSlug as uniqueRecordSlug,
+  type CreateMemberInput,
+  type CreateCompanyInput,
+} from "@/lib/admin/createRecords";
 import { isStoredImageToken, prewarmTokens } from "@/lib/imageStore";
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
@@ -102,6 +112,8 @@ const KEY_CONNECTIONS = "cc:connections:v1";
 const KEY_DEALS = "cc:deals:v1";
 const KEY_ROLE = "cc:role:v1";
 const KEY_MEMBER_ADMIN = "cc:member-admin:v1";
+const KEY_USER_MEMBERS = "cc:user-members:v1";
+const KEY_USER_COMPANIES = "cc:user-companies:v1";
 const KEY_COMPANY_ADMIN = "cc:company-admin:v1";
 const KEY_OPP_ADMIN = "cc:opp-admin:v1";
 const KEY_AUDIT = "cc:audit:v1";
@@ -337,6 +349,9 @@ type MessagingValue = {
   approveIntroduction: (id: string, note?: string) => void;
   rejectIntroduction: (id: string, note?: string) => void;
   completeIntroduction: (id: string, note?: string) => void;
+  archiveIntroduction: (id: string) => void;
+  restoreIntroduction: (id: string) => void;
+  deleteIntroduction: (id: string) => void;
 
   // ---- Direct Connections (future-ready) ----
   directConnections: DirectConnection[];
@@ -434,6 +449,12 @@ type MessagingValue = {
   suspendMember: (memberId: string, memberName?: string) => void;
   activateMember: (memberId: string, memberName?: string) => void;
   deleteMember: (memberId: string, memberName?: string) => void;
+  verifyMember: (memberId: string, memberName?: string) => void;
+  approveMember: (memberId: string, memberName?: string) => void;
+  toggleMemberFeatured: (memberId: string, featured: boolean, memberName?: string) => void;
+  /** Members created at runtime via the Admin Control Center. */
+  userMembers: CreatedMember[];
+  createMember: (input: CreateMemberInput) => string;
 
   /** Per-company admin overrides (verification / featured / status). */
   companyAdminState: Record<string, CompanyAdminState>;
@@ -442,6 +463,11 @@ type MessagingValue = {
   suspendCompany: (companyId: string, companyName?: string) => void;
   activateCompany: (companyId: string) => void;
   deleteCompany: (companyId: string, companyName?: string) => void;
+  assignCompanyEditor: (companyId: string, editor: string, companyName?: string) => void;
+  assignCompanyAdmin: (companyId: string, admin: string, companyName?: string) => void;
+  /** Companies created at runtime via the Admin Control Center. */
+  userCompanies: CreatedCompany[];
+  createCompany: (input: CreateCompanyInput) => string;
 
   /** Per-opportunity moderation overrides. */
   opportunityAdminState: Record<string, OpportunityAdminState>;
@@ -450,6 +476,8 @@ type MessagingValue = {
   archiveOpportunityAdmin: (oppId: string, title?: string) => void;
   deleteOpportunityAdmin: (oppId: string, title?: string) => void;
   toggleOpportunityFeatured: (oppId: string, featured: boolean, title?: string) => void;
+  assignOpportunityModerator: (oppId: string, moderator: string, title?: string) => void;
+  assignOpportunityEditor: (oppId: string, editor: string, title?: string) => void;
 
   /** Central audit stream, rendered by /admin/audit. */
   auditEvents: AuditEvent[];
@@ -494,6 +522,8 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   );
   const [profile, setProfile] = useState<UserProfile>(SEED_PROFILE);
   const [userOpportunities, setUserOpportunities] = useState<Opportunity[]>([]);
+  const [userMembers, setUserMembers] = useState<CreatedMember[]>([]);
+  const [userCompanies, setUserCompanies] = useState<CreatedCompany[]>([]);
   const [opportunityPatches, setOpportunityPatches] = useState<
     Record<string, Partial<Opportunity>>
   >({});
@@ -561,6 +591,16 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       null
     );
     if (storedUserOpps) setUserOpportunities(storedUserOpps);
+    const storedUserMembers = readStored<CreatedMember[] | null>(
+      KEY_USER_MEMBERS,
+      null
+    );
+    if (storedUserMembers) setUserMembers(storedUserMembers);
+    const storedUserCompanies = readStored<CreatedCompany[] | null>(
+      KEY_USER_COMPANIES,
+      null
+    );
+    if (storedUserCompanies) setUserCompanies(storedUserCompanies);
     const storedPatches = readStored<Record<string, Partial<Opportunity>> | null>(
       KEY_OPPORTUNITY_PATCHES,
       null
@@ -665,6 +705,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_USER_OPPORTUNITIES, userOpportunities);
   }, [userOpportunities, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_USER_MEMBERS, userMembers);
+  }, [userMembers, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_USER_COMPANIES, userCompanies);
+  }, [userCompanies, hydrated]);
   useEffect(() => {
     if (!hydrated) return;
     writeStored(KEY_OPPORTUNITY_PATCHES, opportunityPatches);
@@ -873,6 +921,87 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     [recordAudit]
   );
 
+  const verifyMember = useCallback(
+    (memberId: string, memberName?: string) => {
+      setMemberAdminState((prev) => ({
+        ...prev,
+        [memberId]: { ...prev[memberId], verificationOverride: "Verified" },
+      }));
+      recordAudit(
+        "Member Verified",
+        { kind: "member", id: memberId, label: memberName },
+        "Verified badge granted"
+      );
+    },
+    [recordAudit]
+  );
+
+  const approveMember = useCallback(
+    (memberId: string, memberName?: string) => {
+      setMemberAdminState((prev) => ({
+        ...prev,
+        [memberId]: {
+          ...prev[memberId],
+          status: "Active",
+          approved: true,
+          verificationOverride:
+            prev[memberId]?.verificationOverride ?? "Verified",
+        },
+      }));
+      recordAudit(
+        "Member Approved",
+        { kind: "member", id: memberId, label: memberName },
+        "Approved into the directory"
+      );
+    },
+    [recordAudit]
+  );
+
+  const toggleMemberFeatured = useCallback(
+    (memberId: string, featured: boolean, memberName?: string) => {
+      setMemberAdminState((prev) => ({
+        ...prev,
+        [memberId]: { ...prev[memberId], featuredOverride: featured },
+      }));
+      recordAudit(
+        "Member Featured",
+        { kind: "member", id: memberId, label: memberName },
+        featured ? "Featured in the directory" : "Removed from featured"
+      );
+    },
+    [recordAudit]
+  );
+
+  const createMember = useCallback(
+    (input: CreateMemberInput): string => {
+      const now = new Date().toISOString();
+      const takenIds = new Set([
+        ...SEED_MEMBERS.map((m) => m.id),
+        ...userMembers.map((m) => m.id),
+      ]);
+      let n = takenIds.size + 1;
+      let id = `MEM-${String(n).padStart(6, "0")}`;
+      while (takenIds.has(id)) {
+        n += 1;
+        id = `MEM-${String(n).padStart(6, "0")}`;
+      }
+      const takenSlugs = new Set([
+        ...SEED_MEMBERS.map((m) => m.slug),
+        ...userMembers.map((m) => m.slug),
+      ]);
+      const slug = uniqueRecordSlug(slugifyName(input.name), takenSlugs);
+      const member = buildMember(input, { id, slug, nowIso: now });
+      setUserMembers((prev) => [{ ...member, createdAt: now }, ...prev]);
+      recordAudit(
+        "Member Created",
+        { kind: "member", id, label: member.name },
+        `${member.memberType} · ${member.company}`
+      );
+      return id;
+    },
+    [recordAudit, userMembers]
+  );
+
   // ---- Company administration ----
 
   const verifyCompany = useCallback(
@@ -935,6 +1064,66 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       recordAudit("Company Deleted", { kind: "company", id: companyId, label: companyName });
     },
     [recordAudit]
+  );
+
+  const assignCompanyEditor = useCallback(
+    (companyId: string, editor: string, companyName?: string) => {
+      setCompanyAdminState((prev) => ({
+        ...prev,
+        [companyId]: { ...prev[companyId], assignedEditor: editor },
+      }));
+      recordAudit(
+        "Company Editor Assigned",
+        { kind: "company", id: companyId, label: companyName },
+        `Editor: ${editor}`
+      );
+    },
+    [recordAudit]
+  );
+
+  const assignCompanyAdmin = useCallback(
+    (companyId: string, admin: string, companyName?: string) => {
+      setCompanyAdminState((prev) => ({
+        ...prev,
+        [companyId]: { ...prev[companyId], assignedAdmin: admin },
+      }));
+      recordAudit(
+        "Company Admin Assigned",
+        { kind: "company", id: companyId, label: companyName },
+        `Admin: ${admin}`
+      );
+    },
+    [recordAudit]
+  );
+
+  const createCompany = useCallback(
+    (input: CreateCompanyInput): string => {
+      const now = new Date().toISOString();
+      const takenIds = new Set([
+        ...SEED_COMPANIES.map((c) => c.id),
+        ...userCompanies.map((c) => c.id),
+      ]);
+      let n = takenIds.size + 1;
+      let id = `COMP-${String(n).padStart(6, "0")}`;
+      while (takenIds.has(id)) {
+        n += 1;
+        id = `COMP-${String(n).padStart(6, "0")}`;
+      }
+      const takenSlugs = new Set([
+        ...SEED_COMPANIES.map((c) => c.slug),
+        ...userCompanies.map((c) => c.slug),
+      ]);
+      const slug = uniqueRecordSlug(slugifyName(input.name), takenSlugs);
+      const company = buildCompany(input, { id, slug, nowIso: now });
+      setUserCompanies((prev) => [{ ...company, createdAt: now }, ...prev]);
+      recordAudit(
+        "Company Created",
+        { kind: "company", id, label: company.name },
+        company.industry
+      );
+      return id;
+    },
+    [recordAudit, userCompanies]
   );
 
   // ---- Opportunity administration / moderation ----
@@ -1005,6 +1194,36 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         "Opportunity Featured",
         { kind: "opportunity", id: oppId, label: title },
         featured ? "Featured" : "Unfeatured"
+      );
+    },
+    [recordAudit]
+  );
+
+  const assignOpportunityModerator = useCallback(
+    (oppId: string, moderator: string, title?: string) => {
+      setOpportunityAdminState((prev) => ({
+        ...prev,
+        [oppId]: { ...prev[oppId], assignedModerator: moderator },
+      }));
+      recordAudit(
+        "Opportunity Moderator Assigned",
+        { kind: "opportunity", id: oppId, label: title },
+        `Moderator: ${moderator}`
+      );
+    },
+    [recordAudit]
+  );
+
+  const assignOpportunityEditor = useCallback(
+    (oppId: string, editor: string, title?: string) => {
+      setOpportunityAdminState((prev) => ({
+        ...prev,
+        [oppId]: { ...prev[oppId], assignedEditor: editor },
+      }));
+      recordAudit(
+        "Opportunity Editor Assigned",
+        { kind: "opportunity", id: oppId, label: title },
+        `Editor: ${editor}`
       );
     },
     [recordAudit]
@@ -1114,6 +1333,31 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       recordAudit("Introduction Completed", { kind: "introduction", id }, note);
     },
     [updateIntroductionStatus, recordAudit]
+  );
+  const archiveIntroduction = useCallback(
+    (id: string) => {
+      setIntroductionRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, archived: true } : r))
+      );
+      recordAudit("Introduction Archived", { kind: "introduction", id });
+    },
+    [recordAudit]
+  );
+  const restoreIntroduction = useCallback(
+    (id: string) => {
+      setIntroductionRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, archived: false } : r))
+      );
+      recordAudit("Introduction Restored", { kind: "introduction", id });
+    },
+    [recordAudit]
+  );
+  const deleteIntroduction = useCallback(
+    (id: string) => {
+      setIntroductionRequests((prev) => prev.filter((r) => r.id !== id));
+      recordAudit("Introduction Deleted", { kind: "introduction", id });
+    },
+    [recordAudit]
   );
 
   const createDirectConnection = useCallback(
@@ -2960,6 +3204,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     approveIntroduction,
     rejectIntroduction,
     completeIntroduction,
+    archiveIntroduction,
+    restoreIntroduction,
+    deleteIntroduction,
     directConnections,
     createDirectConnection,
     deals,
@@ -2990,18 +3237,29 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     suspendMember,
     activateMember,
     deleteMember,
+    verifyMember,
+    approveMember,
+    toggleMemberFeatured,
+    userMembers,
+    createMember,
     companyAdminState,
     verifyCompany,
     toggleCompanyFeatured,
     suspendCompany,
     activateCompany,
     deleteCompany,
+    assignCompanyEditor,
+    assignCompanyAdmin,
+    userCompanies,
+    createCompany,
     opportunityAdminState,
     approveOpportunity,
     rejectOpportunity,
     archiveOpportunityAdmin,
     deleteOpportunityAdmin,
     toggleOpportunityFeatured,
+    assignOpportunityModerator,
+    assignOpportunityEditor,
     auditEvents,
     recordAudit,
   };

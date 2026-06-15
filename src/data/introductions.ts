@@ -31,6 +31,8 @@ export type IntroductionRequest = {
   decidedAt?: string; // ISO when approved/rejected
   completedAt?: string; // ISO when marked completed
   decisionNote?: string;
+  /** Admin-archived introductions are hidden from the default queue. */
+  archived?: boolean;
 };
 
 export const SEED_INTRODUCTIONS: IntroductionRequest[] = [

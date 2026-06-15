@@ -3,6 +3,8 @@
 // state keyed by record id (persisted via the provider).
 
 import type { Role } from "@/lib/roles";
+import type { Member, MemberVerification } from "@/data/members";
+import type { Company } from "@/data/companies";
 
 // ---- Member admin overlay ----
 
@@ -11,7 +13,18 @@ export type MemberAccountStatus = "Active" | "Suspended" | "Deleted";
 export type MemberAdminState = {
   role?: Role;
   status?: MemberAccountStatus;
+  /** Admin verification override; wins over the member's seed verification. */
+  verificationOverride?: MemberVerification;
+  /** Admin featured override; wins over the member's seed `featured`. */
+  featuredOverride?: boolean;
+  /** Set when an admin explicitly approves the member into the directory. */
+  approved?: boolean;
 };
+
+/** A member record created at runtime through the Admin Control Center. */
+export type CreatedMember = Member & { createdAt: string };
+/** A company record created at runtime through the Admin Control Center. */
+export type CreatedCompany = Company & { createdAt: string };
 
 /** Defaults: everyone Active/Member; the platform owner is Super Admin. */
 export const SEED_MEMBER_ADMIN: Record<string, MemberAdminState> = {
@@ -28,6 +41,10 @@ export type CompanyAdminState = {
   verificationOverride?: "Pending" | "Verified" | "Premium Verified";
   featuredOverride?: boolean;
   status?: CompanyAccountStatus;
+  /** Name of the team member assigned to edit this company. */
+  assignedEditor?: string;
+  /** Name of the admin assigned to oversee this company. */
+  assignedAdmin?: string;
 };
 
 export const SEED_COMPANY_ADMIN: Record<string, CompanyAdminState> = {};
@@ -40,6 +57,10 @@ export type OpportunityAdminState = {
   moderation?: OpportunityModeration;
   archived?: boolean;
   deleted?: boolean;
+  /** Name of the moderator assigned to review this opportunity. */
+  assignedModerator?: string;
+  /** Name of the editor assigned to this opportunity. */
+  assignedEditor?: string;
 };
 
 /** A few recent submissions sit in the approval queue. */
