@@ -61,6 +61,7 @@ import {
 import {
   SEED_DEALS,
   statusForStage,
+  DEAL_DESK_NOW_MS,
   type Deal,
   type DealActivity,
   type DealActivityKind,
@@ -915,6 +916,57 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   useEffect(() => { if (hydrated) writeStored(KEY_CAL_EVENTS, calendarEvents); }, [calendarEvents, hydrated]);
   useEffect(() => { if (hydrated) writeStored(KEY_CAL_CATEGORIES, calendarCategories); }, [calendarCategories, hydrated]);
   useEffect(() => { if (hydrated) writeStored(KEY_CAL_GRANTS, calendarGrants); }, [calendarGrants, hydrated]);
+
+  // After hydration, derive calendar-driven notifications once. Idempotent via
+  // dedupeKey so repeated mounts / HMR never duplicate. Anchored to the demo
+  // "now" so the seeded calendar produces stable, meaningful alerts.
+  useEffect(() => {
+    if (!hydrated) return;
+    const nowMs = DEAL_DESK_NOW_MS;
+    const DAY = 24 * 3600 * 1000;
+    type Derived = { dedupeKey: string; kind: Notification["kind"]; title: string; body: string };
+    const derived: Derived[] = [];
+    for (const e of calendarEvents) {
+      if (e.status === "Completed" || e.status === "Cancelled") continue;
+      const startMs = Date.parse(e.start);
+      const endMs = Date.parse(e.end);
+      const day = e.start.slice(0, 10);
+      // Upcoming event (any type) within the next 24h.
+      if (startMs >= nowMs && startMs <= nowMs + DAY) {
+        derived.push({ dedupeKey: `cal-up-${e.id}`, kind: "calendar_event", title: "Upcoming event", body: `${e.title} · ${day}` });
+      }
+      // Deadline approaching within the next 3 days.
+      if (e.type === "Deadline" && startMs >= nowMs && startMs <= nowMs + 3 * DAY) {
+        derived.push({ dedupeKey: `cal-dl-${e.id}`, kind: "calendar_deadline", title: "Deadline approaching", body: `${e.title} · ${day}` });
+      }
+      // Overdue task / deadline (ended before now, still open).
+      if ((e.type === "Task" || e.type === "Deadline") && endMs < nowMs) {
+        derived.push({ dedupeKey: `cal-od-${e.id}`, kind: "calendar_overdue", title: "Overdue task", body: `${e.title} · ${day}` });
+      }
+      // Reminder due in the last hour or the next 24h.
+      if (e.type === "Reminder" && startMs >= nowMs - 3600 * 1000 && startMs <= nowMs + DAY) {
+        derived.push({ dedupeKey: `cal-rm-${e.id}`, kind: "calendar_reminder", title: "Reminder due", body: `${e.title} · ${day}` });
+      }
+    }
+    if (derived.length === 0) return;
+    setNotifications((prev) => {
+      const have = new Set(prev.map((n) => n.dedupeKey).filter(Boolean) as string[]);
+      const add = derived
+        .filter((d) => !have.has(d.dedupeKey))
+        .map((d) => ({
+          id: makeId("notif"),
+          kind: d.kind,
+          title: d.title,
+          body: d.body,
+          href: "/calendar",
+          createdAt: new Date(nowMs).toISOString(),
+          read: false,
+          dedupeKey: d.dedupeKey,
+        }));
+      return add.length ? [...add, ...prev] : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   // After hydration, scan all known opportunity image lists for IDB-backed
   // tokens and eagerly resolve each to a cached object URL. This way the
@@ -3241,9 +3293,15 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         return [entry, ...prev];
       });
       recordAudit("Event Created", { kind: "calendar", id, label: input.title }, `${input.type} · ${input.start.slice(0, 10)}`);
+      pushNotification({
+        kind: "calendar_event",
+        title: "Event created",
+        body: `${input.title} · ${input.start.slice(0, 10)}`,
+        href: "/calendar",
+      });
       return id;
     },
-    [recordAudit, profile.name]
+    [recordAudit, profile.name, pushNotification]
   );
 
   const updateCalendarEvent = useCallback(
@@ -3269,9 +3327,15 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       );
       if (!opts?.silent) {
         recordAudit(action, { kind: "calendar", id, label });
+        pushNotification({
+          kind: "calendar_event",
+          title: action === "Event Moved" ? "Event rescheduled" : "Event updated",
+          body: label,
+          href: "/calendar",
+        });
       }
     },
-    [recordAudit, profile.name]
+    [recordAudit, profile.name, pushNotification]
   );
 
   const deleteCalendarEvent = useCallback(

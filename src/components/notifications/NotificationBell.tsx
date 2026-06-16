@@ -8,6 +8,9 @@ import {
   Paperclip,
   GitCommitVertical,
   Sparkles,
+  CalendarClock,
+  AlarmClock,
+  CalendarX,
   type LucideIcon,
 } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
@@ -19,6 +22,10 @@ const KIND_ICON: Record<Notification["kind"], LucideIcon> = {
   attachment: Paperclip,
   negotiation_update: GitCommitVertical,
   company_response: Sparkles,
+  calendar_event: CalendarClock,
+  calendar_deadline: CalendarX,
+  calendar_overdue: CalendarX,
+  calendar_reminder: AlarmClock,
 };
 
 type Props = {

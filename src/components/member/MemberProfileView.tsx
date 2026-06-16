@@ -25,6 +25,7 @@ import { featuredOpportunities } from "@/data/opportunities";
 import { companies } from "@/data/companies";
 import RequestIntroductionModal from "@/components/members/RequestIntroductionModal";
 import { MemberDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
+import CalendarEventsPanel from "@/components/calendar/CalendarEventsPanel";
 import MemberMediaManager from "@/components/member/MemberMediaManager";
 import ReportButton from "@/components/moderation/ReportButton";
 import Lightbox, { useLightbox } from "@/components/common/Lightbox";
@@ -516,6 +517,17 @@ export default function MemberProfileView({ member }: { member: Member }) {
             </div>
 
             <MemberDealsPanel member={member} />
+            <CalendarEventsPanel
+              relation={{ memberId: member.id }}
+              eyebrow="Member Calendar"
+              highlights={[
+                { label: "Meetings", types: ["Meeting", "Investor Meeting"] },
+                { label: "Calls", types: ["Call"] },
+                { label: "Tasks", types: ["Task"] },
+                { label: "Reminders", types: ["Reminder"] },
+              ]}
+              quickTypes={["Meeting", "Call", "Task", "Reminder"]}
+            />
           </aside>
         </div>
       </div>

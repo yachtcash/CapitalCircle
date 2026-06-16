@@ -4,6 +4,7 @@ import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import DealDeskCard from "@/components/dashboard/DealDeskCard";
 import { DealInsightsPanel } from "@/components/dashboard/deals/DealIntegrations";
+import CalendarDashboardWidgets from "@/components/calendar/CalendarDashboardWidgets";
 import MyNegotiations from "@/components/dashboard/MyNegotiations";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import SavedItemsCompact from "@/components/dashboard/SavedItemsCompact";
@@ -27,6 +28,8 @@ export default function DashboardPage() {
         <DealDeskCard />
 
         <DealInsightsPanel />
+
+        <CalendarDashboardWidgets />
 
         <DashboardStats />
 

@@ -66,7 +66,11 @@ export type NotificationKind =
   | "message"
   | "attachment"
   | "negotiation_update"
-  | "company_response";
+  | "company_response"
+  | "calendar_event"
+  | "calendar_deadline"
+  | "calendar_overdue"
+  | "calendar_reminder";
 
 export type Notification = {
   id: string;
@@ -77,4 +81,6 @@ export type Notification = {
   read: boolean;
   href?: string;
   companyId?: string;
+  /** Stable key so derived notifications (upcoming/overdue/reminder) aren't duplicated across mounts. */
+  dedupeKey?: string;
 };

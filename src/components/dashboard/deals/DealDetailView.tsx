@@ -60,6 +60,7 @@ import { getMemberById } from "@/data/members";
 import { featuredOpportunities } from "@/data/opportunities";
 import { canViewInternalNotes } from "@/lib/roles";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import CalendarEventsPanel from "@/components/calendar/CalendarEventsPanel";
 
 import {
   DealHealthBadge,
@@ -519,6 +520,10 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
 
           {/* Sidebar */}
           <aside className="space-y-5">
+            <CalendarEventsPanel
+              relation={{ dealId: deal.dealId }}
+              eyebrow="Deal Calendar"
+            />
             <SidePanel title="Economics">
               <Row label="Target" value={formatCurrency(deal.targetInvestment)} />
               <Row label="Actual" value={formatCurrency(deal.actualInvestment)} />

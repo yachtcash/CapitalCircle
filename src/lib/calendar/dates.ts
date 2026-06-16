@@ -133,6 +133,11 @@ export function dayLabelLong(d: Date): string {
   return `${WEEKDAY_LABELS_FULL[d.getDay()]}, ${MONTH_LABELS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
+/** Short, compact date: "Jun 10, 2026". */
+export function formatDate(d: Date): string {
+  return `${MONTH_LABELS[d.getMonth()].slice(0, 3)} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
 // ---- HTML input <-> Date helpers ----
 
 export function toDateInput(d: Date): string {

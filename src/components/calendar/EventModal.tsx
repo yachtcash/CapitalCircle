@@ -45,6 +45,8 @@ type Props = {
   event?: CalendarEvent | null;
   prefillStart?: Date | null;
   prefillAllDay?: boolean;
+  /** Seed a new event's relations / type / title (used by the related-record panels). */
+  prefill?: { relations?: EventRelations; type?: EventType; title?: string } | null;
   categories: CalendarCategory[];
   onSaved?: (id: string) => void;
 };
@@ -55,6 +57,7 @@ export default function EventModal({
   event,
   prefillStart,
   prefillAllDay,
+  prefill,
   categories,
   onSaved,
 }: Props) {
@@ -107,11 +110,12 @@ export default function EventModal({
     } else {
       const base = prefillStart ?? new Date(DEAL_DESK_NOW_MS);
       const end = new Date(base.getTime() + 60 * 60 * 1000);
-      setTitle("");
+      const pType = prefill?.type ?? "Meeting";
+      setTitle(prefill?.title ?? "");
       setDescription("");
       setNotes("");
-      setType("Meeting");
-      setCategoryId("meetings");
+      setType(pType);
+      setCategoryId(TYPE_DEFAULT_CATEGORY[pType] ?? "meetings");
       setPriority("Medium");
       setStatus("Scheduled");
       setAllDay(!!prefillAllDay);
@@ -120,7 +124,7 @@ export default function EventModal({
       setEndDate(toDateInput(end));
       setEndTime(toTimeInput(end));
       setLocation("");
-      setRel({});
+      setRel(prefill?.relations ?? {});
       setFreq("None");
       setInterval(1);
       setNeverEnds(true);

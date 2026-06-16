@@ -12,6 +12,7 @@ import CompanyKeyInfo from "@/components/company/CompanyKeyInfo";
 import CompanyMediaManager from "@/components/company/CompanyMediaManager";
 import CompanyAbout from "@/components/company/CompanyAbout";
 import { CompanyDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
+import CalendarEventsPanel from "@/components/calendar/CalendarEventsPanel";
 import CompanyActiveOpportunities from "@/components/company/CompanyActiveOpportunities";
 import CompanyPastProjects from "@/components/company/CompanyPastProjects";
 import CompanyTeam from "@/components/company/CompanyTeam";
@@ -58,6 +59,17 @@ export default async function CompanyPage({
         <CompanyKeyInfo company={company} activeOpportunitiesCount={active.length} />
         <CompanyMediaManager company={company} />
         <CompanyDealsPanel company={company} />
+        <CalendarEventsPanel
+          relation={{ companyId: company.id }}
+          eyebrow="Company Calendar"
+          highlights={[
+            { label: "Investor Meetings", types: ["Investor Meeting", "Meeting"] },
+            { label: "Calls", types: ["Call"] },
+            { label: "Tasks", types: ["Task"] },
+            { label: "Deadlines", types: ["Deadline"] },
+          ]}
+          quickTypes={["Investor Meeting", "Call", "Task", "Deadline"]}
+        />
         <CompanyAbout company={company} />
         <CompanyActiveOpportunities
           opportunities={active}

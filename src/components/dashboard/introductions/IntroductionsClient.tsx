@@ -28,6 +28,7 @@ import {
   DealHealthBadge,
   DealStageBadge,
 } from "@/components/dashboard/deals/DealBadges";
+import CalendarEventsPanel from "@/components/calendar/CalendarEventsPanel";
 import { cn } from "@/lib/cn";
 
 type TabKey = "Pending" | "Approved" | "Rejected" | "Completed" | "All";
@@ -413,6 +414,27 @@ function Row({
         <span className="mx-1.5">·</span>
         Target · {request.targetMemberId}
       </div>
+
+      <details className="mt-4 group">
+        <summary className="cursor-pointer list-none inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] font-bold text-gold-700 hover:text-gold-600 transition-colors">
+          <Calendar className="h-3.5 w-3.5" strokeWidth={2.4} />
+          Calendar &amp; Events
+          <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" strokeWidth={2.4} />
+        </summary>
+        <div className="mt-3">
+          <CalendarEventsPanel
+            relation={{ introductionId: request.id }}
+            eyebrow="Introduction Calendar"
+            highlights={[
+              { label: "Meetings", types: ["Meeting", "Investor Meeting"] },
+              { label: "Scheduled Calls", types: ["Call"] },
+              { label: "Follow-Ups", types: ["Follow Up"] },
+              { label: "Deadlines", types: ["Deadline"] },
+            ]}
+            quickTypes={["Meeting", "Call", "Follow Up", "Deadline"]}
+          />
+        </div>
+      </details>
     </article>
   );
 }

@@ -19,6 +19,7 @@ import RequestAccessModal from "@/components/documents/RequestAccessModal";
 import OwnerControlsPanel from "./OwnerControlsPanel";
 import ReportButton from "@/components/moderation/ReportButton";
 import { OpportunityDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
+import CalendarEventsPanel from "@/components/calendar/CalendarEventsPanel";
 
 /**
  * Shared client view rendering the full opportunity detail page.
@@ -106,6 +107,17 @@ export default function OpportunityDetailView({
           <aside className="order-1 lg:order-2 lg:w-[360px] space-y-5">
             <OwnerControlsPanel opportunity={opportunity} />
             <OpportunityDealsPanel opportunity={opportunity} />
+            <CalendarEventsPanel
+              relation={{ opportunityId: opportunity.id }}
+              eyebrow="Opportunity Calendar"
+              highlights={[
+                { label: "Meetings", types: ["Meeting", "Investor Meeting"] },
+                { label: "Site Visits", types: ["Inspection", "Due Diligence"] },
+                { label: "Property Tours", types: ["Property Tour"] },
+                { label: "Deadlines", types: ["Deadline"] },
+              ]}
+              quickTypes={["Meeting", "Property Tour", "Deadline", "Follow Up"]}
+            />
             <div className="lg:sticky lg:top-6 space-y-3">
               <ActionPanel opportunity={opportunity} />
               <div className="flex justify-center">
