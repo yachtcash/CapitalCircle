@@ -4,15 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItems } from "@/data/nav";
 import { cn } from "@/lib/cn";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, canViewCalendar, type Role } from "@/lib/roles";
 import { useMessaging } from "@/components/providers/MessagingProvider";
+
+const SELF_MEMBER_ID = "MEM-000001";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { totalUnreadConversations, hydrated, currentRole } = useMessaging();
-  const mobileItems = navItems.filter(
-    (i) => !i.hideOnMobile && (!i.adminOnly || canAccessAdmin(currentRole))
-  );
+  const { totalUnreadConversations, hydrated, currentRole, calendarGrants } = useMessaging();
+  const calGranted = !!calendarGrants[SELF_MEMBER_ID];
+  const mobileItems = navItems.filter((i) => {
+    if (i.hideOnMobile) return false;
+    if (i.adminOnly && !canAccessAdmin(currentRole)) return false;
+    if (i.calendarGated && !canViewCalendar(currentRole as Role, calGranted)) return false;
+    return true;
+  });
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-navy-900/95 backdrop-blur-lg border-t border-white/5 pb-[env(safe-area-inset-bottom)]">

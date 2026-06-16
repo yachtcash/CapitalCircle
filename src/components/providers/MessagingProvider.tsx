@@ -92,7 +92,14 @@ import {
   type CreateMemberInput,
   type CreateCompanyInput,
 } from "@/lib/admin/createRecords";
-import { isStoredImageToken, prewarmTokens } from "@/lib/imageStore";
+import { isStoredImageToken, prewarmTokens, deleteImage as deleteStoredBlob } from "@/lib/imageStore";
+import {
+  SEED_CALENDAR_EVENTS,
+  DEFAULT_CATEGORIES,
+  type CalendarEvent,
+  type CalendarCategory,
+  type EventAttachment,
+} from "@/data/calendar";
 import {
   SEED_MODERATION_REPORTS,
   SEED_WARNINGS,
@@ -147,6 +154,9 @@ const KEY_MOD_CONTENT = "cc:mod-content:v1";
 const KEY_COMPANY_ADMIN = "cc:company-admin:v1";
 const KEY_OPP_ADMIN = "cc:opp-admin:v1";
 const KEY_AUDIT = "cc:audit:v1";
+const KEY_CAL_EVENTS = "cc:calendar-events:v1";
+const KEY_CAL_CATEGORIES = "cc:calendar-categories:v1";
+const KEY_CAL_GRANTS = "cc:calendar-grants:v1";
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -574,6 +584,21 @@ type MessagingValue = {
     status: ContentModerationStatus,
     note?: string
   ) => void;
+  // ---- Calendar ----
+  calendarEvents: CalendarEvent[];
+  calendarCategories: CalendarCategory[];
+  calendarGrants: Record<string, boolean>;
+  createCalendarEvent: (input: Omit<CalendarEvent, "id" | "createdAt" | "updatedAt" | "createdBy" | "history">) => string;
+  updateCalendarEvent: (id: string, patch: Partial<Omit<CalendarEvent, "id" | "createdAt" | "createdBy">>, opts?: { silent?: boolean; action?: "Event Updated" | "Event Moved" }) => void;
+  deleteCalendarEvent: (id: string) => void;
+  duplicateCalendarEvent: (id: string) => string | null;
+  moveCalendarEvent: (id: string, startISO: string, endISO: string) => void;
+  addCalendarAttachment: (id: string, attachment: EventAttachment) => void;
+  removeCalendarAttachment: (id: string, attachmentId: string) => void;
+  addCalendarCategory: (cat: CalendarCategory) => void;
+  updateCalendarCategory: (id: string, patch: Partial<CalendarCategory>) => void;
+  deleteCalendarCategory: (id: string) => void;
+  setCalendarGrant: (memberId: string, granted: boolean, memberName?: string) => void;
   recordAudit: (
     action: AuditAction,
     target: { kind: AuditTargetKind; id: string; label?: string },
@@ -648,6 +673,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [opportunityAdminState, setOpportunityAdminState] =
     useState<Record<string, OpportunityAdminState>>(SEED_OPP_ADMIN);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(SEED_AUDIT_EVENTS);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(SEED_CALENDAR_EVENTS);
+  const [calendarCategories, setCalendarCategories] = useState<CalendarCategory[]>(DEFAULT_CATEGORIES);
+  const [calendarGrants, setCalendarGrants] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -775,6 +803,12 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     // array (from before the seeds existed) would otherwise hide the seed
     // history that makes the Audit Log demo-able on first load.
     if (storedAudit && storedAudit.length > 0) setAuditEvents(storedAudit);
+    const sCalEvents = readStored<CalendarEvent[] | null>(KEY_CAL_EVENTS, null);
+    if (sCalEvents) setCalendarEvents(sCalEvents);
+    const sCalCats = readStored<CalendarCategory[] | null>(KEY_CAL_CATEGORIES, null);
+    if (sCalCats && sCalCats.length > 0) setCalendarCategories(sCalCats);
+    const sCalGrants = readStored<Record<string, boolean> | null>(KEY_CAL_GRANTS, null);
+    if (sCalGrants) setCalendarGrants(sCalGrants);
     setHydrated(true);
   }, []);
 
@@ -878,6 +912,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_AUDIT, auditEvents);
   }, [auditEvents, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_CAL_EVENTS, calendarEvents); }, [calendarEvents, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_CAL_CATEGORIES, calendarCategories); }, [calendarCategories, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(KEY_CAL_GRANTS, calendarGrants); }, [calendarGrants, hydrated]);
 
   // After hydration, scan all known opportunity image lists for IDB-backed
   // tokens and eagerly resolve each to a cached object URL. This way the
@@ -3176,6 +3213,200 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     [recordAudit, profile.name]
   );
 
+  // ---- Calendar ----
+
+  const nextEventId = (existing: CalendarEvent[]): string => {
+    let max = 0;
+    for (const e of existing) {
+      const m = /^EVT-(\d+)$/.exec(e.id);
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    }
+    return `EVT-${String(max + 1).padStart(6, "0")}`;
+  };
+
+  const createCalendarEvent = useCallback(
+    (input: Omit<CalendarEvent, "id" | "createdAt" | "updatedAt" | "createdBy" | "history">): string => {
+      const now = new Date().toISOString();
+      let id = "";
+      setCalendarEvents((prev) => {
+        id = nextEventId(prev);
+        const entry: CalendarEvent = {
+          ...input,
+          id,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: profile.name,
+          history: [{ at: now, actor: profile.name, action: "Event Created" }],
+        };
+        return [entry, ...prev];
+      });
+      recordAudit("Event Created", { kind: "calendar", id, label: input.title }, `${input.type} · ${input.start.slice(0, 10)}`);
+      return id;
+    },
+    [recordAudit, profile.name]
+  );
+
+  const updateCalendarEvent = useCallback(
+    (
+      id: string,
+      patch: Partial<Omit<CalendarEvent, "id" | "createdAt" | "createdBy">>,
+      opts?: { silent?: boolean; action?: "Event Updated" | "Event Moved" }
+    ) => {
+      const now = new Date().toISOString();
+      const action = opts?.action ?? "Event Updated";
+      let label = "";
+      setCalendarEvents((prev) =>
+        prev.map((e) => {
+          if (e.id !== id) return e;
+          label = patch.title ?? e.title;
+          return {
+            ...e,
+            ...patch,
+            updatedAt: now,
+            history: [...e.history, { at: now, actor: profile.name, action }],
+          };
+        })
+      );
+      if (!opts?.silent) {
+        recordAudit(action, { kind: "calendar", id, label });
+      }
+    },
+    [recordAudit, profile.name]
+  );
+
+  const deleteCalendarEvent = useCallback(
+    (id: string) => {
+      const target = calendarEvents.find((e) => e.id === id);
+      if (target) {
+        // Only free a blob if no OTHER event still references that token
+        // (duplicated events share attachment tokens — see duplicate).
+        const others = calendarEvents.filter((e) => e.id !== id);
+        for (const a of target.attachments) {
+          if (!isStoredImageToken(a.token)) continue;
+          const stillUsed = others.some((e) => e.attachments.some((x) => x.token === a.token));
+          if (!stillUsed) void deleteStoredBlob(a.token);
+        }
+      }
+      setCalendarEvents((prev) => prev.filter((e) => e.id !== id));
+      recordAudit("Event Deleted", { kind: "calendar", id, label: target?.title });
+    },
+    [recordAudit, calendarEvents]
+  );
+
+  const duplicateCalendarEvent = useCallback(
+    (id: string): string | null => {
+      const src = calendarEvents.find((e) => e.id === id);
+      if (!src) return null;
+      const now = new Date().toISOString();
+      let newId = "";
+      setCalendarEvents((prev) => {
+        newId = nextEventId(prev);
+        const copy: CalendarEvent = {
+          ...src,
+          id: newId,
+          title: `${src.title} (Copy)`,
+          attachments: src.attachments.map((a) => ({ ...a })),
+          createdAt: now,
+          updatedAt: now,
+          createdBy: profile.name,
+          history: [{ at: now, actor: profile.name, action: "Event Duplicated", detail: `from ${src.id}` }],
+        };
+        return [copy, ...prev];
+      });
+      recordAudit("Event Duplicated", { kind: "calendar", id: newId, label: src.title }, `Duplicated from ${src.id}`);
+      return newId;
+    },
+    [recordAudit, calendarEvents, profile.name]
+  );
+
+  const moveCalendarEvent = useCallback(
+    (id: string, startISO: string, endISO: string) => {
+      const now = new Date().toISOString();
+      setCalendarEvents((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? { ...e, start: startISO, end: endISO, updatedAt: now, history: [...e.history, { at: now, actor: profile.name, action: "Event Moved" }] }
+            : e
+        )
+      );
+      recordAudit("Event Moved", { kind: "calendar", id }, `Moved to ${startISO.slice(0, 16).replace("T", " ")}`);
+    },
+    [recordAudit, profile.name]
+  );
+
+  const addCalendarAttachment = useCallback(
+    (id: string, attachment: EventAttachment) => {
+      const now = new Date().toISOString();
+      let label = "";
+      setCalendarEvents((prev) =>
+        prev.map((e) => {
+          if (e.id !== id) return e;
+          label = e.title;
+          return { ...e, attachments: [...e.attachments, attachment], updatedAt: now, history: [...e.history, { at: now, actor: profile.name, action: "Attachment Uploaded", detail: attachment.name }] };
+        })
+      );
+      recordAudit("Attachment Uploaded", { kind: "calendar", id, label }, attachment.name);
+    },
+    [recordAudit, profile.name]
+  );
+
+  const removeCalendarAttachment = useCallback(
+    (id: string, attachmentId: string) => {
+      const target = calendarEvents.find((e) => e.id === id);
+      const att = target?.attachments.find((a) => a.id === attachmentId);
+      if (att && isStoredImageToken(att.token)) void deleteStoredBlob(att.token);
+      const now = new Date().toISOString();
+      setCalendarEvents((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? { ...e, attachments: e.attachments.filter((a) => a.id !== attachmentId), updatedAt: now, history: [...e.history, { at: now, actor: profile.name, action: "Attachment Deleted", detail: att?.name }] }
+            : e
+        )
+      );
+      recordAudit("Attachment Deleted", { kind: "calendar", id, label: target?.title }, att?.name);
+    },
+    [recordAudit, calendarEvents, profile.name]
+  );
+
+  const addCalendarCategory = useCallback(
+    (cat: CalendarCategory) => {
+      setCalendarCategories((prev) => [...prev, cat]);
+      recordAudit("Category Changed", { kind: "calendar", id: cat.id, label: cat.name }, "Category created");
+    },
+    [recordAudit]
+  );
+
+  const updateCalendarCategory = useCallback(
+    (id: string, patch: Partial<CalendarCategory>) => {
+      setCalendarCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+      recordAudit("Category Changed", { kind: "calendar", id, label: patch.name }, "Category updated");
+    },
+    [recordAudit]
+  );
+
+  const deleteCalendarCategory = useCallback(
+    (id: string) => {
+      // Never delete a protected default category — events default to these.
+      setCalendarCategories((prev) =>
+        prev.filter((c) => !(c.id === id && c.removable !== false))
+      );
+      recordAudit("Category Changed", { kind: "calendar", id }, "Category deleted");
+    },
+    [recordAudit]
+  );
+
+  const setCalendarGrant = useCallback(
+    (memberId: string, granted: boolean, memberName?: string) => {
+      setCalendarGrants((prev) => ({ ...prev, [memberId]: granted }));
+      recordAudit(
+        "Role Changed",
+        { kind: "calendar", id: memberId, label: memberName },
+        granted ? "Calendar edit access granted" : "Calendar access revoked"
+      );
+    },
+    [recordAudit]
+  );
+
   // ---- Document / Access Request actions ----
 
   function nextRequestId(existing: AccessRequest[]): string {
@@ -3692,6 +3923,20 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     assignOpportunityModerator,
     assignOpportunityEditor,
     auditEvents,
+    calendarEvents,
+    calendarCategories,
+    calendarGrants,
+    createCalendarEvent,
+    updateCalendarEvent,
+    deleteCalendarEvent,
+    duplicateCalendarEvent,
+    moveCalendarEvent,
+    addCalendarAttachment,
+    removeCalendarAttachment,
+    addCalendarCategory,
+    updateCalendarCategory,
+    deleteCalendarCategory,
+    setCalendarGrant,
     recordAudit,
   };
 

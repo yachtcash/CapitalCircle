@@ -9,6 +9,7 @@ import {
   Map as MapIcon,
   PlusCircle,
   MessageSquare,
+  CalendarDays,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +23,8 @@ export type NavItem = {
   hideOnMobile?: boolean;
   /** When true, only render for roles with canAccessAdmin (Admin+). */
   adminOnly?: boolean;
+  /** When true, only render for roles/members that can view the calendar. */
+  calendarGated?: boolean;
 };
 
 export const navItems: NavItem[] = [
@@ -31,6 +34,7 @@ export const navItems: NavItem[] = [
   { label: "Members", shortLabel: "Members", href: "/members", icon: Users },
   { label: "Map", shortLabel: "Map", href: "/map", icon: MapIcon },
   { label: "Deal Desk", shortLabel: "Deals", href: "/deal-desk", icon: Briefcase },
+  { label: "Calendar", shortLabel: "Calendar", href: "/calendar", icon: CalendarDays, calendarGated: true, hideOnMobile: true },
   { label: "Admin", shortLabel: "Admin", href: "/admin", icon: ShieldCheck, adminOnly: true },
   { label: "Dashboard", shortLabel: "Dash", href: "/dashboard", icon: LayoutDashboard, hideOnMobile: true },
   { label: "Create Listing", shortLabel: "Create", href: "/create-listing", icon: PlusCircle, hideOnMobile: true },

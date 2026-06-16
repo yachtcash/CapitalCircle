@@ -14,6 +14,7 @@ import {
   Flag,
   ShieldAlert,
   ScrollText,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ const SECTIONS: { label: string; href: string; icon: LucideIcon; exact?: boolean
   { label: "Deals", href: "/admin/deals", icon: Briefcase },
   { label: "Introductions", href: "/admin/introductions", icon: UserPlus },
   { label: "Moderation", href: "/admin/moderation", icon: Flag },
+  { label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
   { label: "Audit Log", href: "/admin/audit", icon: ScrollText },
 ];
 

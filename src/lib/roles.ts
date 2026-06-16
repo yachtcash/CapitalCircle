@@ -196,3 +196,39 @@ export function canRestoreMembers(role: Role = CURRENT_USER_ROLE): boolean {
 export function canBanMembers(role: Role = CURRENT_USER_ROLE): boolean {
   return isSuperAdmin(role);
 }
+
+// ---- Calendar permissions ----
+//
+// Super Admin / Admin — full access (view + edit)
+// Editor            — view always; edit only if Super Admin granted access
+// Moderator         — read only
+// Member            — no access unless Super Admin granted view access
+//
+// The `granted` flag is the per-member calendar grant toggled by a Super Admin
+// (provider `calendarGrants`). Pass the current user's grant in.
+
+/** Can the role open the calendar at all (read access). */
+export function canViewCalendar(
+  role: Role = CURRENT_USER_ROLE,
+  granted = false
+): boolean {
+  if (hasRole("Moderator", role)) return true; // Moderator+ can view
+  return granted; // a granted Member can view
+}
+
+/** Can the role create / edit / move / delete events. */
+export function canEditCalendar(
+  role: Role = CURRENT_USER_ROLE,
+  granted = false
+): boolean {
+  if (hasRole("Admin", role)) return true; // Admin + Super Admin: full
+  if (role === "Editor") return granted; // Editor: editable if granted
+  return false; // Moderator read-only; Member none
+}
+
+/** Super Admin only — grant/revoke per-member calendar access. */
+export function canManageCalendarGrants(
+  role: Role = CURRENT_USER_ROLE
+): boolean {
+  return isSuperAdmin(role);
+}

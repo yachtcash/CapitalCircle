@@ -4,16 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItems } from "@/data/nav";
 import { cn } from "@/lib/cn";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, canViewCalendar, type Role } from "@/lib/roles";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
+const SELF_MEMBER_ID = "MEM-000001";
+
 export default function Sidebar() {
   const pathname = usePathname();
-  const { totalUnreadConversations, hydrated, currentRole } = useMessaging();
-  const visibleItems = navItems.filter(
-    (i) => !i.adminOnly || canAccessAdmin(currentRole)
-  );
+  const { totalUnreadConversations, hydrated, currentRole, calendarGrants } = useMessaging();
+  const calGranted = !!calendarGrants[SELF_MEMBER_ID];
+  const visibleItems = navItems.filter((i) => {
+    if (i.adminOnly && !canAccessAdmin(currentRole)) return false;
+    if (i.calendarGated && !canViewCalendar(currentRole as Role, calGranted)) return false;
+    return true;
+  });
 
   return (
     <aside className="hidden md:flex fixed inset-y-0 left-0 w-64 flex-col bg-navy-900 text-white border-r border-white/5 z-30">

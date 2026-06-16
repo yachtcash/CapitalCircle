@@ -89,7 +89,15 @@ export type AuditAction =
   | "Document Deleted"
   | "Document Replaced"
   | "Access Approved"
-  | "Access Denied";
+  | "Access Denied"
+  | "Event Created"
+  | "Event Updated"
+  | "Event Deleted"
+  | "Event Moved"
+  | "Event Duplicated"
+  | "Attachment Uploaded"
+  | "Attachment Deleted"
+  | "Category Changed";
 
 export type AuditTargetKind =
   | "member"
@@ -101,6 +109,7 @@ export type AuditTargetKind =
   | "image"
   | "document"
   | "role"
+  | "calendar"
   | "system";
 
 export type AuditEvent = {
@@ -131,6 +140,7 @@ export type AuditGroup =
   | "Deal Actions"
   | "Introduction Actions"
   | "Moderation Actions"
+  | "Calendar Actions"
   | "System Actions";
 
 export const AUDIT_GROUPS: AuditGroup[] = [
@@ -144,6 +154,7 @@ export const AUDIT_GROUPS: AuditGroup[] = [
   "Deal Actions",
   "Introduction Actions",
   "Moderation Actions",
+  "Calendar Actions",
   "System Actions",
 ];
 
@@ -234,6 +245,14 @@ const GROUP_MAP: Record<AuditAction, AuditGroup> = {
   "Introduction Rejected": "Introduction Actions",
   "Introduction Completed": "Introduction Actions",
   "Introduction Converted": "Introduction Actions",
+  "Event Created": "Calendar Actions",
+  "Event Updated": "Calendar Actions",
+  "Event Deleted": "Calendar Actions",
+  "Event Moved": "Calendar Actions",
+  "Event Duplicated": "Calendar Actions",
+  "Attachment Uploaded": "Calendar Actions",
+  "Attachment Deleted": "Calendar Actions",
+  "Category Changed": "Calendar Actions",
 };
 
 export function groupForAction(action: AuditAction): AuditGroup {
