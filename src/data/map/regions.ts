@@ -58,6 +58,41 @@ export const MAP_REGIONS: MapRegion[] = [
     bbox: { minLng: 25, maxLng: 60, minLat: 12, maxLat: 42 },
     countries: ["UAE", "Saudi Arabia", "Qatar", "Oman", "Israel"],
   },
+  {
+    id: "canada",
+    label: "Canada",
+    description: "Toronto, Vancouver, Montréal",
+    bbox: { minLng: -141, maxLng: -52, minLat: 42, maxLat: 70 },
+    countries: ["Canada"],
+  },
+  {
+    id: "central-america",
+    label: "Central America",
+    description: "Costa Rica, Panama, Belize",
+    bbox: { minLng: -92, maxLng: -77, minLat: 7, maxLat: 18 },
+    countries: ["Costa Rica", "Panama", "Guatemala", "Belize", "Nicaragua", "Honduras"],
+  },
+  {
+    id: "south-america",
+    label: "South America",
+    description: "Brazil, Chile, Colombia, Argentina",
+    bbox: { minLng: -82, maxLng: -34, minLat: -56, maxLat: 13 },
+    countries: ["Brazil", "Chile", "Colombia", "Argentina", "Peru", "Uruguay"],
+  },
+  {
+    id: "asia",
+    label: "Asia",
+    description: "Singapore, Japan, India, UAE",
+    bbox: { minLng: 60, maxLng: 150, minLat: 5, maxLat: 55 },
+    countries: ["Singapore", "Japan", "India", "China", "Thailand", "Indonesia", "Vietnam"],
+  },
+  {
+    id: "africa",
+    label: "Africa",
+    description: "South Africa, Kenya, Morocco",
+    bbox: { minLng: -18, maxLng: 52, minLat: -35, maxLat: 37 },
+    countries: ["South Africa", "Kenya", "Nigeria", "Egypt", "Morocco", "Ghana"],
+  },
 ];
 
 export function getRegionById(id: string): MapRegion | undefined {

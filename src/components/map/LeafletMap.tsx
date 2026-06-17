@@ -1,8 +1,8 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Plus, Minus, LocateFixed, Satellite, Map as MapIcon, MapPinned } from "lucide-react";
 
@@ -73,19 +73,31 @@ function clusterIcon(count: number): L.DivIcon {
 // ---- Zoom-aware clustering (pixel-distance, transitive) ----
 
 type Projected = { o: Opportunity; lat: number; lng: number; x: number; y: number };
+type Member = { o: Opportunity; lat: number; lng: number };
 type Group =
   | { kind: "single"; o: Opportunity; lat: number; lng: number }
-  | { kind: "cluster"; id: string; lat: number; lng: number; count: number };
+  | {
+      kind: "cluster";
+      id: string;
+      lat: number;
+      lng: number;
+      count: number;
+      members: Member[];
+      /** Max pairwise pixel spread — small means the points are coincident. */
+      spreadPx: number;
+    };
 
-// Cluster radius scales DOWN as you zoom in, so deals reveal themselves quickly:
-//   world (z<=3)  → cluster      continent (4)  → smaller clusters
-//   country (5–6) → mostly individual           state/city (>=7) → all individual
+// Cluster radius scales DOWN aggressively as you zoom in, so inventory reveals
+// itself fast. At state/city zoom the radius is tiny — only points sharing
+// (near-)identical coordinates group, and those groups SPIDERFY on click rather
+// than hide deals.
+//   world (z<=3) → modest clusters    continent (4) → small clusters
+//   country (5)  → mostly individual  state/city (>=6) → individual + spiderfy
 function clusterRadiusForZoom(zoom: number): number {
-  if (zoom >= 7) return 0; // country / state / city → never cluster
-  if (zoom >= 6) return 24;
-  if (zoom >= 5) return 32;
-  if (zoom >= 4) return 40; // continent → smaller clusters
-  return 48; // world → clustering allowed
+  if (zoom >= 6) return 12; // only coincident points group → spiderfy on click
+  if (zoom >= 5) return 16;
+  if (zoom >= 4) return 24; // continent → small clusters
+  return 36; // world → modest clusters
 }
 
 function buildGroups(map: L.Map, opportunities: Opportunity[]): Group[] {
@@ -96,10 +108,6 @@ function buildGroups(map: L.Map, opportunities: Opportunity[]): Group[] {
     if (!c) continue;
     const p = map.latLngToContainerPoint([c.lat, c.lng]);
     pts.push({ o, lat: c.lat, lng: c.lng, x: p.x, y: p.y });
-  }
-  // Above the clustering ceiling, every opportunity is its own marker.
-  if (radius === 0) {
-    return pts.map((p) => ({ kind: "single", o: p.o, lat: p.lat, lng: p.lng }));
   }
   const visited = new Set<string>();
   const out: Group[] = [];
@@ -124,7 +132,21 @@ function buildGroups(map: L.Map, opportunities: Opportunity[]): Group[] {
     if (group.length > 1) {
       const lat = group.reduce((s, g) => s + g.lat, 0) / group.length;
       const lng = group.reduce((s, g) => s + g.lng, 0) / group.length;
-      out.push({ kind: "cluster", id: `cl-${seed.o.id}`, lat, lng, count: group.length });
+      let spreadPx = 0;
+      for (let a = 0; a < group.length; a++) {
+        for (let b = a + 1; b < group.length; b++) {
+          spreadPx = Math.max(spreadPx, Math.hypot(group[a].x - group[b].x, group[a].y - group[b].y));
+        }
+      }
+      out.push({
+        kind: "cluster",
+        id: `cl-${seed.o.id}`,
+        lat,
+        lng,
+        count: group.length,
+        members: group.map((g) => ({ o: g.o, lat: g.lat, lng: g.lng })),
+        spreadPx,
+      });
     } else {
       out.push({ kind: "single", o: seed.o, lat: seed.lat, lng: seed.lng });
     }
@@ -145,8 +167,12 @@ function MarkerLayer({
 }) {
   const map = useMap();
   const [version, setVersion] = useState(0);
+  const [spiderId, setSpiderId] = useState<string | null>(null);
   useMapEvents({
-    zoomend: () => setVersion((v) => v + 1),
+    zoomend: () => {
+      setSpiderId(null); // collapse any open spider when the view changes
+      setVersion((v) => v + 1);
+    },
     moveend: () => setVersion((v) => v + 1),
   });
 
@@ -177,59 +203,107 @@ function MarkerLayer({
     }
   }, [groups]);
 
+  // Renders one opportunity pin + its rich popup (shared by singles + spider legs).
+  const renderOppMarker = (o: Opportunity, lat: number, lng: number, keySuffix = "") => {
+    const styleKey = markerStyleFor(o.category);
+    const isSel = selectedSlug === o.slug;
+    return (
+      <Marker
+        key={o.id + keySuffix}
+        position={[lat, lng]}
+        icon={pinIcon(styleKey, isSel)}
+        ref={(m) => {
+          if (m) markerRefs.current.set(o.slug, m as unknown as L.Marker);
+        }}
+        eventHandlers={{ click: () => onSelectOpportunity(o) }}
+        zIndexOffset={isSel ? 1000 : 0}
+      >
+        <Popup className="cc-popup" maxWidth={330} minWidth={300} closeButton={false} autoPan>
+          <MarkerPreviewCard
+            opportunity={o}
+            onClose={() => {
+              map.closePopup();
+              onSelectOpportunity(null);
+            }}
+          />
+        </Popup>
+      </Marker>
+    );
+  };
+
   return (
     <>
       {groups.map((g) => {
-        if (g.kind === "cluster") {
+        if (g.kind === "single") {
+          return renderOppMarker(g.o, g.lat, g.lng);
+        }
+
+        // Spiderfied: fan the members out around the centroid with connector legs.
+        if (spiderId === g.id) {
+          const cp = map.latLngToContainerPoint([g.lat, g.lng]);
+          const ring = 16 + g.members.length * 6;
           return (
-            <Marker
-              key={g.id}
-              position={[g.lat, g.lng]}
-              icon={clusterIcon(g.count)}
-              eventHandlers={{
-                click: () => map.flyTo([g.lat, g.lng], Math.min(map.getZoom() + 2, 13), { duration: 0.5 }),
-              }}
-            />
+            <Fragment key={`spider-${g.id}`}>
+              {g.members.map((m, i) => {
+                const angle = (2 * Math.PI * i) / g.members.length - Math.PI / 2;
+                const pt = L.point(cp.x + ring * Math.cos(angle), cp.y + ring * Math.sin(angle));
+                const ll = map.containerPointToLatLng(pt);
+                return (
+                  <Fragment key={`${g.id}-${m.o.id}`}>
+                    <Polyline
+                      positions={[[g.lat, g.lng], [ll.lat, ll.lng]]}
+                      pathOptions={{ color: "#0A1628", weight: 1, opacity: 0.3 }}
+                    />
+                    {renderOppMarker(m.o, ll.lat, ll.lng, `-sp`)}
+                  </Fragment>
+                );
+              })}
+            </Fragment>
           );
         }
-        const styleKey = markerStyleFor(g.o.category);
-        const isSel = selectedSlug === g.o.slug;
+
+        // Cluster: zoom in if the points are separable; spiderfy if coincident.
         return (
           <Marker
-            key={g.o.id}
+            key={g.id}
             position={[g.lat, g.lng]}
-            icon={pinIcon(styleKey, isSel)}
-            ref={(m) => {
-              if (m) markerRefs.current.set(g.o.slug, m as unknown as L.Marker);
+            icon={clusterIcon(g.count)}
+            eventHandlers={{
+              click: () => {
+                if (g.spreadPx < 30 || map.getZoom() >= map.getMaxZoom() - 1) {
+                  setSpiderId(g.id);
+                } else {
+                  map.flyTo([g.lat, g.lng], Math.min(map.getZoom() + 2, 14), { duration: 0.5 });
+                }
+              },
             }}
-            eventHandlers={{ click: () => onSelectOpportunity(g.o) }}
-          >
-            <Popup className="cc-popup" maxWidth={320} minWidth={300} closeButton={false} autoPan>
-              <MarkerPreviewCard
-                opportunity={g.o}
-                onClose={() => {
-                  map.closePopup();
-                  onSelectOpportunity(null);
-                }}
-              />
-            </Popup>
-          </Marker>
+          />
         );
       })}
     </>
   );
 }
 
-// ---- Fit bounds to visible markers on mount + filter change ----
+// North America — the marketplace's core market. The map OPENS here (USA, Mexico,
+// Canada visible) rather than at a global zoom, so density reads immediately.
+const NORTH_AMERICA = L.latLngBounds([14, -128], [60, -66]);
+
+// ---- Fit bounds: North America on first load, filtered results thereafter ----
 
 function FitBounds({ points, fitKey }: { points: { lat: number; lng: number }[]; fitKey: string }) {
   const map = useMap();
   const first = useRef(true);
   useEffect(() => {
+    if (first.current) {
+      // Open focused on North America regardless of far-flung outliers.
+      map.fitBounds(NORTH_AMERICA, { padding: [30, 30] });
+      first.current = false;
+      return;
+    }
+    // On filter/search change, refocus to the matching results.
     if (!points.length) return;
     const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 8, animate: !first.current });
-    first.current = false;
+    map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 9, duration: 0.5 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitKey]);
   return null;
@@ -306,17 +380,16 @@ export default function LeafletMap({
   );
 
   const resetView = () => {
-    if (!map || points.length === 0) return;
-    const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
-    map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 8, duration: 0.6 });
+    if (!map) return;
+    map.flyToBounds(NORTH_AMERICA, { padding: [30, 30], duration: 0.6 });
   };
 
   return (
     <div className="absolute inset-0">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <MapContainer
-        center={[19, -82]}
-        zoom={3}
+        center={[40, -96]}
+        zoom={4}
         minZoom={2}
         zoomControl={false}
         scrollWheelZoom

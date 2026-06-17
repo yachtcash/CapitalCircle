@@ -26,6 +26,18 @@ export default function MapClient({ filters, opportunities: ssrOpportunities, to
 
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "map">("map");
+  // Map-local category filter (by marker-style group). Kept local so it composes
+  // with the URL-based search/region filters without touching that system.
+  const [categoryKeys, setCategoryKeys] = useState<Set<MarkerStyleKey>>(new Set());
+
+  const onToggleCategory = (key: MarkerStyleKey) => {
+    setCategoryKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // Merge user-created opportunities into the map view so newly published
   // listings appear immediately. Pre-hydration we use the server-rendered
@@ -72,24 +84,30 @@ export default function MapClient({ filters, opportunities: ssrOpportunities, to
     return null;
   }, [filters.country]);
 
-  // Build the active marker-style legend (for the panel).
-  const activeCategoryStyles = useMemo(() => {
-    const set = new Set<MarkerStyleKey>();
-    for (const o of opportunities) {
-      set.add(markerStyleFor(o.category));
+  // Inventory counts per category group + per region, from the full catalog —
+  // shown beside the filter pills like a real marketplace ("United States (28)").
+  const categoryCounts = useMemo(() => {
+    const m = {} as Record<MarkerStyleKey, number>;
+    for (const o of allOpps) {
+      const k = markerStyleFor(o.category);
+      m[k] = (m[k] ?? 0) + 1;
     }
-    return set;
-  }, [opportunities]);
+    return m;
+  }, [allOpps]);
 
-  // Live-search applies on top of server-filtered results: if the user
-  // is typing, narrow the list locally without a navigation round-trip.
-  // (Server already narrowed by the URL's q; this is for parity if state
-  // diverges briefly.)
+  const regionCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const r of MAP_REGIONS) {
+      m[r.id] = allOpps.filter((o) => r.countries.includes(o.place?.country ?? "")).length;
+    }
+    return m;
+  }, [allOpps]);
+
+  // Apply the local category filter on top of the URL-filtered set.
   const visibleOpportunities = useMemo(() => {
-    const q = filters.q.trim().toLowerCase();
-    if (!q) return opportunities;
-    return applyFilters(opportunities, { ...filters, q });
-  }, [filters, opportunities]);
+    if (categoryKeys.size === 0) return opportunities;
+    return opportunities.filter((o) => categoryKeys.has(markerStyleFor(o.category)));
+  }, [opportunities, categoryKeys]);
 
   return (
     <div className="bg-cream min-h-[calc(100vh-5rem)]">
@@ -175,7 +193,10 @@ export default function MapClient({ filters, opportunities: ssrOpportunities, to
             }}
             selectedCountries={filters.country}
             onSelectRegion={onSelectRegion}
-            activeCategoryStyles={activeCategoryStyles}
+            regionCounts={regionCounts}
+            categoryKeys={categoryKeys}
+            onToggleCategory={onToggleCategory}
+            categoryCounts={categoryCounts}
           />
         </aside>
 
