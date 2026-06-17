@@ -94,19 +94,22 @@ export default function MapClient({ filters, opportunities: ssrOpportunities, to
   return (
     <div className="bg-cream min-h-[calc(100vh-5rem)]">
       <header className="bg-white border-b border-navy-900/[0.06]">
-        <div className="max-w-7xl mx-auto px-5 md:px-10 py-5 md:py-7">
-          <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold inline-flex items-center gap-1.5">
-            <MapIcon className="h-3.5 w-3.5" strokeWidth={2.2} />
-            Map view
+        <div className="px-5 md:px-10 py-3 flex items-center gap-3">
+          <span className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-xl bg-navy-900 text-gold-400 ring-1 ring-navy-900/5">
+            <MapIcon className="h-4 w-4" strokeWidth={2.2} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-gold-600 font-bold leading-none">
+              Capital Circle
+            </div>
+            <h1 className="mt-1 text-lg md:text-xl font-semibold text-navy-900 tracking-tight leading-none">
+              Opportunity Map
+            </h1>
           </div>
-          <h1 className="mt-1.5 text-2xl md:text-3xl font-semibold text-navy-900 tracking-tight">
-            Find opportunities by location
-          </h1>
-          <p className="mt-2 text-sm md:text-base text-navy-700/70 leading-relaxed max-w-2xl">
-            Every active opportunity on Capital Circle, plotted by its
-            sponsor-confirmed location. Pick a region, click a marker, or use the
-            list on the left.
-          </p>
+          <div className="ml-auto hidden lg:flex items-baseline gap-1.5 text-sm text-navy-700/70">
+            <span className="font-semibold text-navy-900 tabular-nums">{visibleOpportunities.length}</span>
+            <span>of {totalAvailable} opportunities</span>
+          </div>
         </div>
       </header>
 
@@ -150,7 +153,7 @@ export default function MapClient({ filters, opportunities: ssrOpportunities, to
       </div>
 
       {/* Workspace */}
-      <div className="lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:gap-0 lg:h-[calc(100vh-5rem-128px)]">
+      <div className="lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:gap-0 lg:h-[calc(100vh-5rem-61px)]">
         <aside
           className={cn(
             "border-r border-navy-900/[0.08] lg:h-full lg:overflow-hidden flex flex-col",

@@ -37,8 +37,8 @@ function pinIcon(styleKey: MarkerStyleKey, selected: boolean): L.DivIcon {
   const cached = pinCache.get(key);
   if (cached) return cached;
   const s = MARKER_STYLES[styleKey];
-  const size = selected ? 42 : 34;
-  const icoSize = selected ? 18 : 15;
+  const size = selected ? 38 : 30;
+  const icoSize = selected ? 17 : 14;
   const html = `<div class="cc-pin ${selected ? "cc-pin--sel" : ""}" style="width:${size}px;height:${size}px;">
     <span class="cc-pin__body" style="background:${s.fill};border-color:${selected ? "#D4AF37" : "#ffffff"};"></span>
     <span class="cc-pin__icon"><svg viewBox="0 0 24 24" width="${icoSize}" height="${icoSize}" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[styleKey]}</svg></span>
@@ -77,15 +77,29 @@ type Group =
   | { kind: "single"; o: Opportunity; lat: number; lng: number }
   | { kind: "cluster"; id: string; lat: number; lng: number; count: number };
 
-const CLUSTER_PX = 58;
+// Cluster radius scales DOWN as you zoom in, so deals reveal themselves quickly:
+//   world (z<=3)  → cluster      continent (4)  → smaller clusters
+//   country (5–6) → mostly individual           state/city (>=7) → all individual
+function clusterRadiusForZoom(zoom: number): number {
+  if (zoom >= 7) return 0; // country / state / city → never cluster
+  if (zoom >= 6) return 24;
+  if (zoom >= 5) return 32;
+  if (zoom >= 4) return 40; // continent → smaller clusters
+  return 48; // world → clustering allowed
+}
 
 function buildGroups(map: L.Map, opportunities: Opportunity[]): Group[] {
+  const radius = clusterRadiusForZoom(map.getZoom());
   const pts: Projected[] = [];
   for (const o of opportunities) {
     const c = o.place?.coordinates;
     if (!c) continue;
     const p = map.latLngToContainerPoint([c.lat, c.lng]);
     pts.push({ o, lat: c.lat, lng: c.lng, x: p.x, y: p.y });
+  }
+  // Above the clustering ceiling, every opportunity is its own marker.
+  if (radius === 0) {
+    return pts.map((p) => ({ kind: "single", o: p.o, lat: p.lat, lng: p.lng }));
   }
   const visited = new Set<string>();
   const out: Group[] = [];
@@ -100,7 +114,7 @@ function buildGroups(map: L.Map, opportunities: Opportunity[]): Group[] {
       for (let j = 0; j < pts.length; j++) {
         const cand = pts[j];
         if (visited.has(cand.o.id)) continue;
-        if (group.some((g) => Math.hypot(g.x - cand.x, g.y - cand.y) < CLUSTER_PX)) {
+        if (group.some((g) => Math.hypot(g.x - cand.x, g.y - cand.y) < radius)) {
           group.push(cand);
           visited.add(cand.o.id);
           added = true;
@@ -255,16 +269,20 @@ function ResizeHandler() {
 
 const CSS = `
 .cc-pin-wrap{background:transparent;border:0;}
-.cc-pin{position:relative;}
-.cc-pin__body{position:absolute;inset:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 3px 8px rgba(10,22,40,.4);}
+.cc-pin{position:relative;transition:transform .12s ease;}
+.cc-pin:hover{transform:scale(1.08);z-index:1000;}
+.cc-pin__body{position:absolute;inset:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:1.5px solid #fff;box-shadow:0 2px 5px rgba(10,22,40,.30),0 0 0 0.5px rgba(10,22,40,.08);}
 .cc-pin__icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
-.cc-pin--sel{filter:drop-shadow(0 4px 10px rgba(212,175,55,.55));}
+.cc-pin--sel .cc-pin__body{box-shadow:0 0 0 4px rgba(212,175,55,.35),0 3px 9px rgba(10,22,40,.42);}
 .cc-cluster-wrap{background:transparent;border:0;}
-.cc-cluster{display:flex;align-items:center;justify-content:center;border-radius:9999px;background:rgba(10,22,40,.93);color:#fff;font-weight:700;border:3px solid #D4AF37;box-shadow:0 4px 14px rgba(10,22,40,.4);}
-.leaflet-popup.cc-popup .leaflet-popup-content-wrapper{padding:0;border-radius:16px;overflow:hidden;box-shadow:0 14px 36px rgba(10,22,40,.24);}
-.leaflet-popup.cc-popup .leaflet-popup-content{margin:0;width:300px!important;}
+.cc-cluster{display:flex;align-items:center;justify-content:center;border-radius:9999px;background:rgba(10,22,40,.94);color:#fff;font-weight:700;letter-spacing:.01em;border:2px solid #D4AF37;box-shadow:0 0 0 4px rgba(255,255,255,.55),0 4px 12px rgba(10,22,40,.32);transition:transform .12s ease;}
+.cc-cluster:hover{transform:scale(1.06);}
+.leaflet-popup.cc-popup .leaflet-popup-content-wrapper{padding:0;border-radius:18px;overflow:hidden;box-shadow:0 18px 44px rgba(10,22,40,.26);}
+.leaflet-popup.cc-popup .leaflet-popup-content{margin:0;width:312px!important;}
 .leaflet-popup.cc-popup .leaflet-popup-tip{background:#fff;}
 .leaflet-container{font-family:inherit;background:#eef2f6;}
+.leaflet-bar,.leaflet-control-attribution{font-family:inherit;}
+.leaflet-control-attribution{font-size:10px;background:rgba(255,255,255,.7);}
 `;
 
 export default function LeafletMap({
@@ -293,13 +311,6 @@ export default function LeafletMap({
     map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 8, duration: 0.6 });
   };
 
-  // Active category styles present in the current view (for the on-map legend).
-  const legend = useMemo(() => {
-    const keys = new Set<MarkerStyleKey>();
-    for (const o of opportunities) keys.add(markerStyleFor(o.category));
-    return [...keys].map((k) => MARKER_STYLES[k]);
-  }, [opportunities]);
-
   return (
     <div className="absolute inset-0">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -314,20 +325,41 @@ export default function LeafletMap({
         style={{ height: "100%", width: "100%" }}
       >
         {basemap === "light" ? (
-          <TileLayer
-            key="light"
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            subdomains={["a", "b", "c", "d"]}
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            maxZoom={19}
-          />
+          <>
+            {/* Esri "Light Gray Canvas" — institutional, English-first labels. */}
+            <TileLayer
+              key="esri-gray-base"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+              attribution="Tiles &copy; Esri — Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
+              maxNativeZoom={16}
+              maxZoom={19}
+              zIndex={1}
+            />
+            <TileLayer
+              key="esri-gray-ref"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+              maxNativeZoom={16}
+              maxZoom={19}
+              zIndex={2}
+            />
+          </>
         ) : (
-          <TileLayer
-            key="satellite"
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution="Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics"
-            maxZoom={19}
-          />
+          <>
+            <TileLayer
+              key="esri-sat"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution="Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics"
+              maxZoom={19}
+              zIndex={1}
+            />
+            {/* English place + boundary labels over the imagery. */}
+            <TileLayer
+              key="esri-sat-ref"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              zIndex={2}
+            />
+          </>
         )}
         <MarkerLayer
           opportunities={opportunities}
@@ -367,23 +399,6 @@ export default function LeafletMap({
               <MapIcon className="h-4 w-4 text-gold-600" strokeWidth={2.2} />
             )}
           </button>
-        </div>
-      ) : null}
-
-      {/* Legend */}
-      {legend.length > 0 ? (
-        <div className="absolute bottom-6 left-3 z-[600] hidden sm:block rounded-xl bg-white/95 ring-1 ring-navy-900/[0.08] shadow-md px-3 py-2.5 max-w-[200px]">
-          <div className="text-[9px] uppercase tracking-[0.16em] text-navy-700/55 font-bold mb-1.5">
-            Categories
-          </div>
-          <ul className="grid grid-cols-2 gap-x-3 gap-y-1">
-            {legend.map((s) => (
-              <li key={s.key} className="flex items-center gap-1.5 text-[10px] text-navy-700/80 font-medium">
-                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: s.fill }} />
-                <span className="truncate">{s.label}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       ) : null}
 

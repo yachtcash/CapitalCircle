@@ -80,15 +80,9 @@ export default function MapListPanel({
 }: Props) {
   return (
     <div className="flex flex-col h-full bg-white">
-      <header className="px-5 py-4 border-b border-navy-900/[0.08]">
-        <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">
-          Map view
-        </div>
-        <h2 className="mt-1 text-lg font-semibold text-navy-900">
-          Explore opportunities
-        </h2>
-
-        <div className="mt-3 relative">
+      {/* Fixed header: search stays at the very top */}
+      <div className="px-4 py-3 border-b border-navy-900/[0.08]">
+        <div className="relative">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-navy-700/50"
             strokeWidth={2}
@@ -97,7 +91,7 @@ export default function MapListPanel({
             type="search"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Title, company, location"
+            placeholder="Search title, company, or location"
             className="w-full rounded-full bg-bone/60 ring-1 ring-navy-900/[0.06] focus:ring-2 focus:ring-gold-500 outline-none pl-9 pr-9 py-2 text-sm text-navy-900 placeholder:text-navy-700/45 transition-shadow"
           />
           {query ? (
@@ -111,33 +105,25 @@ export default function MapListPanel({
             </button>
           ) : null}
         </div>
-
-        <div className="mt-3">
-          <Legend activeStyles={activeCategoryStyles} />
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-navy-700/60 font-semibold">
+            <span className="text-navy-900 tabular-nums">{opportunities.length}</span>{" "}
+            opportunit{opportunities.length === 1 ? "y" : "ies"}
+            {opportunities.length !== totalAvailable ? (
+              <span className="text-navy-700/45 normal-case tracking-normal"> · of {totalAvailable}</span>
+            ) : null}
+          </div>
         </div>
-      </header>
+      </div>
 
+      {/* Compact filters: region + category legend (scrolls away as you browse) */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-5 py-4">
+        <div className="px-4 pt-3 pb-2 space-y-2.5 border-b border-navy-900/[0.06]">
           <RegionPanel
             selectedCountries={selectedCountries}
             onSelectRegion={onSelectRegion}
           />
-        </div>
-
-        <div className="px-5 pb-4 sticky top-0 bg-white border-b border-navy-900/[0.06]">
-          <div className="py-2 text-xs text-navy-700/70">
-            <span className="font-semibold text-navy-900 tabular-nums">
-              {opportunities.length}
-            </span>{" "}
-            opportunit{opportunities.length === 1 ? "y" : "ies"}
-            {opportunities.length !== totalAvailable ? (
-              <span className="text-navy-700/55">
-                {" "}
-                · of {totalAvailable} total
-              </span>
-            ) : null}
-          </div>
+          <Legend activeStyles={activeCategoryStyles} />
         </div>
 
         {opportunities.length === 0 ? (
@@ -155,12 +141,12 @@ export default function MapListPanel({
                 <li key={opportunity.id}>
                   <div
                     className={cn(
-                      "relative flex gap-3 px-5 py-3.5 transition-colors",
+                      "relative flex gap-3 px-4 py-3 transition-colors",
                       isSelected ? "bg-bone" : "hover:bg-bone/60"
                     )}
                   >
                     {isSelected ? (
-                      <span className="absolute left-0 top-3.5 bottom-3.5 w-[3px] rounded-r bg-gold-500" />
+                      <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r bg-gold-500" />
                     ) : null}
                     <button
                       type="button"
