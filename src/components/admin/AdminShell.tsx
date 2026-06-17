@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   ScrollText,
   CalendarDays,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +35,7 @@ const SECTIONS: { label: string; href: string; icon: LucideIcon; exact?: boolean
   { label: "Moderation", href: "/admin/moderation", icon: Flag },
   { label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
   { label: "Audit Log", href: "/admin/audit", icon: ScrollText },
+  { label: "Analytics", href: "/analytics", icon: BarChart3 },
 ];
 
 /**

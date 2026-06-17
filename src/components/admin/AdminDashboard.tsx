@@ -23,6 +23,7 @@ import {
   Eye,
   Activity,
   Flame,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 
@@ -139,6 +140,7 @@ export default function AdminDashboard() {
     { label: "Completed Introductions", value: completedIntros, Icon: Sparkles, href: "/admin/introductions", tone: "emerald" },
     { label: "Unread Messages", value: unreadMessages, Icon: MessageSquare, href: "/messages", tone: unreadMessages > 0 ? "gold" : undefined },
     { label: "Recent Audit Events", value: auditEvents.length, Icon: ScrollText, href: "/admin/audit", tone: "gold" },
+    { label: "Analytics Center", value: totalMembers + liveCompanies.length + liveOpps.length + deals.length, Icon: BarChart3, href: "/analytics", tone: "gold" },
   ];
 
   // ---- Platform health: time windows ----

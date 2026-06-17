@@ -10,6 +10,7 @@ import {
   PlusCircle,
   MessageSquare,
   CalendarDays,
+  BarChart3,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ export const navItems: NavItem[] = [
   { label: "Map", shortLabel: "Map", href: "/map", icon: MapIcon },
   { label: "Deal Desk", shortLabel: "Deals", href: "/deal-desk", icon: Briefcase },
   { label: "Calendar", shortLabel: "Calendar", href: "/calendar", icon: CalendarDays, calendarGated: true, hideOnMobile: true },
+  { label: "Analytics", shortLabel: "Stats", href: "/analytics", icon: BarChart3, adminOnly: true },
   { label: "Admin", shortLabel: "Admin", href: "/admin", icon: ShieldCheck, adminOnly: true },
   { label: "Dashboard", shortLabel: "Dash", href: "/dashboard", icon: LayoutDashboard, hideOnMobile: true },
   { label: "Create Listing", shortLabel: "Create", href: "/create-listing", icon: PlusCircle, hideOnMobile: true },

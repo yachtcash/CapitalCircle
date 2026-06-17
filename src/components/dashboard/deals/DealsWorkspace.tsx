@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   KanbanSquare,
   LayoutList,
@@ -15,7 +15,9 @@ import {
   XCircle,
   UserPlus,
   Plus,
+  BarChart3,
 } from "lucide-react";
+import Link from "next/link";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import {
@@ -52,6 +54,18 @@ export default function DealsWorkspace() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+
+  // Drill-down support: honor ?bucket= / ?stage= when arriving from Analytics.
+  // Read once on mount (client-only) so no Suspense boundary is required and the
+  // default behavior is unchanged when no param is present.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const b = sp.get("bucket");
+    if (b === "open" || b === "closed" || b === "archived") setBucket(b);
+    const s = sp.get("stage");
+    if (s && (DEAL_STAGES as string[]).includes(s)) setStage(s as DealStage);
+  }, []);
 
   const nowMs = DEAL_DESK_NOW_MS;
   const metrics = useMemo(() => computeDealDeskMetrics(deals, nowMs), [deals, nowMs]);
@@ -130,6 +144,13 @@ export default function DealsWorkspace() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/analytics#deals"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/[0.1] hover:ring-gold-500/50 text-navy-900 font-semibold px-4 py-2.5 text-sm transition-colors"
+            >
+              <BarChart3 className="h-4 w-4 text-gold-600" strokeWidth={2.4} />
+              Analytics
+            </Link>
             <button
               type="button"
               onClick={() => setCreateOpen(true)}

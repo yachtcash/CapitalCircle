@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Crown, ArrowRight } from "lucide-react";
+import { Crown, ArrowRight, BarChart3 } from "lucide-react";
 import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import DealDeskCard from "@/components/dashboard/DealDeskCard";
@@ -28,6 +28,29 @@ export default function DashboardPage() {
         <DealDeskCard />
 
         <DealInsightsPanel />
+
+        <Link
+          href="/analytics"
+          className="group flex items-center justify-between gap-4 rounded-2xl bg-navy-900 text-white ring-1 ring-navy-900 p-5 md:p-6 hover:shadow-lg hover:shadow-navy-900/10 transition-shadow"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <span className="h-11 w-11 shrink-0 inline-flex items-center justify-center rounded-xl bg-gold-500/15 ring-1 ring-gold-500/40">
+              <BarChart3 className="h-5 w-5 text-gold-400" strokeWidth={2.2} />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-gold-400 font-bold">
+                Analytics &amp; Reporting Center
+              </div>
+              <div className="mt-0.5 text-base md:text-lg font-semibold tracking-tight truncate">
+                Operational reporting across the entire platform
+              </div>
+            </div>
+          </div>
+          <span className="shrink-0 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] font-semibold text-gold-400">
+            Open
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2.4} />
+          </span>
+        </Link>
 
         <CalendarDashboardWidgets />
 
