@@ -618,7 +618,19 @@ function WizardNav({
   const canSaveDraft = step >= 4;
   return (
     <footer className="bg-white border-t border-navy-900/[0.06] mt-auto">
-      <div className="max-w-3xl mx-auto px-5 md:px-10 py-4 md:py-5 flex items-center justify-between gap-2 md:gap-3">
+      <div className="max-w-3xl mx-auto px-5 md:px-10 pt-3">
+        <p className="text-[11px] leading-snug text-navy-700/55 flex items-center gap-1.5 flex-wrap">
+          <span className="font-bold uppercase tracking-[0.12em] text-navy-900 tabular-nums">
+            Step {step} of 9
+          </span>
+          <span className="text-navy-700/30">·</span>
+          <span>
+            Progress is kept as you move between steps
+            {canSaveDraft ? " — use Save as Draft to keep it for later." : "."}
+          </span>
+        </p>
+      </div>
+      <div className="max-w-3xl mx-auto px-5 md:px-10 pb-4 md:pb-5 pt-2 flex items-center justify-between gap-2 md:gap-3">
         <button
           type="button"
           onClick={onBack}

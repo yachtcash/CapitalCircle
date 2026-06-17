@@ -6,17 +6,9 @@ import { MapPin, Clock } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { publicOpportunityId } from "@/lib/opportunities/id";
 import MessageOpportunityButton from "@/components/common/MessageOpportunityButton";
+import OpportunityStatusBadge from "@/components/OpportunityStatusBadge";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useResolvedImage } from "@/lib/imageStore";
-import { cn } from "@/lib/cn";
-
-const statusStyles: Record<Opportunity["status"], string> = {
-  Open: "bg-emerald-500 text-white",
-  "Seeking Capital": "bg-gold-500 text-navy-900",
-  Negotiating: "bg-amber-500 text-white",
-  "Under Contract": "bg-rose-500 text-white",
-  Closed: "bg-navy-700 text-white",
-};
 
 type Props = {
   opportunity: Opportunity;
@@ -72,14 +64,7 @@ export default function OpportunityCard({
 
         {/* Top-right: status pill + message icon */}
         <div className="absolute top-3 right-3 flex items-center gap-1.5">
-          <span
-            className={cn(
-              "inline-flex items-center text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 shadow-sm",
-              statusStyles[opportunity.status]
-            )}
-          >
-            {opportunity.status}
-          </span>
+          <OpportunityStatusBadge status={opportunity.status} size="sm" />
           <MessageOpportunityButton
             opportunity={opportunity}
             variant="icon"

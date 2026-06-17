@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Clock3, ArrowRight } from "lucide-react";
+import { Clock3, ArrowRight, Inbox } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { getListingById } from "@/data/listings";
 import AccessRequestRow from "@/components/documents/AccessRequestRow";
+import EmptyState from "@/components/common/EmptyState";
 
 export default function PendingRequestsPanel() {
   const { accessRequests } = useMessaging();
@@ -37,9 +38,13 @@ export default function PendingRequestsPanel() {
       </header>
 
       {pending.length === 0 ? (
-        <div className="p-6 text-center text-sm text-navy-700/60">
-          No pending access requests.
-        </div>
+        <EmptyState
+          Icon={Inbox}
+          title="No pending requests"
+          description="When members request access to your data rooms, they'll appear here for review."
+          action={{ label: "Document Center", href: "/documents" }}
+          compact
+        />
       ) : (
         <div className="divide-y divide-navy-900/[0.06]">
           {pending.slice(0, 4).map((request) => {

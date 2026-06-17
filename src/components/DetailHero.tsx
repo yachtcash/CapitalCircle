@@ -5,15 +5,7 @@ import Link from "next/link";
 import { MapPin, Briefcase, ChevronRight } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { useResolvedImage } from "@/lib/imageStore";
-import { cn } from "@/lib/cn";
-
-const statusStyles: Record<Opportunity["status"], string> = {
-  Open: "bg-emerald-500 text-white",
-  "Seeking Capital": "bg-gold-500 text-navy-900",
-  Negotiating: "bg-amber-500 text-white",
-  "Under Contract": "bg-rose-500 text-white",
-  Closed: "bg-navy-700 text-white",
-};
+import OpportunityStatusBadge from "@/components/OpportunityStatusBadge";
 
 export default function DetailHero({ opportunity }: { opportunity: Opportunity }) {
   const cover = useResolvedImage(opportunity.images[0]);
@@ -59,14 +51,7 @@ export default function DetailHero({ opportunity }: { opportunity: Opportunity }
             <span className="inline-flex items-center text-[10px] uppercase tracking-[0.18em] font-bold bg-gold-500/20 text-gold-300 ring-1 ring-gold-400/50 backdrop-blur-md rounded-full px-3 py-1">
               {opportunity.dealType}
             </span>
-            <span
-              className={cn(
-                "inline-flex items-center text-[10px] uppercase tracking-[0.18em] font-bold rounded-full px-3 py-1 shadow-md",
-                statusStyles[opportunity.status]
-              )}
-            >
-              {opportunity.status}
-            </span>
+            <OpportunityStatusBadge status={opportunity.status} size="md" />
           </div>
 
           <h1 className="text-balance text-3xl sm:text-4xl md:text-5xl font-semibold leading-[1.05] tracking-tight max-w-4xl drop-shadow-sm">

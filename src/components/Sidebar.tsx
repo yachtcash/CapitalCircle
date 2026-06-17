@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { navItems } from "@/data/nav";
 import { cn } from "@/lib/cn";
 import { canAccessAdmin, canViewCalendar, type Role } from "@/lib/roles";
+import { PlusCircle } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import CapitalCircleMark from "@/components/brand/CapitalCircleMark";
 
 const SELF_MEMBER_ID = "MEM-000001";
 
@@ -25,7 +27,7 @@ export default function Sidebar() {
       <div className="flex items-center justify-between gap-2 px-4 h-20 border-b border-white/5 shrink-0">
         <Link href="/" className="flex items-center gap-3 min-w-0">
           <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gold-500/15 ring-1 ring-gold-500/40 shrink-0">
-            <span className="h-3.5 w-3.5 rounded-full bg-gold-500" />
+            <CapitalCircleMark className="h-[22px] w-[22px]" />
           </span>
           <span className="flex flex-col leading-tight min-w-0">
             <span className="font-semibold tracking-wide text-white text-base truncate">
@@ -80,7 +82,14 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="px-5 py-5 border-t border-white/5">
+      <div className="px-5 py-5 border-t border-white/5 space-y-4">
+        <Link
+          href="/create-listing"
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-4 py-2.5 text-sm transition-colors"
+        >
+          <PlusCircle className="h-4 w-4" strokeWidth={2.2} />
+          Create Listing
+        </Link>
         <div className="rounded-xl p-4 bg-gradient-to-br from-navy-800 to-navy-700 ring-1 ring-white/5">
           <div className="text-[11px] uppercase tracking-[0.16em] text-gold-400 mb-1.5">
             Membership

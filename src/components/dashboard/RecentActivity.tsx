@@ -169,6 +169,12 @@ function EmptyState() {
       <p className="mt-1.5 text-xs text-navy-700/65 leading-relaxed max-w-sm mx-auto">
         Activity on your listings will show up here as soon as it lands.
       </p>
+      <Link
+        href="/create-listing"
+        className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/15 hover:ring-gold-500/50 text-navy-900 font-semibold px-4 py-2 text-xs uppercase tracking-[0.12em] transition-colors"
+      >
+        Create a listing
+      </Link>
     </div>
   );
 }

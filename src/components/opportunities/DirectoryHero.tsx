@@ -1,8 +1,10 @@
+import Link from "next/link";
 import {
   Compass,
   TrendingUp,
   ShieldCheck,
   Globe2,
+  PlusCircle,
   type LucideIcon,
 } from "lucide-react";
 import { featuredOpportunities } from "@/data/opportunities";
@@ -53,6 +55,16 @@ export default function DirectoryHero() {
           Investments, joint ventures, hotels, land, businesses for sale, suppliers, and
           services — sponsor-vetted, with private data rooms behind every listing.
         </p>
+
+        <div className="mt-4">
+          <Link
+            href="/create-listing"
+            className="inline-flex items-center gap-1.5 rounded-full bg-navy-900 hover:bg-navy-800 text-white font-semibold px-4 py-2 text-xs uppercase tracking-[0.14em] transition-colors"
+          >
+            <PlusCircle className="h-3.5 w-3.5 text-gold-400" strokeWidth={2.2} />
+            List your opportunity
+          </Link>
+        </div>
 
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
           <Stat icon={Compass} label="Active opportunities" value={total} />
