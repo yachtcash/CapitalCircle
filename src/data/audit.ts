@@ -97,7 +97,12 @@ export type AuditAction =
   | "Event Duplicated"
   | "Attachment Uploaded"
   | "Attachment Deleted"
-  | "Category Changed";
+  | "Category Changed"
+  // Marketplace placement (editorial control)
+  | "Marketplace Hero Assigned"
+  | "Marketplace Hero Removed"
+  | "Marketplace Featured Updated"
+  | "Marketplace Order Changed";
 
 export type AuditTargetKind =
   | "member"
@@ -110,6 +115,7 @@ export type AuditTargetKind =
   | "document"
   | "role"
   | "calendar"
+  | "marketplace"
   | "system";
 
 export type AuditEvent = {
@@ -141,6 +147,7 @@ export type AuditGroup =
   | "Introduction Actions"
   | "Moderation Actions"
   | "Calendar Actions"
+  | "Marketplace Actions"
   | "System Actions";
 
 export const AUDIT_GROUPS: AuditGroup[] = [
@@ -155,6 +162,7 @@ export const AUDIT_GROUPS: AuditGroup[] = [
   "Introduction Actions",
   "Moderation Actions",
   "Calendar Actions",
+  "Marketplace Actions",
   "System Actions",
 ];
 
@@ -253,6 +261,10 @@ const GROUP_MAP: Record<AuditAction, AuditGroup> = {
   "Attachment Uploaded": "Calendar Actions",
   "Attachment Deleted": "Calendar Actions",
   "Category Changed": "Calendar Actions",
+  "Marketplace Hero Assigned": "Marketplace Actions",
+  "Marketplace Hero Removed": "Marketplace Actions",
+  "Marketplace Featured Updated": "Marketplace Actions",
+  "Marketplace Order Changed": "Marketplace Actions",
 };
 
 export function groupForAction(action: AuditAction): AuditGroup {

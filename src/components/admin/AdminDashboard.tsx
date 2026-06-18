@@ -47,6 +47,7 @@ import {
 } from "@/components/dashboard/deals/DealBadges";
 import { AdminPage } from "./AdminShell";
 import AdminQuickActions from "./AdminQuickActions";
+import MarketplacePlacementWidget from "./marketplace/MarketplacePlacementWidget";
 import { cn } from "@/lib/cn";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -192,6 +193,9 @@ export default function AdminDashboard() {
           <StatCard key={s.label} {...s} />
         ))}
       </div>
+
+      {/* Marketplace placement */}
+      <MarketplacePlacementWidget />
 
       {/* Quick actions */}
       <AdminQuickActions />

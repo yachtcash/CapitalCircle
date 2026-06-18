@@ -16,6 +16,7 @@ import {
   ScrollText,
   CalendarDays,
   BarChart3,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ const SECTIONS: { label: string; href: string; icon: LucideIcon; exact?: boolean
   { label: "Members", href: "/admin/members", icon: Users },
   { label: "Companies", href: "/admin/companies", icon: Building2 },
   { label: "Opportunities", href: "/admin/opportunities", icon: HandCoins },
+  { label: "Marketplace", href: "/admin/marketplace", icon: Store },
   { label: "Listings", href: "/admin/listings", icon: ListChecks },
   { label: "Deals", href: "/admin/deals", icon: Briefcase },
   { label: "Introductions", href: "/admin/introductions", icon: UserPlus },

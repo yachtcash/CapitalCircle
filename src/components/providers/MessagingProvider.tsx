@@ -76,6 +76,12 @@ import { CURRENT_USER_ROLE, type Role } from "@/lib/roles";
 import { getMemberById, MEMBERS as SEED_MEMBERS, type Member } from "@/data/members";
 import { SEED_AUDIT_EVENTS, type AuditAction, type AuditEvent, type AuditTargetKind } from "@/data/audit";
 import {
+  MARKETPLACE_PLACEMENT_KEY,
+  DEFAULT_MARKETPLACE_PLACEMENT,
+  MAX_FEATURED,
+  type MarketplacePlacement,
+} from "@/lib/marketplace/placement";
+import {
   SEED_COMPANY_ADMIN,
   SEED_MEMBER_ADMIN,
   SEED_OPP_ADMIN,
@@ -600,6 +606,11 @@ type MessagingValue = {
   updateCalendarCategory: (id: string, patch: Partial<CalendarCategory>) => void;
   deleteCalendarCategory: (id: string) => void;
   setCalendarGrant: (memberId: string, granted: boolean, memberName?: string) => void;
+  // ---- Marketplace placement (editorial control) ----
+  marketplacePlacement: MarketplacePlacement;
+  setMarketplaceHero: (id: string | null, label?: string) => void;
+  setMarketplaceFeatured: (ids: string[], label?: string) => void;
+  setMarketplaceOrder: (ids: string[]) => void;
   recordAudit: (
     action: AuditAction,
     target: { kind: AuditTargetKind; id: string; label?: string },
@@ -677,6 +688,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(SEED_CALENDAR_EVENTS);
   const [calendarCategories, setCalendarCategories] = useState<CalendarCategory[]>(DEFAULT_CATEGORIES);
   const [calendarGrants, setCalendarGrants] = useState<Record<string, boolean>>({});
+  const [marketplacePlacement, setMarketplacePlacement] = useState<MarketplacePlacement>(
+    DEFAULT_MARKETPLACE_PLACEMENT
+  );
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -810,6 +824,8 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (sCalCats && sCalCats.length > 0) setCalendarCategories(sCalCats);
     const sCalGrants = readStored<Record<string, boolean> | null>(KEY_CAL_GRANTS, null);
     if (sCalGrants) setCalendarGrants(sCalGrants);
+    const sPlacement = readStored<MarketplacePlacement | null>(MARKETPLACE_PLACEMENT_KEY, null);
+    if (sPlacement) setMarketplacePlacement(sPlacement);
     setHydrated(true);
   }, []);
 
@@ -916,6 +932,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   useEffect(() => { if (hydrated) writeStored(KEY_CAL_EVENTS, calendarEvents); }, [calendarEvents, hydrated]);
   useEffect(() => { if (hydrated) writeStored(KEY_CAL_CATEGORIES, calendarCategories); }, [calendarCategories, hydrated]);
   useEffect(() => { if (hydrated) writeStored(KEY_CAL_GRANTS, calendarGrants); }, [calendarGrants, hydrated]);
+  useEffect(() => { if (hydrated) writeStored(MARKETPLACE_PLACEMENT_KEY, marketplacePlacement); }, [marketplacePlacement, hydrated]);
 
   // After hydration, derive calendar-driven notifications once. Idempotent via
   // dedupeKey so repeated mounts / HMR never duplicate. Anchored to the demo
@@ -1049,6 +1066,73 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       });
     },
     [profile.name, currentRole]
+  );
+
+  // ---- Marketplace placement mutations (editorial control) ----
+  // "Resolve before dispatch": compute the next value from the current snapshot
+  // so the audit before/after is accurate (these are discrete admin actions).
+  const setMarketplaceHero = useCallback(
+    (id: string | null, label?: string) => {
+      const prev = marketplacePlacement;
+      if (prev.heroId === id) return;
+      const featuredIds = id ? prev.featuredIds.filter((f) => f !== id) : prev.featuredIds;
+      setMarketplacePlacement({
+        ...prev,
+        heroId: id,
+        featuredIds,
+        updatedAt: new Date().toISOString(),
+      });
+      if (id) {
+        recordAudit(
+          "Marketplace Hero Assigned",
+          { kind: "marketplace", id, label: label ?? id },
+          undefined,
+          { before: prev.heroId ?? "—", after: id }
+        );
+      } else {
+        recordAudit(
+          "Marketplace Hero Removed",
+          { kind: "marketplace", id: prev.heroId ?? "hero", label: "Hero" },
+          undefined,
+          { before: prev.heroId ?? "—", after: "—" }
+        );
+      }
+    },
+    [marketplacePlacement, recordAudit]
+  );
+
+  const setMarketplaceFeatured = useCallback(
+    (ids: string[], label?: string) => {
+      const prev = marketplacePlacement;
+      const cleaned = ids
+        .filter((id, i) => ids.indexOf(id) === i && id !== prev.heroId)
+        .slice(0, MAX_FEATURED);
+      setMarketplacePlacement({
+        ...prev,
+        featuredIds: cleaned,
+        updatedAt: new Date().toISOString(),
+      });
+      recordAudit(
+        "Marketplace Featured Updated",
+        { kind: "marketplace", id: label ?? "featured", label: "Featured slots" },
+        `${cleaned.length} featured`,
+        { before: prev.featuredIds.join(", ") || "—", after: cleaned.join(", ") || "—" }
+      );
+    },
+    [marketplacePlacement, recordAudit]
+  );
+
+  const setMarketplaceOrder = useCallback(
+    (ids: string[]) => {
+      const prev = marketplacePlacement;
+      setMarketplacePlacement({ ...prev, order: ids, updatedAt: new Date().toISOString() });
+      recordAudit(
+        "Marketplace Order Changed",
+        { kind: "marketplace", id: "order", label: "Marketplace order" },
+        `${ids.length} ordered`
+      );
+    },
+    [marketplacePlacement, recordAudit]
   );
 
   // ---- Role switcher (Super Admin impersonation, testing only) ----
@@ -4001,6 +4085,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     updateCalendarCategory,
     deleteCalendarCategory,
     setCalendarGrant,
+    marketplacePlacement,
+    setMarketplaceHero,
+    setMarketplaceFeatured,
+    setMarketplaceOrder,
     recordAudit,
   };
 

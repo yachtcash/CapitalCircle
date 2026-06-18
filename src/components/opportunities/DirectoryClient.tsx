@@ -16,6 +16,8 @@ import { serializeFilters, countActiveFilters } from "@/lib/search/params";
 import { applyFilters, computeFacetCounts } from "@/lib/search/filter";
 import { sortDirectoryResults } from "@/lib/opportunities/sort";
 import { useAllOpportunities } from "@/lib/opportunities/all";
+import { useMessaging } from "@/components/providers/MessagingProvider";
+import { isPlacementEmpty, placementRank } from "@/lib/marketplace/placement";
 import { EMPTY_FILTERS, type FacetCounts, type SearchFilters, type SortKey } from "@/lib/search/types";
 
 type Props = {
@@ -48,6 +50,17 @@ export default function DirectoryClient({
   void ssrResults;
   void ssrFacetCounts;
   void ssrTotalAvailable;
+
+  // Editorial placement: when the default ("newest") sort is active, order the
+  // grid by the Super Admin's curated placement (hero → featured → marketplace),
+  // overriding date sorting. An explicit user sort always wins.
+  const { marketplacePlacement: placement, hydrated } = useMessaging();
+  const displayResults = useMemo(() => {
+    if (filters.sort !== "newest" || !hydrated || isPlacementEmpty(placement)) return results;
+    return [...results].sort(
+      (a, b) => placementRank(a.id, placement) - placementRank(b.id, placement)
+    );
+  }, [results, filters.sort, placement, hydrated]);
   const router = useRouter();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -173,9 +186,9 @@ export default function DirectoryClient({
                 />
               </div>
 
-              {results.length > 0 ? (
+              {displayResults.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
-                  {results.map((opportunity, i) => (
+                  {displayResults.map((opportunity, i) => (
                     <OpportunityCard
                       key={opportunity.id}
                       opportunity={opportunity}

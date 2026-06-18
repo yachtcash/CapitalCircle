@@ -7,7 +7,7 @@ import { applyFilters, computeFacetCounts } from "@/lib/search/filter";
 import { sortDirectoryResults } from "@/lib/opportunities/sort";
 
 import DirectoryHero from "@/components/opportunities/DirectoryHero";
-import FeaturedOpportunityHero from "@/components/opportunities/FeaturedOpportunityHero";
+import PlacementHero from "@/components/opportunities/PlacementHero";
 import QuickFilterPills from "@/components/opportunities/QuickFilterPills";
 import DirectoryClient from "@/components/opportunities/DirectoryClient";
 import DirectoryCollections from "@/components/opportunities/DirectoryCollections";
@@ -53,10 +53,11 @@ export default async function OpportunitiesDirectoryPage({
     <div className="bg-cream min-h-[calc(100vh-5rem)]">
       <DirectoryHero />
 
-      {/* Featured Opportunity of the Week — hidden when filters are applied to
-          keep the directory feeling like a search results page mid-flow */}
+      {/* Hero opportunity — Super Admin placement, falling back to the automatic
+          featured-of-the-week. Hidden when filters are applied to keep the
+          directory feeling like a search results page mid-flow. */}
       {activeCount === 0 ? (
-        <FeaturedOpportunityHero opportunity={featuredOfWeek} />
+        <PlacementHero fallbackId={featuredOfWeek.id} />
       ) : null}
 
       <QuickFilterPills />
