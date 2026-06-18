@@ -1,54 +1,50 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import {
   Crown,
   Star,
+  Store,
   Search,
   X,
-  ChevronUp,
-  ChevronDown,
-  GripVertical,
-  MapPin,
-  Building2,
-  ArrowUpRight,
-  Trash2,
+  Clock3,
+  LayoutGrid,
 } from "lucide-react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { featuredOpportunities, type Opportunity } from "@/data/opportunities";
 import { getCompanyById } from "@/data/companies";
 import { publicOpportunityId } from "@/lib/opportunities/id";
-import { useResolvedImage } from "@/lib/imageStore";
-import {
-  MAX_FEATURED,
-  placementLabel,
-  placementRank,
-} from "@/lib/marketplace/placement";
+import { MAX_FEATURED, placementLabel, placementRank } from "@/lib/marketplace/placement";
+import type { AuditAction } from "@/data/audit";
 import { AdminPage } from "@/components/admin/AdminShell";
+import MarketplacePlacementCard, { formatInvestment } from "./MarketplacePlacementCard";
+import MarketplacePreview from "./MarketplacePreview";
 import { cn } from "@/lib/cn";
 
-function money(o: Opportunity): string {
-  const n = o.fundingAmount;
-  if (typeof n === "number" && n > 0) {
-    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
-    if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
-    return `$${n.toLocaleString()}`;
+type Col = "hero" | "featured" | "marketplace";
+type SortKey = "order" | "newest" | "funding" | "az";
+
+const FUNDING_BUCKETS = [
+  { key: "all", label: "All funding" },
+  { key: "<1m", label: "Under $1M" },
+  { key: "1-10m", label: "$1M – $10M" },
+  { key: "10-50m", label: "$10M – $50M" },
+  { key: "50m+", label: "$50M+" },
+];
+function inFunding(o: Opportunity, key: string): boolean {
+  const n = o.fundingAmount || 0;
+  switch (key) {
+    case "<1m": return n > 0 && n < 1_000_000;
+    case "1-10m": return n >= 1_000_000 && n < 10_000_000;
+    case "10-50m": return n >= 10_000_000 && n < 50_000_000;
+    case "50m+": return n >= 50_000_000;
+    default: return true;
   }
-  return o.investmentRange || "On request";
 }
 
 export default function MarketplaceManager() {
-  const {
-    marketplacePlacement: placement,
-    setMarketplaceHero,
-    setMarketplaceFeatured,
-    setMarketplaceOrder,
-    userOpportunities,
-    hydrated,
-  } = useMessaging();
+  const { marketplacePlacement: placement, applyMarketplacePlacement, userOpportunities, hydrated } = useMessaging();
 
   const allOpps = useMemo(
     () => (hydrated ? [...userOpportunities, ...featuredOpportunities] : featuredOpportunities),
@@ -57,11 +53,17 @@ export default function MarketplaceManager() {
   const byId = useMemo(() => new Map(allOpps.map((o) => [o.id, o])), [allOpps]);
 
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [dragId, setDragId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
+  const [fundingFilter, setFundingFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<SortKey>("order");
 
-  // ---- Derived sections ----
+  // Drag state for premium visual feedback.
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<Col | null>(null);
+  const [featuredDropIndex, setFeaturedDropIndex] = useState<number | null>(null);
+
   const hero = placement.heroId ? byId.get(placement.heroId) ?? null : null;
   const featured = useMemo(
     () => placement.featuredIds.map((id) => byId.get(id)).filter((o): o is Opportunity => !!o && o.id !== placement.heroId),
@@ -72,404 +74,294 @@ export default function MarketplaceManager() {
     [hero, featured]
   );
 
-  const categories = useMemo(
-    () => [...new Set(allOpps.map((o) => o.category))].sort(),
+  const categories = useMemo(() => [...new Set(allOpps.map((o) => o.category))].sort(), [allOpps]);
+  const countries = useMemo(
+    () => [...new Set(allOpps.map((o) => o.place?.country).filter((c): c is string => !!c))].sort(),
     [allOpps]
   );
 
+  // Full marketplace (unplaced) in persisted display order — reorders write to this.
+  const fullRemaining = useMemo(
+    () =>
+      allOpps
+        .filter((o) => !placedIds.has(o.id))
+        .sort((a, b) => placementRank(a.id, placement) - placementRank(b.id, placement)),
+    [allOpps, placedIds, placement]
+  );
+
+  // Filtered + sorted view of the inventory.
   const remaining = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return allOpps
-      .filter((o) => !placedIds.has(o.id))
-      .filter((o) => {
-        if (statusFilter !== "all" && o.status !== statusFilter) return false;
-        if (categoryFilter !== "all" && o.category !== categoryFilter) return false;
-        if (!q) return true;
-        const company = getCompanyById(o.companyId);
-        const hay = [
-          o.title,
-          publicOpportunityId(o),
-          company?.name ?? "",
-          o.postedBy,
-          o.category,
-          o.location,
-          o.place?.country ?? "",
-          o.dealType,
-          o.status,
-        ]
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(q);
-      })
-      .sort((a, b) => placementRank(a.id, placement) - placementRank(b.id, placement));
-  }, [allOpps, placedIds, query, statusFilter, categoryFilter, placement]);
+    const list = fullRemaining.filter((o) => {
+      if (statusFilter !== "all" && o.status !== statusFilter) return false;
+      if (categoryFilter !== "all" && o.category !== categoryFilter) return false;
+      if (countryFilter !== "all" && (o.place?.country ?? "") !== countryFilter) return false;
+      if (!inFunding(o, fundingFilter)) return false;
+      if (!q) return true;
+      const company = getCompanyById(o.companyId);
+      const hay = [o.title, publicOpportunityId(o), company?.name ?? "", o.postedBy, o.category, o.location, o.place?.country ?? "", o.dealType, o.status, formatInvestment(o)]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+    if (sortKey === "newest") return [...list].sort((a, b) => Date.parse(b.postedAt) - Date.parse(a.postedAt));
+    if (sortKey === "funding") return [...list].sort((a, b) => (b.fundingAmount || 0) - (a.fundingAmount || 0));
+    if (sortKey === "az") return [...list].sort((a, b) => a.title.localeCompare(b.title));
+    return list; // "order" — persisted placement order
+  }, [fullRemaining, query, statusFilter, categoryFilter, countryFilter, fundingFilter, sortKey]);
 
-  // ---- Operations ----
-  const makeHero = (id: string) => setMarketplaceHero(id, byId.get(id)?.title);
-  const removeHero = () => setMarketplaceHero(null);
-  const addFeatured = (id: string) => {
-    if (placement.featuredIds.includes(id)) return;
-    if (featured.length >= MAX_FEATURED) return;
-    setMarketplaceFeatured([...placement.featuredIds, id], byId.get(id)?.title);
+  // ---- Atomic operations (all via applyMarketplacePlacement) ----
+  const apply = (next: { heroId: string | null; featuredIds: string[]; order: string[] }, action: AuditAction, targetId?: string, label?: string, detail?: string) =>
+    applyMarketplacePlacement(next, { action, targetId, label, detail });
+
+  const makeHero = (o: Opportunity) =>
+    apply({ heroId: o.id, featuredIds: placement.featuredIds.filter((x) => x !== o.id), order: placement.order }, "Marketplace Hero Assigned", o.id, o.title, `Hero → ${o.title}`);
+  const removeHero = () =>
+    apply({ heroId: null, featuredIds: placement.featuredIds, order: placement.order }, "Marketplace Hero Removed", placement.heroId ?? undefined);
+  const addFeatured = (o: Opportunity) => {
+    if (placement.featuredIds.includes(o.id) || featured.length >= MAX_FEATURED) return;
+    apply({ heroId: placement.heroId === o.id ? null : placement.heroId, featuredIds: [...placement.featuredIds, o.id], order: placement.order }, "Marketplace Featured Updated", o.id, o.title, `Featured + ${o.title}`);
   };
   const removeFeatured = (id: string) =>
-    setMarketplaceFeatured(placement.featuredIds.filter((x) => x !== id), byId.get(id)?.title);
+    apply({ heroId: placement.heroId, featuredIds: placement.featuredIds.filter((x) => x !== id), order: placement.order }, "Marketplace Featured Updated", id);
   const insertFeaturedAt = (id: string, index: number) => {
-    const without = placement.featuredIds.filter((x) => x !== id);
-    without.splice(Math.max(0, Math.min(index, without.length)), 0, id);
-    setMarketplaceFeatured(without, byId.get(id)?.title);
+    const f = placement.featuredIds.filter((x) => x !== id);
+    f.splice(Math.max(0, Math.min(index, f.length)), 0, id);
+    apply({ heroId: placement.heroId === id ? null : placement.heroId, featuredIds: f, order: placement.order }, "Marketplace Featured Updated", id, byId.get(id)?.title);
   };
   const moveFeatured = (id: string, dir: -1 | 1) => {
-    const ids = [...placement.featuredIds];
-    const i = ids.indexOf(id);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= ids.length) return;
-    [ids[i], ids[j]] = [ids[j], ids[i]];
-    setMarketplaceFeatured(ids, byId.get(id)?.title);
+    const f = [...placement.featuredIds];
+    const i = f.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= f.length) return;
+    [f[i], f[j]] = [f[j], f[i]];
+    apply({ heroId: placement.heroId, featuredIds: f, order: placement.order }, "Marketplace Featured Updated", id);
   };
   const moveMarketplace = (id: string, dir: -1 | 1) => {
-    const ids = remaining.map((o) => o.id);
-    const i = ids.indexOf(id);
-    const j = i + dir;
+    const ids = fullRemaining.map((o) => o.id);
+    const i = ids.indexOf(id), j = i + dir;
     if (i < 0 || j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j], ids[i]];
-    setMarketplaceOrder(ids);
+    apply({ heroId: placement.heroId, featuredIds: placement.featuredIds, order: ids }, "Marketplace Order Changed", id);
+  };
+  const reorderMarketplaceTo = (id: string, targetId: string) => {
+    if (id === targetId) return;
+    const ids = fullRemaining.map((o) => o.id).filter((x) => x !== id);
+    const ti = ids.indexOf(targetId);
+    ids.splice(ti < 0 ? ids.length : ti, 0, id);
+    apply({ heroId: placement.heroId === id ? null : placement.heroId, featuredIds: placement.featuredIds.filter((x) => x !== id), order: ids }, "Marketplace Order Changed", id);
   };
   const demote = (id: string) => {
-    if (placement.heroId === id) setMarketplaceHero(null);
-    else if (placement.featuredIds.includes(id)) removeFeatured(id);
+    if (placement.heroId !== id && !placement.featuredIds.includes(id)) return;
+    apply(
+      { heroId: placement.heroId === id ? null : placement.heroId, featuredIds: placement.featuredIds.filter((x) => x !== id), order: placement.order },
+      placement.heroId === id ? "Marketplace Hero Removed" : "Marketplace Featured Updated",
+      id
+    );
   };
 
-  const onDropTo = (handler: (id: string) => void) => (e: React.DragEvent) => {
-    e.preventDefault();
-    if (dragId) handler(dragId);
-    setDragId(null);
+  // ---- Drag plumbing ----
+  const startDrag = (id: string) => () => setDragId(id);
+  const endDrag = () => { setDragId(null); setDragOverCol(null); setFeaturedDropIndex(null); };
+  const overCol = (col: Col) => (e: React.DragEvent) => { e.preventDefault(); setDragOverCol(col); };
+  const dropHero = (e: React.DragEvent) => { e.preventDefault(); if (dragId) makeHero(byId.get(dragId)!); endDrag(); };
+  const dropFeaturedAt = (index: number) => (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (dragId) insertFeaturedAt(dragId, index); endDrag(); };
+  const dropFeaturedCol = (e: React.DragEvent) => { e.preventDefault(); if (dragId) addFeatured(byId.get(dragId)!); endDrag(); };
+  const dropInventoryCol = (e: React.DragEvent) => { e.preventDefault(); if (dragId) demote(dragId); endDrag(); };
+  const dropInventoryCard = (targetId: string) => (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!dragId) return;
+    if (placedIds.has(dragId)) demote(dragId); // hero/featured → marketplace (rank default)
+    else reorderMarketplaceTo(dragId, targetId);
+    endDrag();
   };
-  const allowDrop = (e: React.DragEvent) => e.preventDefault();
 
-  const totalOrdered = (placement.heroId ? 1 : 0) + placement.featuredIds.length + placement.order.length;
+  // ---- Stats ----
+  const totalCurated = (placement.heroId ? 1 : 0) + placement.featuredIds.length + placement.order.length;
+  const lastChange = placement.updatedAt ? placement.updatedAt.slice(0, 16).replace("T", " ") : "Never";
+
+  const colHi = (col: Col) => dragId && dragOverCol === col ? "ring-2 ring-gold-500/50 bg-gold-500/[0.04]" : "ring-1 ring-navy-900/[0.06]";
 
   return (
     <AdminPage
       title="Marketplace Placement"
-      subtitle="Editorial control over what investors see first. Drag opportunities between Hero, Featured, and Marketplace — or use the controls on each card. Changes save instantly and are audited."
+      subtitle="A visual board for what investors see first. Drag opportunities between Hero, Featured, and Marketplace — or use the controls on every card. Changes save instantly and are audited."
     >
-      {/* ---- HERO ---- */}
-      <SectionLabel icon={Crown} title="Hero Opportunity" hint="Exactly one. Appears at the very top of the Opportunities page." />
-      <div
-        onDragOver={allowDrop}
-        onDrop={onDropTo(makeHero)}
-        className={cn(
-          "rounded-2xl ring-1 transition-colors",
-          dragId ? "ring-gold-500/50 bg-gold-500/[0.04]" : "ring-navy-900/[0.06] bg-white"
-        )}
-      >
-        {hero ? (
-          <HeroCard opportunity={hero} onRemove={removeHero} draggable onDragStart={() => setDragId(hero.id)} onDragEnd={() => setDragId(null)} />
-        ) : (
-          <div className="p-8 text-center">
-            <Crown className="h-6 w-6 mx-auto text-navy-700/35" strokeWidth={1.9} />
-            <p className="mt-2 text-sm font-semibold text-navy-900">No hero selected</p>
-            <p className="mt-1 text-xs text-navy-700/60">
-              Drag an opportunity here, or use “Make Hero” on any card below. The marketplace falls
-              back to the top Featured opportunity until one is set.
-            </p>
-          </div>
-        )}
+      {/* ---- Stats ---- */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Stat icon={Crown} label="Hero Assigned" value={hero ? "Yes" : "Auto"} sub={hero?.title} />
+        <Stat icon={Star} label="Featured Slots" value={`${featured.length} / ${MAX_FEATURED}`} />
+        <Stat icon={Store} label="Marketplace" value={fullRemaining.length} />
+        <Stat icon={LayoutGrid} label="Total Curated" value={totalCurated} />
+        <Stat icon={Clock3} label="Last Change" value={lastChange} mono />
       </div>
 
-      {/* ---- FEATURED ---- */}
-      <SectionLabel
-        icon={Star}
-        title="Featured Opportunities"
-        hint={`Up to ${MAX_FEATURED}, manually ordered. Position 1 shows first.`}
-        className="mt-7"
-      />
-      <div
-        onDragOver={allowDrop}
-        onDrop={onDropTo(addFeatured)}
-        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"
-      >
-        {Array.from({ length: MAX_FEATURED }).map((_, slot) => {
-          const o = featured[slot];
-          return (
-            <div
-              key={slot}
-              onDragOver={allowDrop}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (dragId) insertFeaturedAt(dragId, slot);
-                setDragId(null);
-              }}
-              className={cn(
-                "rounded-xl ring-1 min-h-[92px]",
-                o ? "ring-navy-900/[0.06] bg-white" : "ring-dashed ring-navy-900/15 bg-bone/40 border border-dashed border-navy-900/15"
-              )}
-            >
-              {o ? (
-                <FeaturedCard
-                  opportunity={o}
-                  pos={slot}
-                  count={featured.length}
-                  onRemove={() => removeFeatured(o.id)}
-                  onUp={() => moveFeatured(o.id, -1)}
-                  onDown={() => moveFeatured(o.id, 1)}
-                  onMakeHero={() => makeHero(o.id)}
-                  draggable
-                  onDragStart={() => setDragId(o.id)}
-                  onDragEnd={() => setDragId(null)}
-                />
-              ) : (
-                <div className="h-full min-h-[92px] flex items-center justify-center text-[11px] uppercase tracking-[0.14em] font-bold text-navy-700/40">
-                  Featured #{slot + 1}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ---- MARKETPLACE INVENTORY ---- */}
-      <SectionLabel
-        icon={GripVertical}
-        title="Marketplace Inventory"
-        hint="Everything else, in display order. Drag up to Featured or Hero, or reorder."
-        className="mt-7"
-      />
-
-      {/* Search + filters */}
-      <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-3 md:p-4 space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-navy-700/50" strokeWidth={2} />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title, OPP ID, company, sponsor, category, location, deal type, status…"
-            className="w-full rounded-full bg-bone/60 ring-1 ring-navy-900/[0.06] focus:ring-2 focus:ring-gold-500 outline-none pl-9 pr-9 py-2 text-sm text-navy-900 placeholder:text-navy-700/45"
-          />
-          {query ? (
-            <button type="button" onClick={() => setQuery("")} aria-label="Clear" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-6 w-6 inline-flex items-center justify-center rounded-full hover:bg-bone text-navy-700/55">
-              <X className="h-3.5 w-3.5" strokeWidth={2.4} />
-            </button>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={statusFilter} onChange={setStatusFilter} options={["all", "Open", "Seeking Capital", "Negotiating", "Under Contract", "Closed"]} allLabel="All statuses" />
-          <Select value={categoryFilter} onChange={setCategoryFilter} options={["all", ...categories]} allLabel="All categories" />
-          <span className="ml-auto text-[11px] uppercase tracking-[0.12em] font-bold text-navy-700/55">
-            {remaining.length} in marketplace · {totalOrdered} curated
-          </span>
-        </div>
-      </div>
-
-      {/* Inventory list = drop zone for demotion */}
-      <div
-        onDragOver={allowDrop}
-        onDrop={onDropTo(demote)}
-        className={cn("mt-3 rounded-2xl ring-1 transition-colors", dragId ? "ring-navy-900/20 bg-navy-900/[0.02]" : "ring-transparent")}
-      >
-        {remaining.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {remaining.map((o, i) => (
-              <InventoryCard
-                key={o.id}
-                opportunity={o}
-                index={i}
-                count={remaining.length}
-                placementText={placementLabel(o.id, placement)}
-                canFeature={featured.length < MAX_FEATURED}
-                onMakeHero={() => makeHero(o.id)}
-                onAddFeatured={() => addFeatured(o.id)}
-                onUp={() => moveMarketplace(o.id, -1)}
-                onDown={() => moveMarketplace(o.id, 1)}
+      {/* ---- Board ---- */}
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_320px_minmax(0,1fr)] gap-4 lg:h-[680px]">
+        {/* HERO column */}
+        <ColumnShell title="Hero" Icon={Crown} hint="Exactly one" className={colHi("hero")}>
+          <div onDragOver={overCol("hero")} onDrop={dropHero} className="flex-1 overflow-y-auto p-3 space-y-3">
+            {hero ? (
+              <MarketplacePlacementCard
+                opportunity={hero}
+                variant="hero"
+                badge="Hero"
+                onRemoveHero={removeHero}
+                dragging={dragId === hero.id}
                 draggable
-                onDragStart={() => setDragId(o.id)}
-                onDragEnd={() => setDragId(null)}
+                onDragStart={startDrag(hero.id)}
+                onDragEnd={endDrag}
               />
-            ))}
+            ) : (
+              <DropHint Icon={Crown} text="Drag an opportunity here to make it the Hero, or use “Make Hero” on any card." />
+            )}
           </div>
-        ) : (
-          <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-8 text-center text-sm text-navy-700/60">
-            No opportunities match these filters.
+        </ColumnShell>
+
+        {/* FEATURED column */}
+        <ColumnShell title="Featured" Icon={Star} hint={`Up to ${MAX_FEATURED} · ordered`} className={colHi("featured")}>
+          <div onDragOver={overCol("featured")} onDrop={dropFeaturedCol} className="flex-1 overflow-y-auto p-3 space-y-2">
+            {Array.from({ length: MAX_FEATURED }).map((_, slot) => {
+              const o = featured[slot];
+              return (
+                <div key={slot} onDragOver={(e) => { e.preventDefault(); setFeaturedDropIndex(slot); }} onDrop={dropFeaturedAt(slot)}>
+                  {dragId && featuredDropIndex === slot ? <div className="h-0.5 bg-gold-500 rounded-full mb-1.5" /> : null}
+                  {o ? (
+                    <MarketplacePlacementCard
+                      opportunity={o}
+                      variant="featured"
+                      badge={`Featured #${slot + 1}`}
+                      onUp={() => moveFeatured(o.id, -1)}
+                      onDown={() => moveFeatured(o.id, 1)}
+                      upDisabled={slot === 0}
+                      downDisabled={slot >= featured.length - 1}
+                      onMakeHero={() => makeHero(o)}
+                      onRemoveFeatured={() => removeFeatured(o.id)}
+                      dragging={dragId === o.id}
+                      draggable
+                      onDragStart={startDrag(o.id)}
+                      onDragEnd={endDrag}
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-navy-900/15 bg-bone/40 h-[58px] flex items-center justify-center text-[10px] uppercase tracking-[0.14em] font-bold text-navy-700/40">
+                      Featured #{slot + 1}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
+        </ColumnShell>
+
+        {/* MARKETPLACE column */}
+        <ColumnShell title="Marketplace Inventory" Icon={Store} hint={`${remaining.length} shown`} className={colHi("marketplace")}>
+          <div className="px-3 pt-3 space-y-2 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-navy-700/50" strokeWidth={2} />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search title, OPP ID, sponsor, location, deal type, investment…"
+                className="w-full rounded-full bg-white ring-1 ring-navy-900/[0.08] focus:ring-2 focus:ring-gold-500 outline-none pl-9 pr-9 py-2 text-sm text-navy-900 placeholder:text-navy-700/45"
+              />
+              {query ? (
+                <button type="button" onClick={() => setQuery("")} aria-label="Clear" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-6 w-6 inline-flex items-center justify-center rounded-full hover:bg-bone text-navy-700/55">
+                  <X className="h-3.5 w-3.5" strokeWidth={2.4} />
+                </button>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Select value={categoryFilter} onChange={setCategoryFilter} options={["all", ...categories]} allLabel="All categories" />
+              <Select value={statusFilter} onChange={setStatusFilter} options={["all", "Open", "Seeking Capital", "Negotiating", "Under Contract", "Closed"]} allLabel="All statuses" />
+              <Select value={countryFilter} onChange={setCountryFilter} options={["all", ...countries]} allLabel="All countries" />
+              <Select value={fundingFilter} onChange={setFundingFilter} options={FUNDING_BUCKETS.map((b) => b.key)} labels={Object.fromEntries(FUNDING_BUCKETS.map((b) => [b.key, b.label]))} allLabel="All funding" />
+              <Select value={sortKey} onChange={(v) => setSortKey(v as SortKey)} options={["order", "newest", "funding", "az"]} labels={{ order: "Sort: Order", newest: "Sort: Newest", funding: "Sort: Funding", az: "Sort: A–Z" }} allLabel="Sort" />
+            </div>
+          </div>
+          <div onDragOver={overCol("marketplace")} onDrop={dropInventoryCol} className="flex-1 overflow-y-auto p-3 space-y-2">
+            {remaining.length > 0 ? (
+              remaining.map((o, i) => (
+                <div key={o.id} onDrop={dropInventoryCard(o.id)} onDragOver={(e) => e.preventDefault()}>
+                  <MarketplacePlacementCard
+                    opportunity={o}
+                    variant="inventory"
+                    badge={placementLabel(o.id, placement)}
+                    onMakeHero={() => makeHero(o)}
+                    onAddFeatured={() => addFeatured(o)}
+                    canFeature={featured.length < MAX_FEATURED}
+                    onUp={sortKey === "order" ? () => moveMarketplace(o.id, -1) : undefined}
+                    onDown={sortKey === "order" ? () => moveMarketplace(o.id, 1) : undefined}
+                    upDisabled={i === 0}
+                    downDisabled={i >= remaining.length - 1}
+                    dragging={dragId === o.id}
+                    draggable
+                    onDragStart={startDrag(o.id)}
+                    onDragEnd={endDrag}
+                  />
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-navy-700/55 text-center py-8">No opportunities match these filters.</p>
+            )}
+          </div>
+        </ColumnShell>
       </div>
+
+      {/* ---- Live preview ---- */}
+      <MarketplacePreview />
     </AdminPage>
   );
 }
 
-// ---- Sub-components ----
+// ---- Layout helpers ----
 
-function SectionLabel({ icon: Icon, title, hint, className }: { icon: typeof Crown; title: string; hint: string; className?: string }) {
+function ColumnShell({ title, Icon, hint, className, children }: { title: string; Icon: typeof Crown; hint: string; className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("mb-2.5", className)}>
-      <h3 className="text-sm font-semibold text-navy-900 inline-flex items-center gap-1.5">
-        <Icon className="h-4 w-4 text-gold-600" strokeWidth={2.2} />
-        {title}
-      </h3>
-      <p className="text-[11px] text-navy-700/55 mt-0.5">{hint}</p>
-    </div>
-  );
-}
-
-function PlacementBadge({ text }: { text: string }) {
-  const isHero = text === "Hero";
-  const isFeatured = text.startsWith("Featured");
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center text-[9px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1 whitespace-nowrap",
-        isHero
-          ? "bg-navy-900 text-gold-400 ring-navy-900"
-          : isFeatured
-            ? "bg-gold-500/20 text-gold-700 ring-gold-500/45"
-            : "bg-navy-900/[0.05] text-navy-700 ring-navy-900/15"
-      )}
-    >
-      {text}
-    </span>
-  );
-}
-
-function Thumb({ opportunity, className }: { opportunity: Opportunity; className?: string }) {
-  const src = useResolvedImage(opportunity.images[0]);
-  return (
-    <div className={cn("relative bg-navy-900/5 overflow-hidden", className)}>
-      {src ? <Image src={src} alt={opportunity.title} fill sizes="200px" className="object-cover" /> : null}
-    </div>
-  );
-}
-
-function IconBtn({ onClick, label, children, disabled, tone = "default" }: { onClick: () => void; label: string; children: React.ReactNode; disabled?: boolean; tone?: "default" | "gold" | "rose" }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "inline-flex items-center justify-center h-7 w-7 rounded-lg ring-1 transition-colors shrink-0",
-        disabled
-          ? "text-navy-700/25 ring-navy-900/[0.05] cursor-not-allowed"
-          : tone === "gold"
-            ? "text-gold-700 ring-gold-500/40 hover:bg-gold-500/10"
-            : tone === "rose"
-              ? "text-rose-700 ring-rose-500/30 hover:bg-rose-500/10"
-              : "text-navy-900 ring-navy-900/15 hover:bg-bone"
-      )}
-    >
+    <section className={cn("flex flex-col rounded-2xl bg-white transition-colors lg:h-full min-h-[260px]", className)}>
+      <header className="px-4 py-3 border-b border-navy-900/[0.06] shrink-0">
+        <div className="text-[11px] uppercase tracking-[0.16em] text-navy-900 font-bold inline-flex items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5 text-gold-600" strokeWidth={2.4} />
+          {title}
+        </div>
+        <div className="text-[10px] text-navy-700/50 mt-0.5">{hint}</div>
+      </header>
       {children}
-    </button>
+    </section>
   );
 }
 
-function HeroCard({ opportunity, onRemove, ...drag }: { opportunity: Opportunity; onRemove: () => void } & React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean }) {
-  const company = getCompanyById(opportunity.companyId);
+function DropHint({ Icon, text }: { Icon: typeof Crown; text: string }) {
   return (
-    <article {...drag} className="flex flex-col sm:flex-row gap-4 p-4 cursor-grab active:cursor-grabbing">
-      <Thumb opportunity={opportunity} className="rounded-xl w-full sm:w-56 aspect-[16/10] sm:aspect-auto sm:h-36 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <PlacementBadge text="Hero" />
-          <span className="text-[10px] uppercase tracking-[0.14em] font-bold text-navy-700/55 tabular-nums">{publicOpportunityId(opportunity)}</span>
-        </div>
-        <h4 className="mt-1 text-lg font-semibold text-navy-900 leading-snug">{opportunity.title}</h4>
-        <div className="mt-1.5 flex items-center gap-3 text-xs text-navy-700/70 flex-wrap">
-          <span className="inline-flex items-center gap-1"><Building2 className="h-3.5 w-3.5 text-gold-600" strokeWidth={2.2} />{company?.name ?? opportunity.postedBy}</span>
-          <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-gold-600" strokeWidth={2.2} />{opportunity.place?.country ?? opportunity.location}</span>
-        </div>
-        <div className="mt-2 flex items-center gap-3 flex-wrap">
-          <span className="text-base font-semibold text-navy-900 tabular-nums">{money(opportunity)}</span>
-          <span className="text-[10px] uppercase tracking-[0.12em] font-bold rounded-full px-2 py-0.5 ring-1 bg-navy-900/[0.05] text-navy-700 ring-navy-900/10">{opportunity.status}</span>
-        </div>
-        <div className="mt-3 flex items-center gap-2">
-          <Link href={`/opportunity/${opportunity.slug}`} className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 hover:text-gold-600">
-            View <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.2} />
-          </Link>
-          <button type="button" onClick={onRemove} className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white ring-1 ring-rose-500/40 hover:bg-rose-500/10 text-rose-700 font-semibold px-3 py-1.5 text-xs transition-colors">
-            <X className="h-3.5 w-3.5" strokeWidth={2.4} /> Remove Hero
-          </button>
-        </div>
-      </div>
-    </article>
+    <div className="rounded-2xl border border-dashed border-navy-900/15 bg-bone/40 p-6 text-center">
+      <Icon className="h-6 w-6 mx-auto text-navy-700/30" strokeWidth={1.9} />
+      <p className="mt-2 text-xs text-navy-700/60 leading-relaxed">{text}</p>
+    </div>
   );
 }
 
-function FeaturedCard({ opportunity, pos, count, onRemove, onUp, onDown, onMakeHero, ...drag }: { opportunity: Opportunity; pos: number; count: number; onRemove: () => void; onUp: () => void; onDown: () => void; onMakeHero: () => void } & React.HTMLAttributes<HTMLElement> & { draggable?: boolean }) {
+function Stat({ icon: Icon, label, value, sub, mono }: { icon: typeof Crown; label: string; value: string | number; sub?: string; mono?: boolean }) {
   return (
-    <article {...drag} className="flex gap-2.5 p-2.5 cursor-grab active:cursor-grabbing">
-      <Thumb opportunity={opportunity} className="rounded-lg h-14 w-14 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <PlacementBadge text={`Featured #${pos + 1}`} />
-        </div>
-        <div className="mt-0.5 text-sm font-semibold text-navy-900 truncate">{opportunity.title}</div>
-        <div className="text-[11px] text-navy-700/60 truncate">{money(opportunity)} · {opportunity.status}</div>
+    <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-3">
+      <div className="text-[9px] uppercase tracking-[0.14em] text-navy-700/55 font-bold inline-flex items-center gap-1">
+        <Icon className="h-3 w-3 text-gold-600" strokeWidth={2.2} />
+        {label}
       </div>
-      <div className="flex flex-col items-center gap-1">
-        <div className="flex gap-1">
-          <IconBtn onClick={onUp} label="Move up" disabled={pos === 0}><ChevronUp className="h-3.5 w-3.5" strokeWidth={2.4} /></IconBtn>
-          <IconBtn onClick={onDown} label="Move down" disabled={pos >= count - 1}><ChevronDown className="h-3.5 w-3.5" strokeWidth={2.4} /></IconBtn>
-        </div>
-        <div className="flex gap-1">
-          <IconBtn onClick={onMakeHero} label="Make Hero" tone="gold"><Crown className="h-3.5 w-3.5" strokeWidth={2.2} /></IconBtn>
-          <IconBtn onClick={onRemove} label="Remove from Featured" tone="rose"><Trash2 className="h-3.5 w-3.5" strokeWidth={2.2} /></IconBtn>
-        </div>
-      </div>
-    </article>
+      <div className={cn("mt-1 text-lg font-semibold text-navy-900 truncate", mono && "tabular-nums text-sm")}>{value}</div>
+      {sub ? <div className="text-[10px] text-navy-700/50 truncate">{sub}</div> : null}
+    </div>
   );
 }
 
-function InventoryCard({ opportunity, index, count, placementText, canFeature, onMakeHero, onAddFeatured, onUp, onDown, ...drag }: { opportunity: Opportunity; index: number; count: number; placementText: string; canFeature: boolean; onMakeHero: () => void; onAddFeatured: () => void; onUp: () => void; onDown: () => void } & React.HTMLAttributes<HTMLElement> & { draggable?: boolean }) {
-  const company = getCompanyById(opportunity.companyId);
-  return (
-    <article {...drag} className="flex gap-3 p-3 rounded-xl bg-white ring-1 ring-navy-900/[0.06] hover:ring-navy-900/15 transition-colors cursor-grab active:cursor-grabbing">
-      <Thumb opportunity={opportunity} className="rounded-lg h-16 w-16 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] uppercase tracking-[0.14em] font-bold text-navy-700/55 tabular-nums">{publicOpportunityId(opportunity)}</span>
-          <PlacementBadge text={placementText} />
-        </div>
-        <div className="mt-0.5 text-sm font-semibold text-navy-900 leading-snug truncate">{opportunity.title}</div>
-        <div className="text-[11px] uppercase tracking-[0.1em] font-semibold text-gold-700 truncate">{opportunity.category}</div>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-navy-700/65 truncate">
-          <span className="font-semibold text-navy-900 tabular-nums">{money(opportunity)}</span>
-          <span className="text-navy-700/30">·</span>
-          <span className="truncate">{company?.name ?? opportunity.postedBy}</span>
-          <span className="text-navy-700/30">·</span>
-          <span>{opportunity.status}</span>
-        </div>
-        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-navy-700/45">
-          <span>{opportunity.place?.country ?? opportunity.location}</span>
-          <span className="text-navy-700/25">·</span>
-          <span>{opportunity.postedAt?.slice(0, 10)}</span>
-        </div>
-      </div>
-      <div className="flex flex-col gap-1 shrink-0">
-        <IconBtn onClick={onMakeHero} label="Make Hero" tone="gold"><Crown className="h-3.5 w-3.5" strokeWidth={2.2} /></IconBtn>
-        <IconBtn onClick={onAddFeatured} label={canFeature ? "Add to Featured" : "Featured is full"} disabled={!canFeature} tone="gold"><Star className="h-3.5 w-3.5" strokeWidth={2.2} /></IconBtn>
-        <div className="flex gap-1">
-          <IconBtn onClick={onUp} label="Move up" disabled={index === 0}><ChevronUp className="h-3.5 w-3.5" strokeWidth={2.4} /></IconBtn>
-          <IconBtn onClick={onDown} label="Move down" disabled={index >= count - 1}><ChevronDown className="h-3.5 w-3.5" strokeWidth={2.4} /></IconBtn>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function Select({ value, onChange, options, allLabel }: { value: string; onChange: (v: string) => void; options: string[]; allLabel: string }) {
+function Select({ value, onChange, options, labels, allLabel }: { value: string; onChange: (v: string) => void; options: string[]; labels?: Record<string, string>; allLabel: string }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-full bg-white ring-1 ring-navy-900/[0.1] hover:ring-navy-900/25 text-navy-900 text-xs font-semibold px-3 py-1.5 outline-none focus:ring-2 focus:ring-gold-500 [&>option]:text-navy-900"
+      className="rounded-full bg-white ring-1 ring-navy-900/[0.1] hover:ring-navy-900/25 text-navy-900 text-[11px] font-semibold px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-gold-500 [&>option]:text-navy-900"
     >
       {options.map((o) => (
         <option key={o} value={o}>
-          {o === "all" ? allLabel : o}
+          {labels?.[o] ?? (o === "all" ? allLabel : o)}
         </option>
       ))}
     </select>

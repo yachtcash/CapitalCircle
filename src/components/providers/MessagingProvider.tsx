@@ -611,6 +611,11 @@ type MessagingValue = {
   setMarketplaceHero: (id: string | null, label?: string) => void;
   setMarketplaceFeatured: (ids: string[], label?: string) => void;
   setMarketplaceOrder: (ids: string[]) => void;
+  /** Atomic placement update (any cross-section move) + a single audited entry. */
+  applyMarketplacePlacement: (
+    next: { heroId: string | null; featuredIds: string[]; order: string[] },
+    audit: { action: AuditAction; targetId?: string; label?: string; detail?: string }
+  ) => void;
   recordAudit: (
     action: AuditAction,
     target: { kind: AuditTargetKind; id: string; label?: string },
@@ -1130,6 +1135,35 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         "Marketplace Order Changed",
         { kind: "marketplace", id: "order", label: "Marketplace order" },
         `${ids.length} ordered`
+      );
+    },
+    [marketplacePlacement, recordAudit]
+  );
+
+  const applyMarketplacePlacement = useCallback(
+    (
+      next: { heroId: string | null; featuredIds: string[]; order: string[] },
+      audit: { action: AuditAction; targetId?: string; label?: string; detail?: string }
+    ) => {
+      const prev = marketplacePlacement;
+      // Enforce invariants centrally: dedupe featured, drop the hero from it, cap at 6.
+      const featuredIds = next.featuredIds
+        .filter((id, i) => next.featuredIds.indexOf(id) === i && id !== next.heroId)
+        .slice(0, MAX_FEATURED);
+      const value: MarketplacePlacement = {
+        heroId: next.heroId,
+        featuredIds,
+        order: next.order,
+        updatedAt: new Date().toISOString(),
+      };
+      setMarketplacePlacement(value);
+      const sum = (p: MarketplacePlacement) =>
+        `hero:${p.heroId ?? "—"} featured:[${p.featuredIds.join(",")}]`;
+      recordAudit(
+        audit.action,
+        { kind: "marketplace", id: audit.targetId ?? "placement", label: audit.label ?? "Marketplace placement" },
+        audit.detail,
+        { before: sum(prev), after: sum(value) }
       );
     },
     [marketplacePlacement, recordAudit]
@@ -4089,6 +4123,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     setMarketplaceHero,
     setMarketplaceFeatured,
     setMarketplaceOrder,
+    applyMarketplacePlacement,
     recordAudit,
   };
 
