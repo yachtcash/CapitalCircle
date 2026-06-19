@@ -16,6 +16,7 @@ import { featuredOpportunities, type Opportunity } from "@/data/opportunities";
 import { getCompanyById } from "@/data/companies";
 import { publicOpportunityId } from "@/lib/opportunities/id";
 import { MAX_FEATURED, placementLabel, placementRank } from "@/lib/marketplace/placement";
+import { getFeaturedOpportunityOfTheWeek } from "@/data/opportunities/collections";
 import type { AuditAction } from "@/data/audit";
 import { AdminPage } from "@/components/admin/AdminShell";
 import MarketplacePlacementCard, { formatInvestment } from "./MarketplacePlacementCard";
@@ -69,6 +70,14 @@ export default function MarketplaceManager() {
     () => placement.featuredIds.map((id) => byId.get(id)).filter((o): o is Opportunity => !!o && o.id !== placement.heroId),
     [placement.featuredIds, placement.heroId, byId]
   );
+  // Cap math counts the PERSISTED slots (excluding the hero), not the filtered
+  // render list. A featured id whose opportunity was deleted still occupies a
+  // slot in state, so guarding on `featured.length` would let a no-op add slip
+  // through (the central mutation slices it back off, losing the new id).
+  const featuredCount = useMemo(
+    () => placement.featuredIds.filter((id) => id !== placement.heroId).length,
+    [placement.featuredIds, placement.heroId]
+  );
   const placedIds = useMemo(
     () => new Set<string>([...(hero ? [hero.id] : []), ...featured.map((o) => o.id)]),
     [hero, featured]
@@ -119,7 +128,7 @@ export default function MarketplaceManager() {
   const removeHero = () =>
     apply({ heroId: null, featuredIds: placement.featuredIds, order: placement.order }, "Marketplace Hero Removed", placement.heroId ?? undefined);
   const addFeatured = (o: Opportunity) => {
-    if (placement.featuredIds.includes(o.id) || featured.length >= MAX_FEATURED) return;
+    if (placement.featuredIds.includes(o.id) || featuredCount >= MAX_FEATURED) return;
     apply({ heroId: placement.heroId === o.id ? null : placement.heroId, featuredIds: [...placement.featuredIds, o.id], order: placement.order }, "Marketplace Featured Updated", o.id, o.title, `Featured + ${o.title}`);
   };
   const removeFeatured = (id: string) =>
@@ -288,7 +297,7 @@ export default function MarketplaceManager() {
                     badge={placementLabel(o.id, placement)}
                     onMakeHero={() => makeHero(o)}
                     onAddFeatured={() => addFeatured(o)}
-                    canFeature={featured.length < MAX_FEATURED}
+                    canFeature={featuredCount < MAX_FEATURED}
                     onUp={sortKey === "order" ? () => moveMarketplace(o.id, -1) : undefined}
                     onDown={sortKey === "order" ? () => moveMarketplace(o.id, 1) : undefined}
                     upDisabled={i === 0}
@@ -308,7 +317,7 @@ export default function MarketplaceManager() {
       </div>
 
       {/* ---- Live preview ---- */}
-      <MarketplacePreview />
+      <MarketplacePreview fallbackId={getFeaturedOpportunityOfTheWeek().id} />
     </AdminPage>
   );
 }

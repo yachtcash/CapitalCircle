@@ -1169,6 +1169,29 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     [marketplacePlacement, recordAudit]
   );
 
+  // When an opportunity is deleted, drop it from the marketplace placement so no
+  // dangling id lingers as the hero, in a Featured slot, or in the custom order.
+  // (A stale id would otherwise silently consume a Featured slot the admin can no
+  // longer see.) Silent — the delete action records its own audit entry.
+  const prunePlacementForDeleted = useCallback((oppId: string) => {
+    const now = new Date().toISOString();
+    setMarketplacePlacement((prev) => {
+      if (
+        prev.heroId !== oppId &&
+        !prev.featuredIds.includes(oppId) &&
+        !prev.order.includes(oppId)
+      ) {
+        return prev;
+      }
+      return {
+        heroId: prev.heroId === oppId ? null : prev.heroId,
+        featuredIds: prev.featuredIds.filter((id) => id !== oppId),
+        order: prev.order.filter((id) => id !== oppId),
+        updatedAt: now,
+      };
+    });
+  }, []);
+
   // ---- Role switcher (Super Admin impersonation, testing only) ----
 
   const setCurrentRole = useCallback(
@@ -1507,9 +1530,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         ...prev,
         [oppId]: { ...prev[oppId], deleted: true },
       }));
+      prunePlacementForDeleted(oppId);
       recordAudit("Opportunity Deleted", { kind: "opportunity", id: oppId, label: title });
     },
-    [recordAudit]
+    [recordAudit, prunePlacementForDeleted]
   );
 
   const toggleOpportunityFeatured = useCallback(
@@ -2732,13 +2756,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         setUserOpportunities((prev) =>
           prev.filter((o) => o.id !== deletedOpportunityId)
         );
+        prunePlacementForDeleted(deletedOpportunityId);
       }
       setDocuments((prev) => prev.filter((d) => d.listingId !== id));
       setAccessRequests((prev) => prev.filter((r) => r.listingId !== id));
       setDocumentActivity((prev) => prev.filter((a) => a.listingId !== id));
       recordAudit("Listing Deleted", { kind: "listing", id });
     },
-    [recordAudit]
+    [recordAudit, prunePlacementForDeleted]
   );
 
   const updateListingFields = useCallback(

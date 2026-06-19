@@ -7,7 +7,7 @@ import { Eye, Crown, Star } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useAllOpportunities } from "@/lib/opportunities/all";
 import { featuredOpportunities, type Opportunity } from "@/data/opportunities";
-import { resolveHeroId, splitByPlacement } from "@/lib/marketplace/placement";
+import { resolveHeroId, splitByPlacement, isPlacementEmpty } from "@/lib/marketplace/placement";
 import { useResolvedImage } from "@/lib/imageStore";
 import { publicOpportunityId } from "@/lib/opportunities/id";
 import { formatInvestment } from "./MarketplacePlacementCard";
@@ -21,16 +21,21 @@ function MiniThumb({ opportunity, className }: { opportunity: Opportunity; class
   );
 }
 
-export default function MarketplacePreview() {
+export default function MarketplacePreview({ fallbackId }: { fallbackId: string }) {
   const { marketplacePlacement: placement, hydrated } = useMessaging();
   const allOpps = useAllOpportunities();
   const pool = allOpps.length ? allOpps : featuredOpportunities;
 
   const { hero, featured, remaining } = useMemo(() => {
-    // Mirror the directory: hero resolves with the fallback chain, then split.
-    const heroId = hydrated ? resolveHeroId(pool, placement) : null;
+    // Mirror PlacementHero EXACTLY so the preview matches /opportunities: before
+    // hydration or when nothing is curated, fall back to the featured-of-the-week
+    // (the same id the directory uses), otherwise resolve from placement.
+    const heroId =
+      !hydrated || isPlacementEmpty(placement)
+        ? fallbackId
+        : resolveHeroId(pool, placement) ?? fallbackId;
     return splitByPlacement(pool, { ...placement, heroId });
-  }, [pool, placement, hydrated]);
+  }, [pool, placement, hydrated, fallbackId]);
 
   const top = remaining.slice(0, 12);
 
