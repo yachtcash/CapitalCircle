@@ -5,14 +5,27 @@ import Link from "next/link";
 import Image from "next/image";
 import { Building2, MapPin, ArrowUpRight, ShieldCheck } from "lucide-react";
 
-import { companies, getActiveOpportunitiesForCompany, type Company } from "@/data/companies";
+import { companies, type Company } from "@/data/companies";
+import { useAllOpportunities } from "@/lib/opportunities/all";
+import { featuredOpportunities } from "@/data/opportunities";
 import { useResolvedImage } from "@/lib/imageStore";
 import { initialsFromName } from "@/lib/home/format";
 
 export default function SponsorShowcase() {
+  const allOpps = useAllOpportunities();
+  const pool = allOpps.length ? allOpps : featuredOpportunities;
+
   const sponsors = useMemo(() => {
+    // Count active deals per sponsor from the SAME live pool the rest of the
+    // homepage uses, so user-created listings are reflected consistently with
+    // the stats strip and the featured/recent rows (not just the seed catalog).
+    const activeByCompany = new Map<string, number>();
+    for (const o of pool) {
+      if (!o.companyId || o.status === "Closed") continue;
+      activeByCompany.set(o.companyId, (activeByCompany.get(o.companyId) ?? 0) + 1);
+    }
     return companies
-      .map((c) => ({ company: c, active: getActiveOpportunitiesForCompany(c.id).length }))
+      .map((c) => ({ company: c, active: activeByCompany.get(c.id) ?? 0 }))
       .filter((s) => s.active > 0)
       .sort((a, b) => {
         // Featured first, then by active deal count.
@@ -21,7 +34,7 @@ export default function SponsorShowcase() {
         return b.active - a.active;
       })
       .slice(0, 6);
-  }, []);
+  }, [pool]);
 
   if (sponsors.length === 0) return null;
 
