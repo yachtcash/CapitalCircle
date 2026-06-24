@@ -1,22 +1,23 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import {
-  companies,
-  getCompanyBySlug,
-  getActiveOpportunitiesForCompany,
-} from "@/data/companies";
+import { companies, getCompanyBySlug } from "@/data/companies";
 
 import CompanyHero from "@/components/company/CompanyHero";
-import CompanyKeyInfo from "@/components/company/CompanyKeyInfo";
+import CompanyStats from "@/components/company/CompanyStats";
+import CompanyOverview from "@/components/company/CompanyOverview";
+import CompanyActiveOpportunities from "@/components/company/CompanyActiveOpportunities";
+import CompanyCredibility from "@/components/company/CompanyCredibility";
+import CompanyTeam from "@/components/company/CompanyTeam";
+import CompanyPastProjects from "@/components/company/CompanyPastProjects";
+import CompanyMedia from "@/components/company/CompanyMedia";
+import CompanyMarketActivity from "@/components/company/CompanyMarketActivity";
+import RelatedCompanyOpportunities from "@/components/company/RelatedCompanyOpportunities";
+
+// Owner / admin tooling — out of scope for this profile pass, kept untouched.
 import CompanyMediaManager from "@/components/company/CompanyMediaManager";
-import CompanyAbout from "@/components/company/CompanyAbout";
 import { CompanyDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
 import CalendarEventsPanel from "@/components/calendar/CalendarEventsPanel";
-import CompanyActiveOpportunities from "@/components/company/CompanyActiveOpportunities";
-import CompanyPastProjects from "@/components/company/CompanyPastProjects";
-import CompanyTeam from "@/components/company/CompanyTeam";
-import CompanyGallery from "@/components/company/CompanyGallery";
 
 type PageParams = { slug: string };
 
@@ -49,14 +50,23 @@ export default async function CompanyPage({
   const company = getCompanyBySlug(slug);
   if (!company) notFound();
 
-  const active = getActiveOpportunitiesForCompany(company.id);
-
   return (
     <div className="bg-cream">
       <CompanyHero company={company} />
 
       <div className="max-w-6xl mx-auto px-5 md:px-10 py-10 md:py-14 space-y-10 md:space-y-14">
-        <CompanyKeyInfo company={company} activeOpportunitiesCount={active.length} />
+        {/* Institutional sponsor profile */}
+        <CompanyStats company={company} />
+        <CompanyOverview company={company} />
+        <CompanyActiveOpportunities companyId={company.id} companyName={company.name} />
+        <CompanyCredibility company={company} />
+        <CompanyTeam team={company.team} />
+        <CompanyPastProjects projects={company.pastProjects} />
+        <CompanyMedia company={company} />
+        <CompanyMarketActivity company={company} />
+        <RelatedCompanyOpportunities company={company} />
+
+        {/* Owner / admin tooling (role-gated) — unchanged */}
         <CompanyMediaManager company={company} />
         <CompanyDealsPanel company={company} />
         <CalendarEventsPanel
@@ -70,14 +80,6 @@ export default async function CompanyPage({
           ]}
           quickTypes={["Investor Meeting", "Call", "Task", "Deadline"]}
         />
-        <CompanyAbout company={company} />
-        <CompanyActiveOpportunities
-          opportunities={active}
-          companyName={company.name}
-        />
-        <CompanyPastProjects projects={company.pastProjects} />
-        <CompanyTeam team={company.team} />
-        <CompanyGallery company={company} />
       </div>
     </div>
   );
