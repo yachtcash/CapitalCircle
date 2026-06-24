@@ -45,7 +45,11 @@ export default function CompanyContactActions({ company }: { company: Company })
   const submit = () => {
     if (!canSubmit) return;
     const id = submitIntroductionRequest({
-      targetMemberId: company.id,
+      // Company-level request: there is no specific member target, so leave the
+      // member id empty rather than overloading it with a COMP id (which would
+      // leak into deal sponsor ids / member analytics). The company is carried
+      // via companyId/companyName; targetMemberName is the display label.
+      targetMemberId: "",
       targetMemberName: targetName,
       reason: reason.trim(),
       message: message.trim(),
