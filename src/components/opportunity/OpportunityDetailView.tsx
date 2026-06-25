@@ -1,110 +1,74 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { getCompanyById } from "@/data/companies";
-import { featuredOpportunities, type Opportunity } from "@/data/opportunities";
-import { getListingByOpportunitySlug } from "@/data/listings";
+import { MEMBERS } from "@/data/members";
+import type { Opportunity } from "@/data/opportunities";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 
-import DetailHero from "@/components/DetailHero";
-import ImageGallery from "@/components/ImageGallery";
-import InvestmentDetailsBlock from "@/components/InvestmentDetailsBlock";
-import ProjectInfoBlock from "@/components/ProjectInfoBlock";
-import SponsorBlock from "@/components/SponsorBlock";
-import DocumentsBlock from "@/components/DocumentsBlock";
+import OpportunityHero from "./OpportunityHero";
+import OpportunityImages from "./OpportunityImages";
+import InvestmentSnapshot from "./InvestmentSnapshot";
+import ExecutiveSummaryBlock from "./ExecutiveSummaryBlock";
+import OpportunityTimeline from "./OpportunityTimeline";
+import OpportunitySponsor from "./OpportunitySponsor";
+import OpportunityLeadSponsor from "./OpportunityLeadSponsor";
+import OpportunityLocation from "./OpportunityLocation";
+import OpportunityActivity from "./OpportunityActivity";
+import OpportunityCredibility from "./OpportunityCredibility";
+import OpportunityRelated from "./OpportunityRelated";
+
+// Reused systems — data room (access-controlled) + engagement panel.
 import OpportunityDataRoomBlock from "@/components/dataroom/OpportunityDataRoomBlock";
 import ActionPanel from "@/components/ActionPanel";
-import RelatedOpportunities from "@/components/RelatedOpportunities";
-import RequestAccessModal from "@/components/documents/RequestAccessModal";
+
+// Out-of-scope owner / admin tooling — kept untouched.
 import OwnerControlsPanel from "./OwnerControlsPanel";
 import ReportButton from "@/components/moderation/ReportButton";
 import { OpportunityDealsPanel } from "@/components/dashboard/deals/DealIntegrations";
 import CalendarEventsPanel from "@/components/calendar/CalendarEventsPanel";
 
-/**
- * Shared client view rendering the full opportunity detail page.
- *
- * Used by both the server-rendered seed path (which passes a pre-fetched
- * `opportunity`) and the client fallback for user-created opportunities
- * (which resolves the opportunity from MessagingProvider state).
- *
- * The view resolves the LIVE opportunity from the provider's overlay so
- * edits made in the Listing Editor (or Image Manager) propagate to this
- * page automatically, including for seed-backed listings.
- */
 export default function OpportunityDetailView({
   opportunity: seedOpportunity,
 }: {
   opportunity: Opportunity;
 }) {
-  const { userOpportunities, getOpportunityBySlug, hydrated } = useMessaging();
-  const liveOpportunity = hydrated
-    ? getOpportunityBySlug(seedOpportunity.slug) ?? seedOpportunity
-    : seedOpportunity;
-  const opportunity = liveOpportunity;
-  const listing = getListingByOpportunitySlug(opportunity.slug);
-  const [docsBlockRequestOpen, setDocsBlockRequestOpen] = useState(false);
-
-  const related = useMemo(() => {
-    const pool = [...userOpportunities, ...featuredOpportunities];
-    const sameCategory = pool.filter(
-      (o) => o.slug !== opportunity.slug && o.category === opportunity.category
-    );
-    const others = pool.filter(
-      (o) => o.slug !== opportunity.slug && o.category !== opportunity.category
-    );
-    return [...sameCategory, ...others].slice(0, 3);
-  }, [opportunity.slug, opportunity.category, userOpportunities]);
+  const { getOpportunityBySlug, hydrated } = useMessaging();
+  // Resolve the live overlay record so Listing Editor / Image Manager edits show.
+  const opportunity = hydrated ? getOpportunityBySlug(seedOpportunity.slug) ?? seedOpportunity : seedOpportunity;
 
   const company = getCompanyById(opportunity.companyId);
+  const companyName = company?.name ?? opportunity.postedBy;
+  const leadMember = MEMBERS.find((m) => m.opportunitySlugs.includes(opportunity.slug)) ?? null;
 
   return (
     <div className="bg-cream">
-      <DetailHero opportunity={opportunity} />
-
-      <ImageGallery images={opportunity.images} title={opportunity.title} />
+      <OpportunityHero opportunity={opportunity} company={company} leadMember={leadMember} />
+      <InvestmentSnapshot opportunity={opportunity} />
+      <OpportunityImages images={opportunity.images} title={opportunity.title} />
 
       <div className="max-w-6xl mx-auto px-5 md:px-10 py-10 md:py-14">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
           <div className="order-2 lg:order-1 space-y-10 md:space-y-12 min-w-0">
-            <section>
-              <div className="mb-5">
-                <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">
-                  Overview
-                </div>
-                <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">
-                  Executive Summary
-                </h2>
-              </div>
-              <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-6 md:p-8 space-y-5">
-                <p className="text-base md:text-[17px] leading-relaxed text-navy-900 font-medium">
-                  {opportunity.executiveSummary}
-                </p>
-                <div className="h-px bg-navy-900/[0.06]" />
-                <div className="space-y-4 text-sm md:text-[15px] leading-relaxed text-navy-700/85">
-                  {opportunity.fullDescription.map((paragraph, i) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <InvestmentDetailsBlock opportunity={opportunity} />
-            <ProjectInfoBlock opportunity={opportunity} />
-            {company ? <SponsorBlock company={company} /> : null}
-            <OpportunityDataRoomBlock
-              opportunity={opportunity}
-              companyName={company?.name ?? opportunity.postedBy}
-            />
-            <DocumentsBlock
-              documents={opportunity.documents}
-              onRequestAccess={
-                listing ? () => setDocsBlockRequestOpen(true) : undefined
-              }
-            />
+            <ExecutiveSummaryBlock opportunity={opportunity} />
+            <OpportunityTimeline opportunity={opportunity} />
+            {company ? <OpportunitySponsor company={company} /> : null}
+            {leadMember ? (
+              <OpportunityLeadSponsor opportunity={opportunity} member={leadMember} companyName={companyName} />
+            ) : null}
+            <OpportunityDataRoomBlock opportunity={opportunity} companyName={companyName} />
+            <OpportunityLocation opportunity={opportunity} />
+            <OpportunityActivity opportunity={opportunity} />
+            <OpportunityCredibility opportunity={opportunity} company={company} leadMember={leadMember} />
           </div>
 
-          <aside className="order-1 lg:order-2 lg:w-[360px] space-y-5">
+          <aside className="order-1 lg:order-2 lg:w-[360px] min-w-0 space-y-5">
+            <div className="lg:sticky lg:top-6 space-y-3">
+              <ActionPanel opportunity={opportunity} />
+              <div className="flex justify-center">
+                <ReportButton targetKind="opportunity" targetId={opportunity.id} targetLabel={opportunity.title} variant="chip" />
+              </div>
+            </div>
+            {/* Owner / admin tooling (role-gated) — unchanged */}
             <OwnerControlsPanel opportunity={opportunity} />
             <OpportunityDealsPanel opportunity={opportunity} />
             <CalendarEventsPanel
@@ -118,33 +82,11 @@ export default function OpportunityDetailView({
               ]}
               quickTypes={["Meeting", "Property Tour", "Deadline", "Follow Up"]}
             />
-            <div className="lg:sticky lg:top-6 space-y-3">
-              <ActionPanel opportunity={opportunity} />
-              <div className="flex justify-center">
-                <ReportButton
-                  targetKind="opportunity"
-                  targetId={opportunity.id}
-                  targetLabel={opportunity.title}
-                  variant="chip"
-                />
-              </div>
-            </div>
           </aside>
         </div>
       </div>
 
-      <RelatedOpportunities opportunities={related} />
-
-      {listing ? (
-        <RequestAccessModal
-          open={docsBlockRequestOpen}
-          onClose={() => setDocsBlockRequestOpen(false)}
-          listingId={listing.id}
-          listingTitle={opportunity.title}
-          companyName={company?.name ?? opportunity.postedBy}
-          privateDocsCount={opportunity.documents.length}
-        />
-      ) : null}
+      <OpportunityRelated opportunity={opportunity} />
     </div>
   );
 }
