@@ -75,6 +75,29 @@ body {
   color: #0A1628;
 }
 
+/* Consistent keyboard focus indicator across the whole app. Uses :focus-visible
+   so it only appears for keyboard navigation, never on mouse click. Elements
+   that set their own focus:ring + outline-none keep their existing treatment
+   (their outline-none wins by specificity); everything else now gets a clear,
+   on-brand focus ring instead of the browser default. */
+:focus-visible {
+  outline: 2px solid var(--color-gold-500);
+  outline-offset: 2px;
+}
+
+/* Respect reduced-motion preferences — institutional polish should never force
+   motion on users who opt out. Near-instant transitions keep the UI usable. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Calendar rich-text rendered output */
 .cc-richtext h2 { font-size: 1.05rem; font-weight: 600; color: #0A1628; margin: 0.4rem 0 0.2rem; }
 .cc-richtext h3 { font-size: 0.95rem; font-weight: 600; color: #0A1628; margin: 0.35rem 0 0.2rem; }

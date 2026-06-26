@@ -36,7 +36,7 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium tracking-wide uppercase transition-colors",
+                "flex flex-col items-center justify-center gap-1 py-2.5 min-w-0 px-0.5 text-[10px] font-medium tracking-wide uppercase transition-colors",
                 active ? "text-gold-500" : "text-white/55 hover:text-white"
               )}
             >
@@ -53,7 +53,7 @@ export default function BottomNav() {
                   <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-gold-500" />
                 ) : null}
               </span>
-              <span>{item.shortLabel}</span>
+              <span className="max-w-full truncate">{item.shortLabel}</span>
             </Link>
           );
         })}
