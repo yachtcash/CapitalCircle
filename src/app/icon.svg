@@ -1,27 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100">
   <title>Capital Circle</title>
-  <desc>Interlocking double C monogram. Gold on dark navy.</desc>
+  <desc>La Órbita — open blue ring with orbit dot, on a dark navy tile.</desc>
 
-  <!-- Navy disc -->
-  <circle cx="50" cy="50" r="50" fill="#0A1628"/>
+  <defs>
+    <linearGradient id="tile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E1A36"/>
+      <stop offset="100%" stop-color="#0A1025"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="76%" cy="22%" r="62%">
+      <stop offset="0%" stop-color="#2563FF" stop-opacity="0.45"/>
+      <stop offset="62%" stop-color="#2563FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="15%" y1="90%" x2="85%" y2="10%">
+      <stop offset="0%" stop-color="#6F9BFF"/>
+      <stop offset="60%" stop-color="#2563FF"/>
+      <stop offset="100%" stop-color="#2563FF"/>
+    </linearGradient>
+    <radialGradient id="dot" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#5B86FF"/>
+      <stop offset="55%" stop-color="#2563FF"/>
+      <stop offset="100%" stop-color="#2563FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
 
-  <!-- Subtle gold inner ring for premium accent -->
-  <circle cx="50" cy="50" r="46" fill="none" stroke="#D4AF37" stroke-width="0.5" opacity="0.32"/>
+  <!-- Navy rounded tile -->
+  <rect x="2" y="2" width="96" height="96" rx="22" fill="url(#tile)"/>
+  <rect x="2" y="2" width="96" height="96" rx="22" fill="url(#glow)"/>
+  <rect x="2.6" y="2.6" width="94.8" height="94.8" rx="21.4" fill="none" stroke="#2563FF" stroke-opacity="0.18" stroke-width="0.8"/>
 
-  <!--
-    Geometry:
-      Left C  center (35, 50), radius 22, gap ±35° (mouth opens right).
-      Right C center (65, 50), radius 22, gap ±35° (mouth opens left).
-      Arcs cross at (50, 33.91) and (50, 66.09).
-      Each C's tips extend ~3px past the crossings, so the two C's are
-      visibly distinct and interlock through the crossings.
-  -->
-
-  <!-- Left C tips at (53.02, 37.38) and (53.02, 62.62) -->
-  <path d="M 53.02 37.38 A 22 22 0 1 0 53.02 62.62"
-        fill="none" stroke="#D4AF37" stroke-width="7" stroke-linecap="round"/>
-
-  <!-- Right C tips at (46.98, 37.38) and (46.98, 62.62) -->
-  <path d="M 46.98 37.38 A 22 22 0 1 1 46.98 62.62"
-        fill="none" stroke="#D4AF37" stroke-width="7" stroke-linecap="round"/>
+  <!-- Orbit mark, centered, scaled to ~64% of the tile -->
+  <g transform="translate(50 50) scale(0.64) translate(-50 -50)">
+    <circle cx="50" cy="50" r="33" fill="none" stroke="url(#ring)" stroke-width="7.5"
+            stroke-linecap="round" stroke-dasharray="181 26" transform="rotate(-30 50 50)"/>
+    <circle cx="70" cy="24" r="14" fill="url(#dot)"/>
+    <circle cx="70" cy="24" r="7.2" fill="#2563FF"/>
+  </g>
 </svg>

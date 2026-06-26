@@ -64,6 +64,11 @@ async function main() {
   await writeFile(resolve(APP_DIR, "twitter-image.png"), twitterBuffer);
   console.log("✓ src/app/twitter-image.png (1200×600)");
 
+  // ---- PWA manifest icons (served from public root) ----
+  await writeFile(resolve(PUBLIC_DIR, "icon-192.png"), await rasterize(iconSvg, 192));
+  await writeFile(resolve(PUBLIC_DIR, "icon-512.png"), await rasterize(iconSvg, 512));
+  console.log("✓ public/icon-192.png, public/icon-512.png");
+
   // ---- Bonus: large PNG copy in public/branding for future use ----
   await ensure(resolve(PUBLIC_DIR, "branding"));
   await writeFile(resolve(PUBLIC_DIR, "branding/icon-512.png"), await rasterize(iconSvg, 512));

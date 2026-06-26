@@ -25,15 +25,13 @@ export default function Sidebar() {
   return (
     <aside className="hidden md:flex fixed inset-y-0 left-0 w-64 flex-col bg-navy-900 text-white border-r border-white/5 z-30">
       <div className="flex items-center justify-between gap-2 px-4 h-20 border-b border-white/5 shrink-0">
-        <Link href="/" className="flex items-center gap-3 min-w-0">
-          <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gold-500/15 ring-1 ring-gold-500/40 shrink-0">
-            <CapitalCircleMark className="h-[22px] w-[22px]" />
-          </span>
+        <Link href="/" className="flex items-center gap-2.5 min-w-0">
+          <CapitalCircleMark className="h-9 w-9 shrink-0" />
           <span className="flex flex-col leading-tight min-w-0">
-            <span className="font-semibold tracking-wide text-white text-base truncate">
+            <span className="font-semibold tracking-tight text-white text-[15px] truncate">
               Capital Circle
             </span>
-            <span className="text-[10px] uppercase tracking-[0.18em] text-gold-400 truncate">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-gold-400/90 truncate">
               Private Marketplace
             </span>
           </span>
