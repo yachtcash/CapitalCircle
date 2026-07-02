@@ -41,7 +41,7 @@ function DealRow({ deal }: { deal: Deal }) {
   return (
     <Link
       href={`/deal-desk/${deal.dealId}`}
-      className="block rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-3.5 hover:ring-gold-500/40 transition-all"
+      className="block rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-3.5 hover:ring-gold-500/40 transition-all"
     >
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-semibold text-navy-900 text-sm truncate flex-1 min-w-0">

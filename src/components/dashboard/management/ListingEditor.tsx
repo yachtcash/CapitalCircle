@@ -634,7 +634,7 @@ export default function ListingEditor({ listing, opportunity }: Props) {
           <div className="text-[11px] uppercase tracking-[0.14em] text-navy-700/70 font-semibold mb-2">
             Contact preferences
           </div>
-          <div className="rounded-xl bg-white ring-1 ring-navy-900/[0.06] divide-y divide-navy-900/[0.05] overflow-hidden">
+          <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] divide-y divide-navy-900/[0.05] overflow-hidden">
             <Toggle
               label="Accept direct messages"
               hint="Members can open a thread from your sponsor card."

@@ -380,7 +380,7 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
                   <Section title="Related Opportunity" Icon={HandCoins}>
                     <Link
                       href={`/opportunity/${opportunity.slug}`}
-                      className="block rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-4 hover:ring-gold-500/40 transition-all"
+                      className="block rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 hover:ring-gold-500/40 transition-all"
                     >
                       <div className="text-[10px] uppercase tracking-[0.14em] font-bold text-gold-700">
                         {opportunity.category} · {opportunity.dealType}
@@ -396,7 +396,7 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
                   <Section title="Related Company" Icon={Building2}>
                     <Link
                       href={`/company/${company.slug}`}
-                      className="block rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-4 hover:ring-gold-500/40 transition-all"
+                      className="block rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 hover:ring-gold-500/40 transition-all"
                     >
                       <div className="font-semibold text-navy-900">{company.name}</div>
                       <div className="text-xs text-navy-700/65 mt-1">{company.industry}</div>
@@ -463,7 +463,7 @@ export default function DealDetailView({ deal }: { deal: Deal }) {
                         <li key={c.id}>
                           <Link
                             href={`/messages?conversation=${c.id}`}
-                            className="block rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-4 hover:ring-gold-500/40 transition-all"
+                            className="block rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 hover:ring-gold-500/40 transition-all"
                           >
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <span className="font-semibold text-navy-900">
@@ -664,7 +664,7 @@ function ParticipantsPanel({
         {deal.participants.map((p) => (
           <li
             key={p.id}
-            className="rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-4 flex items-start gap-3"
+            className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 flex items-start gap-3"
           >
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-navy-900 text-gold-500 text-xs font-bold shrink-0">
               {p.name
@@ -785,7 +785,7 @@ function DocumentsPanel({
           {deal.documents.map((doc) => (
             <li
               key={doc.id}
-              className="rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-3.5 flex items-center gap-3"
+              className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-3.5 flex items-center gap-3"
             >
               <FileText className="h-4 w-4 text-gold-600 shrink-0" strokeWidth={2.2} />
               <div className="flex-1 min-w-0">
@@ -863,7 +863,7 @@ function ActivityList({ deal, timelineStyle = false }: { deal: Deal; timelineSty
           <li
             key={a.id + a.createdAt}
             className={cn(
-              "rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-4 flex items-start gap-3",
+              "rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 flex items-start gap-3",
               timelineStyle && "relative"
             )}
           >

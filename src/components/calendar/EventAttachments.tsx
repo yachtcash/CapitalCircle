@@ -150,7 +150,7 @@ function AttachmentItem({
   const size = formatSize(att.size);
 
   return (
-    <li className="group flex items-center gap-3 rounded-xl bg-white p-2 ring-1 ring-navy-900/[0.06] transition hover:ring-navy-900/[0.12]">
+    <li className="group flex items-center gap-3 rounded-2xl bg-white p-2 ring-1 ring-navy-900/[0.06] transition hover:ring-navy-900/[0.12]">
       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-navy-900/[0.03] ring-1 ring-navy-900/[0.06]">
         {isImage ? (
           <ImageThumb token={att.token} name={att.name} onClick={() => onPreview(att)} />

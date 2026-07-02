@@ -27,7 +27,7 @@ const ICONS: Record<Attachment["type"], { icon: LucideIcon; tone: string }> = {
 export default function AttachmentCard({ attachment }: { attachment: Attachment }) {
   const { icon: Icon, tone } = ICONS[attachment.type];
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white ring-1 ring-navy-900/[0.08] hover:ring-navy-900/20 px-3 py-2.5 transition-shadow min-w-0">
+    <div className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-navy-900/[0.08] hover:ring-navy-900/20 px-3 py-2.5 transition-shadow min-w-0">
       <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ring-1 shrink-0 ${tone}`}>
         <Icon className="h-4 w-4" strokeWidth={1.9} />
       </span>

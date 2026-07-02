@@ -50,7 +50,7 @@ export function DealStageBadge({ stage }: { stage: DealStage }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1 whitespace-nowrap",
+        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 whitespace-nowrap",
         STAGE_STYLES[stage]
       )}
     >
@@ -73,7 +73,7 @@ export function DealPriorityBadge({ priority }: { priority: DealPriority }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1",
+        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1",
         meta.ring
       )}
     >
@@ -102,7 +102,7 @@ export function DealHealthBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1 whitespace-nowrap",
+        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 whitespace-nowrap",
         HEALTH_STYLES[h]
       )}
     >
@@ -119,7 +119,7 @@ export function FollowUpBadge({ iso, nowMs }: { iso?: string; nowMs: number }) {
   const days = Math.floor((t - nowMs) / (24 * 60 * 60 * 1000));
   if (days < 0) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1 bg-rose-500/15 text-rose-700 ring-rose-500/30">
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 bg-rose-500/15 text-rose-700 ring-rose-500/30">
         <Clock className="h-3 w-3" strokeWidth={2.4} />
         Overdue · {Math.abs(days)}d
       </span>
@@ -127,14 +127,14 @@ export function FollowUpBadge({ iso, nowMs }: { iso?: string; nowMs: number }) {
   }
   if (days <= 7) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1 bg-gold-500/15 text-gold-700 ring-gold-500/30">
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 bg-gold-500/15 text-gold-700 ring-gold-500/30">
         <CalendarClock className="h-3 w-3" strokeWidth={2.4} />
         Due in {days}d
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1 bg-navy-900/[0.06] text-navy-700 ring-navy-900/15">
+    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 bg-navy-900/[0.06] text-navy-700 ring-navy-900/15">
       <CalendarClock className="h-3 w-3" strokeWidth={2.4} />
       {days}d
     </span>

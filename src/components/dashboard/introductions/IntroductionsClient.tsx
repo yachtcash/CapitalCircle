@@ -293,7 +293,7 @@ function Row({
       </div>
 
       {request.decisionNote ? (
-        <div className="mt-3 rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-3 text-xs text-navy-700/70">
+        <div className="mt-3 rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-3 text-xs text-navy-700/70">
           <span className="font-semibold text-navy-900">Decision note · </span>
           {request.decisionNote}
         </div>

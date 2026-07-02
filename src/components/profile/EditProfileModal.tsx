@@ -534,7 +534,7 @@ export default function EditProfileModal({ open, onClose }: Props) {
             {draft.experience.map((exp) => (
               <div
                 key={exp.id}
-                className="rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-3 md:p-4"
+                className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-3 md:p-4"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="text-[11px] uppercase tracking-[0.14em] text-gold-600 font-semibold">

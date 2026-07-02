@@ -156,7 +156,7 @@ export default function AdminMemberDetail({ member }: { member: Member }) {
         ) : (
           <ul className="space-y-2">
             {memberAudit.map((e) => (
-              <li key={e.id} className="rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-4 text-sm">
+              <li key={e.id} className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 text-sm">
                 <span className="font-semibold text-navy-900">{e.action}</span>
                 <span className="text-navy-700/65"> — {e.detail ?? e.targetLabel ?? ""}</span>
                 <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-navy-700/50 font-semibold">
@@ -226,7 +226,7 @@ function CardList({
         <li key={i.key}>
           <Link
             href={i.href}
-            className="block rounded-xl bg-white ring-1 ring-navy-900/[0.06] p-4 hover:ring-gold-500/40 transition-all"
+            className="block rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 hover:ring-gold-500/40 transition-all"
           >
             <div className="font-semibold text-navy-900 text-sm">{i.title}</div>
             <div className="text-[11px] text-navy-700/60 mt-0.5">{i.meta}</div>
