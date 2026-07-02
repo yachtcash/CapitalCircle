@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import CapitalCircleMark from "@/components/brand/CapitalCircleMark";
+import Button from "@/components/ui/Button";
 
 export default function NotFound() {
   return (
@@ -17,19 +17,21 @@ export default function NotFound() {
           The page you&apos;re looking for doesn&apos;t exist or has moved. Let&apos;s get you back to the marketplace.
         </p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
-          <Link
+          <Button
             href="/"
-            className="group inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
+            className="group"
+            iconRight={
+              <ArrowRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                strokeWidth={2.4}
+              />
+            }
           >
             Back to home
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2.4} />
-          </Link>
-          <Link
-            href="/opportunities"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/[0.12] hover:ring-navy-900/30 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
-          >
+          </Button>
+          <Button variant="outline" href="/opportunities">
             Browse opportunities
-          </Link>
+          </Button>
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import type { Member } from "@/data/members";
 import { useResolvedImage } from "@/lib/imageStore";
 import OpportunityRequestIntro from "./OpportunityRequestIntro";
 import { cn } from "@/lib/cn";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 const verificationStyles: Record<Member["verification"], string> = {
   Verified: "bg-emerald-500/15 text-emerald-700 ring-emerald-500/30",
@@ -74,14 +75,5 @@ export default function OpportunityLeadSponsor({
         </div>
       </div>
     </section>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="mb-5">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">{eyebrow}</div>
-      <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">{title}</h2>
-    </div>
   );
 }

@@ -20,6 +20,7 @@ import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useResolvedImage } from "@/lib/imageStore";
 import { useMemberProfile } from "@/lib/members/profile";
 import { compactMoney } from "@/lib/home/format";
+import StatCard from "@/components/ui/StatCard";
 import { cn } from "@/lib/cn";
 
 const verificationStyles: Record<Member["verification"], string> = {
@@ -127,8 +128,8 @@ export default function MemberHero({ member }: { member: Member }) {
           {/* Live stats + CTAs */}
           <div className="mt-5 pt-5 border-t border-navy-900/[0.06] flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
             <div className="flex items-stretch gap-3">
-              <HeroStat icon={Layers} label="Active Opportunities" value={String(active.length)} />
-              <HeroStat icon={TrendingUp} label="Capital Being Raised" value={compactMoney(capitalRaising)} />
+              <StatCard variant="chip" icon={Layers} label="Active Opportunities" value={String(active.length)} />
+              <StatCard variant="chip" icon={TrendingUp} label="Capital Being Raised" value={compactMoney(capitalRaising)} />
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
               <MemberContactActions member={member} primaryCompanySlug={primaryCompanySlug} />
@@ -137,17 +138,5 @@ export default function MemberHero({ member }: { member: Member }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function HeroStat({ icon: Icon, label, value }: { icon: typeof Layers; label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-bone/60 ring-1 ring-navy-900/[0.05] px-4 py-2.5 min-w-[140px]">
-      <div className="text-[9px] uppercase tracking-[0.14em] text-navy-700/55 font-bold inline-flex items-center gap-1">
-        <Icon className="h-3 w-3 text-gold-600" strokeWidth={2.2} />
-        {label}
-      </div>
-      <div className="mt-0.5 text-lg font-semibold text-navy-900 tabular-nums">{value}</div>
-    </div>
   );
 }

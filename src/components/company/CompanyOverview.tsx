@@ -4,6 +4,7 @@ import { Target, Building2, Globe2, Briefcase, MapPin, Sparkles, type LucideIcon
 
 import type { Company } from "@/data/companies";
 import { useCompanyOpportunityProfile } from "@/lib/company/profile";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 export default function CompanyOverview({ company }: { company: Company }) {
   const { categories, dealTypes, countries, cities } = useCompanyOpportunityProfile(company.id, 0);
@@ -105,15 +106,6 @@ function FacetCard({
           </span>
         ))}
       </div>
-    </div>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="mb-5">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">{eyebrow}</div>
-      <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">{title}</h2>
     </div>
   );
 }

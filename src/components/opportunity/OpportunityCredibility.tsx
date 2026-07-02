@@ -7,6 +7,7 @@ import type { Company } from "@/data/companies";
 import type { Member } from "@/data/members";
 import { useCompanyOpportunityProfile } from "@/lib/company/profile";
 import { compactMoney } from "@/lib/home/format";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 function fmt(iso: string): string {
   const d = new Date(iso);
@@ -95,14 +96,5 @@ export default function OpportunityCredibility({
         ))}
       </div>
     </section>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="mb-5">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">{eyebrow}</div>
-      <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">{title}</h2>
-    </div>
   );
 }

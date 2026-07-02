@@ -9,6 +9,7 @@ import VerificationBadge from "@/components/company/VerificationBadge";
 import { useResolvedImage } from "@/lib/imageStore";
 import { useCompanyOpportunityProfile } from "@/lib/company/profile";
 import { compactMoney, initialsFromName } from "@/lib/home/format";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 export default function OpportunitySponsor({ company }: { company: Company }) {
   const logo = useResolvedImage(company.logo);
@@ -71,15 +72,6 @@ function Metric({ icon: Icon, label, value }: { icon: typeof Layers; label: stri
         {label}
       </div>
       <div className="mt-0.5 text-sm font-semibold text-navy-900 tabular-nums truncate">{value}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="mb-5">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">{eyebrow}</div>
-      <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">{title}</h2>
     </div>
   );
 }

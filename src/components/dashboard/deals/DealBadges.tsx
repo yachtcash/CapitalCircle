@@ -10,6 +10,7 @@ import {
   HeartPulse,
 } from "lucide-react";
 import type { DealHealth, DealPriority, DealStage } from "@/data/deals";
+import Badge from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 
 export const STAGE_STYLES: Record<DealStage, string> = {
@@ -48,15 +49,10 @@ export const STAGE_DOT: Record<DealStage, string> = {
 
 export function DealStageBadge({ stage }: { stage: DealStage }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 whitespace-nowrap",
-        STAGE_STYLES[stage]
-      )}
-    >
+    <Badge className={STAGE_STYLES[stage]}>
       <span className={cn("h-1.5 w-1.5 rounded-full", STAGE_DOT[stage])} />
       {stage}
-    </span>
+    </Badge>
   );
 }
 
@@ -71,15 +67,10 @@ export function DealPriorityBadge({ priority }: { priority: DealPriority }) {
   const meta = PRIORITY_STYLES[priority];
   const Icon = meta.Icon;
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1",
-        meta.ring
-      )}
-    >
+    <Badge className={meta.ring}>
       <Icon className="h-3 w-3" strokeWidth={2.4} />
       {priority}
-    </span>
+    </Badge>
   );
 }
 
@@ -100,15 +91,10 @@ export function DealHealthBadge({
   const h = health ?? "Healthy";
   if (hideHealthy && h === "Healthy") return null;
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 whitespace-nowrap",
-        HEALTH_STYLES[h]
-      )}
-    >
+    <Badge className={HEALTH_STYLES[h]}>
       <HeartPulse className="h-3 w-3" strokeWidth={2.4} />
       {h}
-    </span>
+    </Badge>
   );
 }
 
@@ -119,25 +105,25 @@ export function FollowUpBadge({ iso, nowMs }: { iso?: string; nowMs: number }) {
   const days = Math.floor((t - nowMs) / (24 * 60 * 60 * 1000));
   if (days < 0) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 bg-rose-500/15 text-rose-700 ring-rose-500/30">
+      <Badge className="bg-rose-500/15 text-rose-700 ring-rose-500/30">
         <Clock className="h-3 w-3" strokeWidth={2.4} />
         Overdue · {Math.abs(days)}d
-      </span>
+      </Badge>
     );
   }
   if (days <= 7) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 bg-gold-500/15 text-gold-700 ring-gold-500/30">
+      <Badge className="bg-gold-500/15 text-gold-700 ring-gold-500/30">
         <CalendarClock className="h-3 w-3" strokeWidth={2.4} />
         Due in {days}d
-      </span>
+      </Badge>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2.5 py-1 ring-1 bg-navy-900/[0.06] text-navy-700 ring-navy-900/15">
+    <Badge className="bg-navy-900/[0.06] text-navy-700 ring-navy-900/15">
       <CalendarClock className="h-3 w-3" strokeWidth={2.4} />
       {days}d
-    </span>
+    </Badge>
   );
 }
 

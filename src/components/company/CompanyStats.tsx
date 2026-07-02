@@ -6,6 +6,8 @@ import { useMessaging } from "@/components/providers/MessagingProvider";
 import type { Company } from "@/data/companies";
 import { useCompanyOpportunityProfile } from "@/lib/company/profile";
 import { compactMoney } from "@/lib/home/format";
+import SectionHeader from "@/components/ui/SectionHeader";
+import StatCard, { StatGrid } from "@/components/ui/StatCard";
 
 export default function CompanyStats({ company }: { company: Company }) {
   const { hydrated } = useMessaging();
@@ -30,28 +32,11 @@ export default function CompanyStats({ company }: { company: Company }) {
   return (
     <section>
       <SectionHeader eyebrow="Institutional snapshot" title="By the numbers" />
-      <div className="rounded-2xl bg-navy-900/[0.06] ring-1 ring-navy-900/[0.06] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px overflow-hidden">
+      <StatGrid columns="grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         {stats.map((s) => (
-          <div key={s.label} className="bg-white p-4 md:p-5">
-            <div className="inline-flex items-center gap-1.5 text-[9px] md:text-[10px] uppercase tracking-[0.14em] text-navy-700/55 font-bold">
-              <s.icon className="h-3 w-3 text-gold-600" strokeWidth={2.2} />
-              {s.label}
-            </div>
-            <div className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight tabular-nums">
-              {s.value}
-            </div>
-          </div>
+          <StatCard key={s.label} icon={s.icon} label={s.label} value={s.value} />
         ))}
-      </div>
+      </StatGrid>
     </section>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="mb-5">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">{eyebrow}</div>
-      <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">{title}</h2>
-    </div>
   );
 }

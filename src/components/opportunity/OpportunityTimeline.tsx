@@ -2,6 +2,7 @@ import { Search, Coins, HardHat, Building2, LogOut, type LucideIcon } from "luci
 
 import type { Opportunity } from "@/data/opportunities";
 import { cn } from "@/lib/cn";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 const STAGES: { key: string; label: string; icon: LucideIcon }[] = [
   { key: "diligence", label: "Sourcing & Diligence", icon: Search },
@@ -90,15 +91,6 @@ function Detail({ label, value }: { label: string; value: string }) {
     <div>
       <div className="text-[10px] uppercase tracking-[0.16em] text-navy-700/55 font-bold">{label}</div>
       <div className="mt-1 text-sm font-semibold text-navy-900">{value}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="mb-5">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">{eyebrow}</div>
-      <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">{title}</h2>
     </div>
   );
 }

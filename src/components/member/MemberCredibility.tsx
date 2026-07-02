@@ -5,6 +5,7 @@ import { ShieldCheck, Activity, Layers, TrendingUp, Handshake, CalendarDays, typ
 import type { Member } from "@/data/members";
 import { useMemberProfile } from "@/lib/members/profile";
 import { compactMoney } from "@/lib/home/format";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 export default function MemberCredibility({ member }: { member: Member }) {
   const { active, capitalRaising, introductionsTotal } = useMemberProfile(member, 0);
@@ -74,14 +75,5 @@ export default function MemberCredibility({ member }: { member: Member }) {
         ))}
       </div>
     </section>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="mb-5">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">{eyebrow}</div>
-      <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">{title}</h2>
-    </div>
   );
 }

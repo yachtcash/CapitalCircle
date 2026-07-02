@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { TeamMember } from "@/data/companies";
 import { cn } from "@/lib/cn";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 export default function CompanyTeam({ team }: { team: TeamMember[] }) {
   const [expandedName, setExpandedName] = useState<string | null>(null);
@@ -70,18 +71,5 @@ export default function CompanyTeam({ team }: { team: TeamMember[] }) {
         })}
       </div>
     </section>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="mb-5">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">
-        {eyebrow}
-      </div>
-      <h2 className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight">
-        {title}
-      </h2>
-    </div>
   );
 }
