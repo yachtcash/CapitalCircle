@@ -94,8 +94,22 @@ export default function Button({
   );
 
   if (href) {
+    // Anchors never match the :disabled pseudo-class, so inert state must be
+    // applied explicitly: block pointer AND keyboard activation.
+    const inert = disabled || loading;
     return (
-      <Link href={href} target={target} rel={rel} title={title} aria-label={ariaLabel} className={cls}>
+      <Link
+        href={href}
+        target={target}
+        rel={rel}
+        title={title}
+        aria-label={ariaLabel}
+        aria-disabled={inert || undefined}
+        aria-busy={loading || undefined}
+        tabIndex={inert ? -1 : undefined}
+        onClick={inert ? (e) => e.preventDefault() : undefined}
+        className={cn(cls, inert && "opacity-50 cursor-not-allowed pointer-events-none")}
+      >
         {content}
       </Link>
     );

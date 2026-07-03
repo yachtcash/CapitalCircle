@@ -36,7 +36,11 @@ export default function SectionHeader({
   return (
     <div className={cn("mb-5", right ? "flex items-end justify-between gap-3" : null, className)}>
       <div>
-        <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold inline-flex items-center gap-1.5">
+        {/* Block-level flex: renders identically to the old plain block for
+            text-only eyebrows (no inline line-box strut) while still laying
+            out an optional icon. Do not change to inline-flex — it shifts
+            every section header down by ~7px. */}
+        <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold flex items-center gap-1.5">
           {Icon ? <Icon className="h-3.5 w-3.5" strokeWidth={2.2} /> : null}
           {eyebrow}
         </div>
