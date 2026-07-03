@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import NotificationCenterClient from "@/components/notifications/NotificationCenterClient";
+import RoleGate from "@/components/common/RoleGate";
 
 export const metadata: Metadata = {
   title: "Notifications",
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function NotificationsPage() {
-  return <NotificationCenterClient />;
+  return (
+    <RoleGate>
+      <NotificationCenterClient />
+    </RoleGate>
+  );
 }

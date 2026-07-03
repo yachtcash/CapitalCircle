@@ -21,7 +21,13 @@ import {
 } from "lucide-react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
-import { canAccessAdmin, canReviewQueue, ROLES, type Role } from "@/lib/roles";
+import {
+  canAccessAdmin,
+  canManageListings,
+  canReviewQueue,
+  SWITCHER_ROLES,
+  type Role,
+} from "@/lib/roles";
 import AdminGlobalSearch from "./AdminGlobalSearch";
 import { cn } from "@/lib/cn";
 
@@ -49,15 +55,25 @@ const SECTIONS: { label: string; href: string; icon: LucideIcon; exact?: boolean
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const { currentRole } = useMessaging();
-  // Admin+ get the whole control center. Moderator/Editor get the Moderation
-  // Center only — they can reach /admin/moderation but no other admin route.
+  // Admin+ get the whole control center. Moderators (and Editors) reach the
+  // Moderation Center; Editors additionally reach content Listings — exactly
+  // the roles.ts permission matrix, nothing more.
   const fullAccess = canAccessAdmin(currentRole);
   const isModerationPath = pathname.startsWith("/admin/moderation");
-  const moderationOnly = !fullAccess && canReviewQueue(currentRole);
-  const allowed = fullAccess || (moderationOnly && isModerationPath);
+  const isListingsPath = pathname.startsWith("/admin/listings");
+  const moderationAccess = !fullAccess && canReviewQueue(currentRole);
+  const listingsAccess = !fullAccess && canManageListings(currentRole);
+  const allowed =
+    fullAccess ||
+    (moderationAccess && isModerationPath) ||
+    (listingsAccess && isListingsPath);
   const sections = fullAccess
     ? SECTIONS
-    : SECTIONS.filter((s) => s.href === "/admin/moderation");
+    : SECTIONS.filter(
+        (s) =>
+          (moderationAccess && s.href === "/admin/moderation") ||
+          (listingsAccess && s.href === "/admin/listings")
+      );
 
   return (
     <div className="bg-cream min-h-[calc(100vh-5rem)]">
@@ -122,14 +138,24 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             The Admin Control Center requires Admin or Super Admin. Use the role
             switcher above to switch back.
           </p>
-          {moderationOnly ? (
-            <Link
-              href="/admin/moderation"
-              className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
-            >
-              Open Moderation Center
-            </Link>
-          ) : null}
+          <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">
+            {moderationAccess ? (
+              <Link
+                href="/admin/moderation"
+                className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
+              >
+                Open Moderation Center
+              </Link>
+            ) : null}
+            {listingsAccess ? (
+              <Link
+                href="/admin/listings"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/[0.12] hover:ring-navy-900/30 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
+              >
+                Open Content Listings
+              </Link>
+            ) : null}
+          </div>
         </div>
       )}
     </div>
@@ -147,7 +173,7 @@ export function RoleSwitcher() {
         onChange={(e) => setCurrentRole(e.target.value as Role)}
         className="rounded-full bg-white/10 ring-1 ring-white/20 hover:ring-gold-500/60 text-white px-3.5 py-2 text-xs uppercase tracking-[0.12em] font-bold transition-shadow [&>option]:text-navy-900"
       >
-        {ROLES.slice().reverse().map((r) => (
+        {SWITCHER_ROLES.slice().reverse().map((r) => (
           <option key={r} value={r}>{r}</option>
         ))}
       </select>

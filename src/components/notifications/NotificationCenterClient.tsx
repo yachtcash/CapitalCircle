@@ -26,6 +26,7 @@ import {
   type CcNotification,
 } from "@/data/notifications/types";
 import { NOTIFICATION_ICONS, TONE_TILE, PRIORITY_BADGE_TONE, PRIORITY_RANK } from "./notificationUi";
+import { visibleNotificationsForRole } from "./roleVisibility";
 import NotificationPreferencesModal from "./NotificationPreferencesModal";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
@@ -52,13 +53,13 @@ export default function NotificationCenterClient() {
   const router = useRouter();
   const {
     centerNotifications,
-    totalUnreadCenterNotifications,
     markCenterNotificationRead,
     markAllCenterNotificationsRead,
     toggleCenterNotificationPinned,
     archiveCenterNotification,
     restoreCenterNotification,
     dismissCenterNotification,
+    currentRole,
     hydrated,
   } = useMessaging();
 
@@ -75,23 +76,26 @@ export default function NotificationCenterClient() {
 
   const nowMs = hydrated ? Date.now() : 0;
 
-  // ---- Summary ----
+  // ---- Summary (role-aware: members never see Admin / Moderation) ----
   const live = useMemo(
-    () => centerNotifications.filter((n) => !isExpired(n, nowMs)),
-    [centerNotifications, nowMs]
+    () =>
+      visibleNotificationsForRole(centerNotifications, currentRole).filter(
+        (n) => !isExpired(n, nowMs)
+      ),
+    [centerNotifications, currentRole, nowMs]
   );
   const summary = useMemo(() => {
     const inbox = live.filter((n) => !n.archived && !n.dismissed);
     return {
       total: inbox.length,
-      unread: totalUnreadCenterNotifications,
+      unread: inbox.filter((n) => !n.read).length,
       critical: inbox.filter((n) => n.priority === "Critical").length,
       today: nowMs ? inbox.filter((n) => nowMs - Date.parse(n.createdAt) < DAY_MS).length : 0,
       week: nowMs ? inbox.filter((n) => nowMs - Date.parse(n.createdAt) < 7 * DAY_MS).length : 0,
       pinned: inbox.filter((n) => n.pinned).length,
       archived: live.filter((n) => n.archived).length,
     };
-  }, [live, totalUnreadCenterNotifications, nowMs]);
+  }, [live, nowMs]);
 
   const actors = useMemo(
     () => [...new Set(live.map((n) => n.actorName))].sort(),
@@ -233,7 +237,7 @@ export default function NotificationCenterClient() {
                 size="sm"
                 iconLeft={<CheckCheck className="h-3.5 w-3.5" strokeWidth={2.2} />}
                 onClick={markAllCenterNotificationsRead}
-                disabled={!hydrated || totalUnreadCenterNotifications === 0}
+                disabled={!hydrated || summary.unread === 0}
               >
                 Mark all read
               </Button>

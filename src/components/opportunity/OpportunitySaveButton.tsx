@@ -17,8 +17,11 @@ export default function OpportunitySaveButton({
   tone?: "dark" | "light";
   className?: string;
 }) {
-  const { isOpportunitySaved, toggleSavedOpportunity, hydrated } = useMessaging();
+  const { isOpportunitySaved, toggleSavedOpportunity, hydrated, currentRole } = useMessaging();
   const saved = hydrated && isOpportunitySaved(opportunityId);
+
+  // Saving is a member capability.
+  if (currentRole === "Guest") return null;
 
   return (
     <button

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import DealsWorkspace from "@/components/dashboard/deals/DealsWorkspace";
+import RoleGate from "@/components/common/RoleGate";
 
 export const metadata: Metadata = {
   title: "Deal Desk — Capital Circle",
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function DealDeskPage() {
-  return <DealsWorkspace />;
+  return (
+    <RoleGate min="Admin">
+      <DealsWorkspace />
+    </RoleGate>
+  );
 }

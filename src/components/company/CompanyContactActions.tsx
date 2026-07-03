@@ -20,7 +20,7 @@ const REASONS = [
 
 export default function CompanyContactActions({ company }: { company: Company }) {
   const router = useRouter();
-  const { createInterestConversation, submitIntroductionRequest } = useMessaging();
+  const { createInterestConversation, submitIntroductionRequest, currentRole } = useMessaging();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState(REASONS[0]);
   const [message, setMessage] = useState("");
@@ -28,6 +28,9 @@ export default function CompanyContactActions({ company }: { company: Company })
 
   const lead = company.team?.[0];
   const targetName = lead ? lead.name : company.name;
+
+  // Messaging and introductions are member capabilities.
+  if (currentRole === "Guest") return null;
 
   const contact = () => {
     const id = createInterestConversation({ companyId: company.id });

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ProfileClient from "@/components/profile/ProfileClient";
+import RoleGate from "@/components/common/RoleGate";
 
 export const metadata: Metadata = {
   title: "Profile",
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function ProfilePage() {
-  return <ProfileClient />;
+  return (
+    <RoleGate>
+      <ProfileClient />
+    </RoleGate>
+  );
 }

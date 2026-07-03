@@ -7,6 +7,7 @@ import type { Opportunity } from "@/data/opportunities";
 import type { Member } from "@/data/members";
 import RequestIntroductionModal from "@/components/members/RequestIntroductionModal";
 import ShowInterestModal from "@/components/negotiations/ShowInterestModal";
+import { useMessaging } from "@/components/providers/MessagingProvider";
 import { cn } from "@/lib/cn";
 
 /**
@@ -28,7 +29,11 @@ export default function OpportunityRequestIntro({
   label?: string;
   className?: string;
 }) {
+  const { currentRole } = useMessaging();
   const [open, setOpen] = useState(false);
+
+  // Introductions are a member capability.
+  if (currentRole === "Guest") return null;
 
   return (
     <>

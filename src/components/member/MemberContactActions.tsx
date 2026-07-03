@@ -6,6 +6,7 @@ import { Sparkles, MessageSquare, Building2 } from "lucide-react";
 
 import type { Member } from "@/data/members";
 import RequestIntroductionModal from "@/components/members/RequestIntroductionModal";
+import { useMessaging } from "@/components/providers/MessagingProvider";
 
 export default function MemberContactActions({
   member,
@@ -14,7 +15,11 @@ export default function MemberContactActions({
   member: Member;
   primaryCompanySlug: string | null;
 }) {
+  const { currentRole } = useMessaging();
   const [introOpen, setIntroOpen] = useState(false);
+
+  // Introductions and messaging are member capabilities.
+  if (currentRole === "Guest") return null;
 
   return (
     <>

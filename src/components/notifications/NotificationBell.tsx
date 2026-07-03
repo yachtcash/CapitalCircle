@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { NOTIFICATION_ICONS, TONE_TILE } from "./notificationUi";
+import { visibleNotificationsForRole } from "./roleVisibility";
 import { timeAgo } from "@/lib/home/format";
 import { cn } from "@/lib/cn";
 
@@ -21,9 +22,9 @@ type Props = {
 export default function NotificationBell({ className }: Props) {
   const {
     centerNotifications,
-    totalUnreadCenterNotifications,
     markCenterNotificationRead,
     markAllCenterNotificationsRead,
+    currentRole,
     hydrated,
   } = useMessaging();
   const [open, setOpen] = useState(false);
@@ -53,16 +54,23 @@ export default function NotificationBell({ className }: Props) {
     };
   }, [open]);
 
+  // Role-aware: members never see Admin / Moderation categories.
+  const visible = useMemo(
+    () =>
+      visibleNotificationsForRole(centerNotifications, currentRole).filter(
+        (n) => !n.archived && !n.dismissed
+      ),
+    [centerNotifications, currentRole]
+  );
   const latest = useMemo(
     () =>
-      centerNotifications
-        .filter((n) => !n.archived && !n.dismissed)
+      [...visible]
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, 10),
-    [centerNotifications]
+    [visible]
   );
 
-  const unread = hydrated ? totalUnreadCenterNotifications : 0;
+  const unread = hydrated ? visible.filter((n) => !n.read).length : 0;
   const nowMs = hydrated ? Date.now() : 0;
 
   return (

@@ -13,11 +13,35 @@ export default function ActionPanel({ opportunity }: { opportunity: Opportunity 
   const company = getCompanyById(opportunity.companyId);
   const companyName = company?.name ?? opportunity.postedBy;
 
-  const { isOpportunitySaved, toggleSavedOpportunity, hydrated } = useMessaging();
+  const { isOpportunitySaved, toggleSavedOpportunity, hydrated, currentRole } = useMessaging();
   const saved = hydrated && isOpportunitySaved(opportunity.id);
 
   const [interestOpen, setInterestOpen] = useState(false);
   const [negotiationOpen, setNegotiationOpen] = useState(false);
+
+  // Guests browse only — engagement (interest, negotiation, saving) is for
+  // members. Show the membership prompt instead of the action panel.
+  if (currentRole === "Guest") {
+    return (
+      <div className="rounded-2xl bg-navy-900 text-white ring-1 ring-white/5 p-5 md:p-6">
+        <div className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-gold-400 font-semibold">
+          <Lock className="h-3.5 w-3.5" strokeWidth={2.2} />
+          Members only
+        </div>
+        <div className="mt-2 text-base font-semibold">Engage with this opportunity</div>
+        <p className="mt-1.5 text-sm text-white/65 leading-relaxed">
+          Members can express interest, open negotiations, and save deals to
+          their watchlist.
+        </p>
+        <a
+          href="/login"
+          className="mt-4 inline-flex items-center justify-center gap-1.5 w-full rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-2.5 text-sm transition-colors"
+        >
+          Member Login
+        </a>
+      </div>
+    );
+  }
 
   return (
     <>

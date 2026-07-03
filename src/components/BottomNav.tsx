@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { navItems } from "@/data/nav";
+import { navItemsForRole } from "@/data/nav";
 import { cn } from "@/lib/cn";
-import { canAccessAdmin, canViewCalendar, type Role } from "@/lib/roles";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 
 const SELF_MEMBER_ID = "MEM-000001";
@@ -13,12 +12,9 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { totalUnreadConversations, hydrated, currentRole, calendarGrants } = useMessaging();
   const calGranted = !!calendarGrants[SELF_MEMBER_ID];
-  const mobileItems = navItems.filter((i) => {
-    if (i.hideOnMobile) return false;
-    if (i.adminOnly && !canAccessAdmin(currentRole)) return false;
-    if (i.calendarGated && !canViewCalendar(currentRole as Role, calGranted)) return false;
-    return true;
-  });
+  const mobileItems = navItemsForRole(currentRole, calGranted).filter(
+    (i) => !i.hideOnMobile
+  );
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-navy-900/95 backdrop-blur-lg border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
@@ -31,6 +27,22 @@ export default function BottomNav() {
           const Icon = item.icon;
           const isMessages = item.href === "/messages";
           const showBadge = isMessages && hydrated && totalUnreadConversations > 0;
+
+          if (item.highlight) {
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex flex-col items-center justify-center gap-1 py-2.5 min-w-0 px-0.5 text-[10px] font-medium tracking-wide uppercase text-navy-900"
+              >
+                <span className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full bg-gold-500">
+                  <Icon className="h-4 w-4" strokeWidth={2.4} />
+                </span>
+                <span className="max-w-full truncate text-gold-400">{item.shortLabel}</span>
+              </Link>
+            );
+          }
+
           return (
             <Link
               key={item.href}

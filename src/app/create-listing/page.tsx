@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Pencil, X } from "lucide-react";
 
 import CreateListingClient from "./CreateListingClient";
+import RoleGate from "@/components/common/RoleGate";
 
 type SearchParams = { listingId?: string };
 
@@ -14,10 +15,12 @@ export default async function CreateListingPage({
   const editingId = typeof listingId === "string" ? listingId : undefined;
 
   return (
-    <div className="bg-cream min-h-[calc(100vh-5rem)] flex flex-col">
-      {editingId ? <EditingBanner listingId={editingId} /> : null}
-      <CreateListingClient initialListingId={editingId} />
-    </div>
+    <RoleGate>
+      <div className="bg-cream min-h-[calc(100vh-5rem)] flex flex-col">
+        {editingId ? <EditingBanner listingId={editingId} /> : null}
+        <CreateListingClient initialListingId={editingId} />
+      </div>
+    </RoleGate>
   );
 }
 

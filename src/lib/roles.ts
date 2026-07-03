@@ -16,12 +16,14 @@
 //   Member      — normal access
 
 export type Role =
+  | "Guest"
   | "Member"
   | "Moderator"
   | "Editor"
   | "Admin"
   | "Super Admin";
 
+/** Assignable member roles — Guest is an experience, not an assignable role. */
 export const ROLES: Role[] = [
   "Member",
   "Moderator",
@@ -30,16 +32,40 @@ export const ROLES: Role[] = [
   "Super Admin",
 ];
 
+/** Roles offered by the developer role switcher (includes Guest preview). */
+export const SWITCHER_ROLES: Role[] = ["Guest", ...ROLES];
+
 /** Default role for legacy call sites; live role comes from the provider. */
 export const CURRENT_USER_ROLE: Role = "Super Admin";
 
 const ROLE_RANK: Record<Role, number> = {
+  "Guest": -1,
   "Member": 0,
   "Moderator": 1,
   "Editor": 2,
   "Admin": 3,
   "Super Admin": 4,
 };
+
+// ---- Experience architecture ----
+//
+// The app renders as three products sharing one platform:
+//   guest      — marketplace browsing only (no engagement)
+//   member     — investment portal (Members; Moderators/Editors get extras)
+//   operations — internal platform (Admin, Super Admin)
+
+export type Experience = "guest" | "member" | "operations";
+
+export function experienceForRole(role: Role = CURRENT_USER_ROLE): Experience {
+  if (role === "Guest") return "guest";
+  if (hasRole("Admin", role)) return "operations";
+  return "member";
+}
+
+/** Guests browse only — no messaging, saving, introductions, or creation. */
+export function canEngage(role: Role = CURRENT_USER_ROLE): boolean {
+  return role !== "Guest";
+}
 
 // ---- Core predicates ----
 

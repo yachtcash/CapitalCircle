@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import MessagesWorkspace from "@/components/messages/MessagesWorkspace";
+import RoleGate from "@/components/common/RoleGate";
 
 export const metadata: Metadata = {
   title: "Messages",
@@ -19,5 +20,9 @@ export default async function MessagesPage({
   const initialConversationId =
     typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] ?? null : null;
 
-  return <MessagesWorkspace initialConversationId={initialConversationId} />;
+  return (
+    <RoleGate>
+      <MessagesWorkspace initialConversationId={initialConversationId} />
+    </RoleGate>
+  );
 }

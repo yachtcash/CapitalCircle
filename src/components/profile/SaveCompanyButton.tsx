@@ -10,8 +10,11 @@ type Props = {
 };
 
 export default function SaveCompanyButton({ companyId, className }: Props) {
-  const { isCompanySaved, toggleSavedCompany, hydrated } = useMessaging();
+  const { isCompanySaved, toggleSavedCompany, hydrated, currentRole } = useMessaging();
   const saved = hydrated && isCompanySaved(companyId);
+
+  // Saving is a member capability.
+  if (currentRole === "Guest") return null;
 
   return (
     <button
