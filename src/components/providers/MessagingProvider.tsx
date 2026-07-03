@@ -76,6 +76,19 @@ import { CURRENT_USER_ROLE, type Role } from "@/lib/roles";
 import { getMemberById, MEMBERS as SEED_MEMBERS, type Member } from "@/data/members";
 import { SEED_AUDIT_EVENTS, type AuditAction, type AuditEvent, type AuditTargetKind } from "@/data/audit";
 import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  type CcNotification,
+  type NotificationCategory,
+  type NotificationChannelPrefs,
+  type NotificationPreferences,
+} from "@/data/notifications/types";
+import {
+  draftFromAudit,
+  draftFromPush,
+  SEED_NOTIFICATIONS as SEED_CENTER_NOTIFICATIONS,
+  type NotificationDraft,
+} from "@/lib/notifications/engine";
+import {
   MARKETPLACE_PLACEMENT_KEY,
   DEFAULT_MARKETPLACE_PLACEMENT,
   MAX_FEATURED,
@@ -133,6 +146,8 @@ import {
 
 const KEY_CONVERSATIONS = "cc:conversations:v1";
 const KEY_NOTIFICATIONS = "cc:notifications:v1";
+const KEY_NOTIFICATION_CENTER = "cc:notification-center:v1";
+const KEY_NOTIFICATION_PREFS = "cc:notification-prefs:v1";
 const KEY_SAVED_OPPS = "cc:saved-opps:v1";
 const KEY_SAVED_COMPANIES = "cc:saved-companies:v1";
 const KEY_LISTINGS = "cc:listings:v1";
@@ -207,6 +222,21 @@ type MessagingValue = {
   hydrated: boolean;
   conversations: Conversation[];
   notifications: Notification[];
+  /** Centralized notification engine (bell + Notification Center). */
+  centerNotifications: CcNotification[];
+  totalUnreadCenterNotifications: number;
+  notificationPrefs: NotificationPreferences;
+  emitCenterNotification: (draft: NotificationDraft) => void;
+  markCenterNotificationRead: (id: string) => void;
+  markAllCenterNotificationsRead: () => void;
+  toggleCenterNotificationPinned: (id: string) => void;
+  archiveCenterNotification: (id: string) => void;
+  restoreCenterNotification: (id: string) => void;
+  dismissCenterNotification: (id: string) => void;
+  setNotificationPreference: (
+    category: NotificationCategory,
+    patch: Partial<NotificationChannelPrefs>
+  ) => void;
   savedOpportunityIds: string[];
   savedCompanyIds: string[];
   listings: ListingRecord[];
@@ -696,6 +726,11 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [marketplacePlacement, setMarketplacePlacement] = useState<MarketplacePlacement>(
     DEFAULT_MARKETPLACE_PLACEMENT
   );
+  const [centerNotifications, setCenterNotifications] =
+    useState<CcNotification[]>(SEED_CENTER_NOTIFICATIONS);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(
+    DEFAULT_NOTIFICATION_PREFERENCES
+  );
 
   useEffect(() => {
     const storedConvos = readStored<Conversation[] | null>(
@@ -831,6 +866,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (sCalGrants) setCalendarGrants(sCalGrants);
     const sPlacement = readStored<MarketplacePlacement | null>(MARKETPLACE_PLACEMENT_KEY, null);
     if (sPlacement) setMarketplacePlacement(sPlacement);
+    const sCenter = readStored<CcNotification[] | null>(KEY_NOTIFICATION_CENTER, null);
+    if (sCenter && sCenter.length > 0) setCenterNotifications(sCenter);
+    const sNotifPrefs = readStored<NotificationPreferences | null>(KEY_NOTIFICATION_PREFS, null);
+    if (sNotifPrefs) setNotificationPrefs({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...sNotifPrefs });
     setHydrated(true);
   }, []);
 
@@ -843,6 +882,14 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     writeStored(KEY_NOTIFICATIONS, notifications);
   }, [notifications, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_NOTIFICATION_CENTER, centerNotifications);
+  }, [centerNotifications, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    writeStored(KEY_NOTIFICATION_PREFS, notificationPrefs);
+  }, [notificationPrefs, hydrated]);
   useEffect(() => {
     if (!hydrated) return;
     writeStored(KEY_SAVED_OPPS, savedOpportunityIds);
@@ -1041,6 +1088,95 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
 
   // ---- Audit architecture (central event stream; /admin/audit comes later) ----
 
+  // ---- Notification engine (additive — hooks into existing actions) ----
+  // Every recordAudit / pushNotification call also emits a centralized
+  // CcNotification. Original workflows are untouched.
+  const emitCenterNotification = useCallback(
+    (draft: NotificationDraft) => {
+      if (!notificationPrefs[draft.category]?.inApp) return;
+      setCenterNotifications((prev) => {
+        // Dedupe guard: identical event signature within a 5s window.
+        const dupe = prev.find(
+          (n) =>
+            n.generatedBy === draft.generatedBy &&
+            n.targetId === draft.targetId &&
+            n.title === draft.title &&
+            Math.abs(Date.parse(n.createdAt) - Date.parse(draft.createdAt)) < 5000
+        );
+        if (dupe) return prev;
+        let max = 0;
+        for (const n of prev) {
+          const m = /^NTF-(\d+)$/.exec(n.id);
+          if (m) max = Math.max(max, parseInt(m[1], 10));
+        }
+        const entry: CcNotification = {
+          ...draft,
+          id: `NTF-${String(max + 1).padStart(6, "0")}`,
+          updatedAt: draft.createdAt,
+          read: false,
+          archived: false,
+          pinned: false,
+          dismissed: false,
+        };
+        return [entry, ...prev];
+      });
+    },
+    [notificationPrefs]
+  );
+
+  const touchCenterNotification = useCallback(
+    (id: string, patch: Partial<CcNotification>) => {
+      const now = new Date().toISOString();
+      setCenterNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: now } : n))
+      );
+    },
+    []
+  );
+  const markCenterNotificationRead = useCallback(
+    (id: string) => touchCenterNotification(id, { read: true }),
+    [touchCenterNotification]
+  );
+  const markAllCenterNotificationsRead = useCallback(() => {
+    const now = new Date().toISOString();
+    setCenterNotifications((prev) =>
+      prev.map((n) => (n.read ? n : { ...n, read: true, updatedAt: now }))
+    );
+  }, []);
+  const toggleCenterNotificationPinned = useCallback(
+    (id: string) => {
+      const now = new Date().toISOString();
+      setCenterNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, pinned: !n.pinned, updatedAt: now } : n))
+      );
+    },
+    []
+  );
+  const archiveCenterNotification = useCallback(
+    (id: string) => touchCenterNotification(id, { archived: true, read: true }),
+    [touchCenterNotification]
+  );
+  const restoreCenterNotification = useCallback(
+    (id: string) => touchCenterNotification(id, { archived: false, dismissed: false }),
+    [touchCenterNotification]
+  );
+  const dismissCenterNotification = useCallback(
+    (id: string) => touchCenterNotification(id, { dismissed: true, read: true }),
+    [touchCenterNotification]
+  );
+  const setNotificationPreference = useCallback(
+    (category: NotificationCategory, patch: Partial<NotificationChannelPrefs>) => {
+      setNotificationPrefs((prev) => ({
+        ...prev,
+        [category]: { ...prev[category], ...patch },
+      }));
+    },
+    []
+  );
+  const totalUnreadCenterNotifications = centerNotifications.filter(
+    (n) => !n.read && !n.archived && !n.dismissed
+  ).length;
+
   const recordAudit = useCallback(
     (
       action: AuditAction,
@@ -1048,6 +1184,22 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       detail?: string,
       change?: { before?: string; after?: string }
     ) => {
+      // Additive notification generation — the audit stream is the event bus.
+      emitCenterNotification(
+        draftFromAudit({
+          id: "pending",
+          action,
+          actorName: profile.name,
+          actorRole: currentRole,
+          targetKind: target.kind,
+          targetId: target.id,
+          targetLabel: target.label,
+          detail,
+          before: change?.before,
+          after: change?.after,
+          createdAt: new Date().toISOString(),
+        })
+      );
       setAuditEvents((prev) => {
         let max = 0;
         for (const e of prev) {
@@ -1070,7 +1222,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         return [entry, ...prev];
       });
     },
-    [profile.name, currentRole]
+    [profile.name, currentRole, emitCenterNotification]
   );
 
   // ---- Marketplace placement mutations (editorial control) ----
@@ -2263,8 +2415,22 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         read: false,
       };
       setNotifications((prev) => [entry, ...prev]);
+      // Mirror legacy pushes (messages / calendar / documents) into the
+      // centralized notification engine.
+      emitCenterNotification(
+        draftFromPush({
+          kind: entry.kind,
+          title: entry.title,
+          body: entry.body,
+          href: entry.href,
+          companyId: entry.companyId,
+          createdAt: entry.createdAt,
+          actorName: profile.name,
+          actorRole: currentRole,
+        })
+      );
     },
-    []
+    [emitCenterNotification, profile.name, currentRole]
   );
 
   const createInterestConversation = useCallback(
@@ -3986,6 +4152,17 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     hydrated,
     conversations,
     notifications,
+    centerNotifications,
+    totalUnreadCenterNotifications,
+    notificationPrefs,
+    emitCenterNotification,
+    markCenterNotificationRead,
+    markAllCenterNotificationsRead,
+    toggleCenterNotificationPinned,
+    archiveCenterNotification,
+    restoreCenterNotification,
+    dismissCenterNotification,
+    setNotificationPreference,
     savedOpportunityIds,
     savedCompanyIds,
     listings,
