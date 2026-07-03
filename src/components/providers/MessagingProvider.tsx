@@ -3136,6 +3136,17 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
         return [record, ...prev];
       });
 
+      // Listing creation is a first-class platform event — record it in the
+      // audit stream (which also emits a notification), like every other
+      // entity creation.
+      recordAudit(
+        "Listing Created",
+        { kind: "listing", id: newListingId, label: newOpportunity.title },
+        isDraft
+          ? "Draft saved — hidden until published"
+          : "Listing published to the marketplace"
+      );
+
       setUserOpportunities((prev) => {
         // If a draft, we still insert the opportunity so the edit flow can
         // resume against a live record. Public surfaces respect the listing's
@@ -3145,7 +3156,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
 
       return { listingId: newListingId, opportunityId, slug };
     },
-    [profile, userOpportunities]
+    [profile, userOpportunities, recordAudit]
   );
 
   const updateUserOpportunity = useCallback(

@@ -62,6 +62,7 @@ export type AuditAction =
   | "Introduction Rejected"
   | "Introduction Completed"
   | "Introduction Converted"
+  | "Listing Created"
   | "Listing Deleted"
   | "Listing Archived"
   | "Listing Restored"
@@ -213,6 +214,7 @@ const GROUP_MAP: Record<AuditAction, AuditGroup> = {
   "Opportunity Featured": "Opportunity Actions",
   "Opportunity Archived": "Opportunity Actions",
   "Opportunity Deleted": "Opportunity Actions",
+  "Listing Created": "Listing Actions",
   "Listing Deleted": "Listing Actions",
   "Listing Archived": "Listing Actions",
   "Listing Restored": "Listing Actions",

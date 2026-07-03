@@ -28,14 +28,22 @@ export default function NotificationBell({ className }: Props) {
   } = useMessaging();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Dialog focus contract: move focus into the panel on open; Escape
+    // returns it to the bell. Outside clicks let focus follow the click.
+    panelRef.current?.focus();
     const onClick = (e: MouseEvent) => {
       if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        bellRef.current?.focus();
+      }
     };
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -60,6 +68,7 @@ export default function NotificationBell({ className }: Props) {
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <button
+        ref={bellRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={unread > 0 ? `Notifications — ${unread} unread` : "Notifications"}
@@ -85,9 +94,11 @@ export default function NotificationBell({ className }: Props) {
 
       {open ? (
         <div
+          ref={panelRef}
+          tabIndex={-1}
           role="dialog"
           aria-label="Notifications"
-          className="absolute top-full right-0 mt-2 w-[min(380px,calc(100vw-2rem))] bg-white rounded-2xl ring-1 ring-navy-900/10 shadow-xl shadow-navy-900/15 overflow-hidden z-40 max-h-[70vh] flex flex-col"
+          className="absolute top-full right-0 mt-2 w-[min(380px,calc(100vw-2rem))] bg-white rounded-2xl ring-1 ring-navy-900/10 shadow-xl shadow-navy-900/15 overflow-hidden z-40 max-h-[70vh] flex flex-col outline-none"
         >
           <header className="flex items-center justify-between px-4 py-3 border-b border-navy-900/[0.06]">
             <div>
@@ -99,7 +110,12 @@ export default function NotificationBell({ className }: Props) {
             {unread > 0 ? (
               <button
                 type="button"
-                onClick={markAllCenterNotificationsRead}
+                onClick={() => {
+                  markAllCenterNotificationsRead();
+                  // This button unmounts once unread hits zero — keep focus
+                  // inside the dialog instead of dropping it to <body>.
+                  panelRef.current?.focus();
+                }}
                 className="text-[11px] uppercase tracking-[0.14em] font-semibold text-navy-900 hover:text-gold-700 transition-colors"
               >
                 Mark all read
