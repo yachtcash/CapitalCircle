@@ -22,7 +22,10 @@ export default function MessageCompanyButton({
   className,
 }: Props) {
   const router = useRouter();
-  const { createInterestConversation } = useMessaging();
+  const { createInterestConversation, currentRole } = useMessaging();
+
+  // Messaging is a member capability.
+  if (currentRole === "Guest") return null;
 
   const handle = (e: React.MouseEvent) => {
     e.preventDefault();

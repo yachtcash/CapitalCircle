@@ -39,8 +39,9 @@ export default function MarkerPreviewCard({ opportunity, onClose }: Props) {
   const publicId = publicOpportunityId(opportunity);
   const style = MARKER_STYLES[markerStyleFor(opportunity.category)];
   const cover = useResolvedImage(opportunity.images[0]);
-  const { isOpportunitySaved, toggleSavedOpportunity, hydrated } = useMessaging();
+  const { isOpportunitySaved, toggleSavedOpportunity, hydrated, currentRole } = useMessaging();
   const saved = hydrated && isOpportunitySaved(opportunity.id);
+  const engaged = currentRole !== "Guest";
 
   return (
     <article className="bg-white w-[312px] overflow-hidden text-navy-900">
@@ -147,24 +148,26 @@ export default function MarkerPreviewCard({ opportunity, onClose }: Props) {
           View Opportunity
           <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.4} />
         </Link>
-        <div className="mt-2 flex items-center gap-2">
-          <MessageOpportunityButton opportunity={opportunity} variant="full" className="flex-1" />
-          <button
-            type="button"
-            onClick={() => toggleSavedOpportunity(opportunity.id)}
-            aria-pressed={saved}
-            aria-label={saved ? "Remove from saved" : "Save opportunity"}
-            className={cn(
-              "shrink-0 inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] ring-1 transition-colors",
-              saved
-                ? "bg-gold-500/15 text-gold-700 ring-gold-500/40"
-                : "bg-white text-navy-900 ring-navy-900/15 hover:ring-gold-500/50"
-            )}
-          >
-            <Bookmark className={cn("h-3.5 w-3.5", saved && "fill-gold-600 text-gold-600")} strokeWidth={2.2} />
-            {saved ? "Saved" : "Save"}
-          </button>
-        </div>
+        {engaged ? (
+          <div className="mt-2 flex items-center gap-2">
+            <MessageOpportunityButton opportunity={opportunity} variant="full" className="flex-1" />
+            <button
+              type="button"
+              onClick={() => toggleSavedOpportunity(opportunity.id)}
+              aria-pressed={saved}
+              aria-label={saved ? "Remove from saved" : "Save opportunity"}
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] ring-1 transition-colors",
+                saved
+                  ? "bg-gold-500/15 text-gold-700 ring-gold-500/40"
+                  : "bg-white text-navy-900 ring-navy-900/15 hover:ring-gold-500/50"
+              )}
+            >
+              <Bookmark className={cn("h-3.5 w-3.5", saved && "fill-gold-600 text-gold-600")} strokeWidth={2.2} />
+              {saved ? "Saved" : "Save"}
+            </button>
+          </div>
+        ) : null}
       </div>
     </article>
   );

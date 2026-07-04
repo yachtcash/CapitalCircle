@@ -18,7 +18,7 @@ export default function CompanyOpportunityCard({
   opportunity: Opportunity;
   priority?: boolean;
 }) {
-  const { isOpportunitySaved, toggleSavedOpportunity, hydrated } = useMessaging();
+  const { isOpportunitySaved, toggleSavedOpportunity, hydrated, currentRole } = useMessaging();
   const src = useResolvedImage(opportunity.images[0]);
   const location = opportunity.place
     ? [opportunity.place.city, opportunity.place.country].filter(Boolean).join(", ")
@@ -44,22 +44,24 @@ export default function CompanyOpportunityCard({
         </span>
       </Link>
 
-      {/* Save — reuses the existing saved-opportunities store */}
-      <button
-        type="button"
-        onClick={() => toggleSavedOpportunity(opportunity.id)}
-        aria-pressed={saved}
-        aria-label={saved ? "Saved" : "Save opportunity"}
-        title={saved ? "Saved" : "Save opportunity"}
-        className={cn(
-          "absolute top-3 right-3 inline-flex items-center justify-center h-8 w-8 rounded-full ring-1 backdrop-blur transition-colors",
-          saved
-            ? "bg-gold-500/90 text-navy-900 ring-gold-500"
-            : "bg-navy-900/60 text-white ring-white/20 hover:bg-navy-900/80"
-        )}
-      >
-        <Bookmark className={cn("h-4 w-4", saved && "fill-navy-900")} strokeWidth={2.2} />
-      </button>
+      {/* Save — member capability; hidden for guests */}
+      {currentRole !== "Guest" ? (
+        <button
+          type="button"
+          onClick={() => toggleSavedOpportunity(opportunity.id)}
+          aria-pressed={saved}
+          aria-label={saved ? "Saved" : "Save opportunity"}
+          title={saved ? "Saved" : "Save opportunity"}
+          className={cn(
+            "absolute top-3 right-3 inline-flex items-center justify-center h-8 w-8 rounded-full ring-1 backdrop-blur transition-colors",
+            saved
+              ? "bg-gold-500/90 text-navy-900 ring-gold-500"
+              : "bg-navy-900/60 text-white ring-white/20 hover:bg-navy-900/80"
+          )}
+        >
+          <Bookmark className={cn("h-4 w-4", saved && "fill-navy-900")} strokeWidth={2.2} />
+        </button>
+      ) : null}
 
       <div className="flex-1 flex flex-col p-5">
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] font-semibold">

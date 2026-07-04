@@ -25,7 +25,10 @@ export default function MessageOpportunityButton({
   className,
 }: Props) {
   const router = useRouter();
-  const { createInterestConversation } = useMessaging();
+  const { createInterestConversation, currentRole } = useMessaging();
+
+  // Messaging is a member capability.
+  if (currentRole === "Guest") return null;
 
   const handle = (e: React.MouseEvent) => {
     // Stop propagation so clicks on an enclosing card link don't navigate.
