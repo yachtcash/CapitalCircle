@@ -60,7 +60,7 @@ export default function CompanyOverview({ company }: { company: Company }) {
       {highlights.length > 0 ? (
         <div className="mt-4 md:mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {highlights.map((h) => (
-            <div key={h.label} className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 md:p-5">
+            <div key={h.label} className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-5 md:p-6">
               <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-navy-700/55 font-bold">
                 <h.icon className="h-3.5 w-3.5 text-gold-600" strokeWidth={2.2} />
                 {h.label}
@@ -87,7 +87,7 @@ function FacetCard({
 }) {
   if (items.length === 0) return null;
   return (
-    <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-5">
+    <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-5 md:p-6">
       <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-navy-700/55 font-bold">
         <Icon className="h-3.5 w-3.5 text-gold-600" strokeWidth={2.2} />
         {title}

@@ -67,17 +67,17 @@ export default function CompanyContactActions({ company }: { company: Company })
       <button
         type="button"
         onClick={contact}
-        className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/[0.12] hover:ring-navy-900/30 text-navy-900 text-sm font-semibold px-5 py-2.5 transition-colors"
+        className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/10 hover:ring-navy-900/25 text-navy-900/80 hover:text-navy-900 text-[13px] font-medium px-4 py-2.5 transition-colors"
       >
-        <MessageSquare className="h-4 w-4 text-gold-600" strokeWidth={2.2} />
+        <MessageSquare className="h-3.5 w-3.5 text-gold-600" strokeWidth={2.2} />
         Contact
       </button>
       <button
         type="button"
         onClick={openModal}
-        className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/[0.12] hover:ring-navy-900/30 text-navy-900 text-sm font-semibold px-5 py-2.5 transition-colors"
+        className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/10 hover:ring-navy-900/25 text-navy-900/80 hover:text-navy-900 text-[13px] font-medium px-4 py-2.5 transition-colors"
       >
-        <UserPlus className="h-4 w-4 text-gold-600" strokeWidth={2.2} />
+        <UserPlus className="h-3.5 w-3.5 text-gold-600" strokeWidth={2.2} />
         Request Introduction
       </button>
 

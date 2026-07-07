@@ -61,8 +61,8 @@ export default function CompanyHero({ company: seedCompany }: { company: Company
 
       {/* Identity card overlapping cover */}
       <div className="max-w-6xl mx-auto px-5 md:px-10">
-        <div className="relative -mt-12 md:-mt-16 bg-white rounded-2xl ring-1 ring-navy-900/[0.06] shadow-sm p-5 md:p-7">
-          <div className="flex flex-col md:flex-row items-start gap-5">
+        <div className="relative -mt-12 md:-mt-16 bg-white rounded-2xl ring-1 ring-navy-900/[0.06] shadow-sm p-6 md:p-8">
+          <div className="flex flex-col md:flex-row items-start gap-6 md:gap-7">
             {/* Logo */}
             <div className="relative shrink-0 h-20 w-20 md:h-24 md:w-24 rounded-2xl bg-navy-900 text-gold-500 ring-1 ring-navy-900/5 flex items-center justify-center text-2xl md:text-3xl font-semibold tracking-wide overflow-hidden">
               {logo ? (

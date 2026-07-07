@@ -79,7 +79,7 @@ export default function ActionPanel({ opportunity }: { opportunity: Opportunity 
           <button
             type="button"
             onClick={() => setInterestOpen(true)}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-5 py-3 text-sm transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-bold px-5 py-3 text-sm transition-colors"
           >
             <Sparkles className="h-4 w-4" strokeWidth={2.3} />
             Show Interest
@@ -89,14 +89,14 @@ export default function ActionPanel({ opportunity }: { opportunity: Opportunity 
             onClick={() => toggleSavedOpportunity(opportunity.id)}
             aria-pressed={saved}
             className={cn(
-              "w-full inline-flex items-center justify-center gap-2 rounded-full ring-1 font-medium px-5 py-3 text-sm transition-colors",
+              "w-full inline-flex items-center justify-center gap-2 rounded-full ring-1 font-medium px-5 py-2.5 text-[13px] transition-colors",
               saved
                 ? "bg-gold-500/15 text-gold-300 ring-gold-500/40 hover:bg-gold-500/20"
-                : "bg-white/5 hover:bg-white/10 ring-white/15 text-white"
+                : "bg-white/5 hover:bg-white/10 ring-white/15 text-white/85"
             )}
           >
             <Heart
-              className={cn("h-4 w-4", saved ? "fill-gold-400" : "")}
+              className={cn("h-3.5 w-3.5", saved ? "fill-gold-400" : "")}
               strokeWidth={2}
             />
             {saved ? "Saved" : "Save Opportunity"}
@@ -104,9 +104,9 @@ export default function ActionPanel({ opportunity }: { opportunity: Opportunity 
           <button
             type="button"
             onClick={() => setNegotiationOpen(true)}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-transparent hover:bg-white/[0.04] ring-1 ring-white/15 text-white/85 font-medium px-5 py-3 text-sm transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-transparent hover:bg-white/[0.04] ring-1 ring-white/10 text-white/70 font-medium px-5 py-2.5 text-[13px] transition-colors"
           >
-            <Handshake className="h-4 w-4" strokeWidth={2} />
+            <Handshake className="h-3.5 w-3.5" strokeWidth={2} />
             Start Negotiation
           </button>
         </div>

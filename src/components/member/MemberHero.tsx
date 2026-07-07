@@ -58,8 +58,8 @@ export default function MemberHero({ member }: { member: Member }) {
       </div>
 
       <div className="max-w-6xl mx-auto px-5 md:px-10">
-        <div className="relative -mt-14 md:-mt-20 bg-white rounded-3xl ring-1 ring-navy-900/[0.06] shadow-sm p-5 md:p-7">
-          <div className="flex flex-col md:flex-row items-start gap-5">
+        <div className="relative -mt-14 md:-mt-20 bg-white rounded-2xl ring-1 ring-navy-900/[0.06] shadow-sm p-6 md:p-8">
+          <div className="flex flex-col md:flex-row items-start gap-6 md:gap-7">
             {/* Avatar */}
             <div className="relative shrink-0 h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-navy-900 text-gold-500 ring-4 ring-white shadow flex items-center justify-center text-3xl md:text-4xl font-semibold tracking-wide overflow-hidden">
               {avatar ? (

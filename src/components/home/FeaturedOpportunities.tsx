@@ -171,7 +171,7 @@ function FeaturedCard({
           </div>
           <Link
             href={`/opportunity/${opportunity.slug}`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-navy-900 hover:text-gold-700 transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1 text-xs font-bold text-gold-700 hover:text-gold-600 transition-colors whitespace-nowrap"
           >
             View
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" strokeWidth={2.4} />
@@ -185,8 +185,8 @@ function FeaturedCard({
 function Meta({ icon: Icon, label, value }: { icon: typeof MapPin; label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-[9px] uppercase tracking-[0.12em] text-navy-700/55 font-bold inline-flex items-center gap-1">
-        <Icon className="h-2.5 w-2.5 text-gold-600" strokeWidth={2.2} />
+      <div className="text-[10px] uppercase tracking-[0.14em] text-navy-700/55 font-bold inline-flex items-center gap-1">
+        <Icon className="h-3 w-3 text-gold-600" strokeWidth={2.2} />
         {label}
       </div>
       <div className="mt-0.5 text-xs font-semibold text-navy-900 truncate">{value}</div>

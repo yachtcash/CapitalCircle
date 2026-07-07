@@ -48,7 +48,7 @@ export default function StatCard({
     return (
       <div className={cn("rounded-xl bg-bone/60 ring-1 ring-navy-900/[0.05] px-4 py-2.5 min-w-[140px]", className)}>
         {labelEl}
-        <div className="mt-0.5 text-lg font-semibold text-navy-900 tabular-nums">{value}</div>
+        <div className="mt-0.5 text-lg font-bold text-navy-900 tracking-tight tabular-nums">{value}</div>
       </div>
     );
   }
@@ -57,7 +57,7 @@ export default function StatCard({
     return (
       <div className={cn("rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-4 md:p-5", className)}>
         {labelEl}
-        <div className="mt-1.5 text-xl md:text-2xl font-semibold text-navy-900 tracking-tight tabular-nums">{value}</div>
+        <div className="mt-1.5 text-xl md:text-2xl font-bold text-navy-900 tracking-tight tabular-nums">{value}</div>
         {sub ? <div className="text-[10px] text-navy-700/50 truncate">{sub}</div> : null}
       </div>
     );
@@ -69,8 +69,8 @@ export default function StatCard({
       {labelEl}
       <div
         className={cn(
-          "mt-1.5 font-semibold text-navy-900 tracking-tight tabular-nums",
-          dense ? "text-lg md:text-xl" : "text-xl md:text-2xl"
+          "mt-1.5 font-bold text-navy-900 tracking-tight tabular-nums",
+          dense ? "text-xl md:text-2xl" : "text-2xl md:text-3xl"
         )}
       >
         {value}

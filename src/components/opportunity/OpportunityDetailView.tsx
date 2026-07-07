@@ -8,6 +8,7 @@ import { useMessaging } from "@/components/providers/MessagingProvider";
 import OpportunityHero from "./OpportunityHero";
 import OpportunityImages from "./OpportunityImages";
 import InvestmentSnapshot from "./InvestmentSnapshot";
+import OpportunitySnapshotSidebar from "./OpportunitySnapshotSidebar";
 import ExecutiveSummaryBlock from "./ExecutiveSummaryBlock";
 import OpportunityTimeline from "./OpportunityTimeline";
 import OpportunitySponsor from "./OpportunitySponsor";
@@ -63,6 +64,7 @@ export default function OpportunityDetailView({
 
           <aside className="order-1 lg:order-2 lg:w-[360px] min-w-0 space-y-5">
             <div className="lg:sticky lg:top-6 space-y-3">
+              <OpportunitySnapshotSidebar opportunity={opportunity} company={company} />
               <ActionPanel opportunity={opportunity} />
               <div className="flex justify-center">
                 <ReportButton targetKind="opportunity" targetId={opportunity.id} targetLabel={opportunity.title} variant="chip" />

@@ -38,8 +38,8 @@ export default function OpportunityCard({
       href={`/opportunity/${opportunity.slug}`}
       className="group flex flex-col bg-white rounded-2xl ring-1 ring-navy-900/[0.06] overflow-hidden hover:shadow-xl hover:shadow-navy-900/10 hover:-translate-y-0.5 transition-all duration-200"
     >
-      {/* Featured image — aspect 4:3 so it lands at ~50% of card height with content below */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-navy-900/5">
+      {/* Featured image — 16:10 to match featured/hero cards across the marketplace */}
+      <div className="relative aspect-[16/10] overflow-hidden bg-navy-900/5">
         {cover ? (
           <Image
             src={cover}
@@ -107,7 +107,7 @@ export default function OpportunityCard({
             <div className="text-[10px] uppercase tracking-[0.14em] text-navy-700/55 font-semibold">
               {opportunity.dealType === "Acquisition" ? "Asking" : "Investment"}
             </div>
-            <div className="mt-0.5 text-[15px] font-semibold text-navy-900 truncate">
+            <div className="mt-0.5 text-lg font-bold tracking-tight text-navy-900 tabular-nums truncate">
               {opportunity.investmentRange}
             </div>
           </div>

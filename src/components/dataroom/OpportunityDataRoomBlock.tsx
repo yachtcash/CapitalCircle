@@ -27,6 +27,18 @@ export default function OpportunityDataRoomBlock({ opportunity, companyName }: P
   const publicDocs = listingDocs.filter((d) => d.visibility === "Public");
   const privateDocs = listingDocs.filter((d) => d.visibility === "Private");
 
+  // Group by category (order of first appearance) so investors scan
+  // decks / financials / legal as distinct sections, not one flat list.
+  const groupedDocs = useMemo(() => {
+    const groups: [string, typeof listingDocs][] = [];
+    for (const d of listingDocs) {
+      const g = groups.find(([c]) => c === d.category);
+      if (g) g[1].push(d);
+      else groups.push([d.category, [d]]);
+    }
+    return groups;
+  }, [listingDocs]);
+
   const approved = listingId ? hasApprovedAccess(listingId) : false;
   const pending = listingId ? hasPendingAccess(listingId) : false;
 
@@ -116,16 +128,30 @@ export default function OpportunityDataRoomBlock({ opportunity, companyName }: P
         </div>
       </div>
 
-      {/* Document list */}
+      {/* Document list — grouped by category */}
       {listingDocs.length > 0 ? (
-        <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] divide-y divide-navy-900/[0.06] overflow-hidden">
-          {listingDocs.map((document) => (
-            <DocumentRow
-              key={document.id}
-              document={document}
-              unlocked={approved}
-              onRequestAccess={() => setRequestOpen(true)}
-            />
+        <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] overflow-hidden">
+          {groupedDocs.map(([category, docs]) => (
+            <div key={category} className="border-b border-navy-900/[0.06] last:border-b-0">
+              <div className="px-4 md:px-5 pt-4 pb-1 flex items-baseline gap-2">
+                <span className="text-[10px] uppercase tracking-[0.16em] text-gold-600 font-bold">
+                  {category}
+                </span>
+                <span className="text-[10px] text-navy-700/45 font-semibold tabular-nums">
+                  {docs.length}
+                </span>
+              </div>
+              <div className="divide-y divide-navy-900/[0.05]">
+                {docs.map((document) => (
+                  <DocumentRow
+                    key={document.id}
+                    document={document}
+                    unlocked={approved}
+                    onRequestAccess={() => setRequestOpen(true)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : (
