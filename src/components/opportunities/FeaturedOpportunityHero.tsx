@@ -27,7 +27,7 @@ export default function FeaturedOpportunityHero({
         <article className="relative bg-navy-900 text-white rounded-3xl overflow-hidden ring-1 ring-white/5 shadow-xl shadow-navy-900/15">
           <div className="grid grid-cols-1 md:grid-cols-[1.2fr_minmax(0,1fr)]">
             {/* Image */}
-            <div className="relative aspect-[16/10] md:aspect-auto md:h-full min-h-[280px]">
+            <div className="relative w-full aspect-[16/10] md:aspect-auto md:h-full md:min-h-[280px]">
               <Image
                 src={opportunity.images[0]}
                 alt={opportunity.title}

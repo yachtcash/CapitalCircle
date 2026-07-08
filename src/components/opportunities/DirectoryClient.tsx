@@ -108,7 +108,7 @@ export default function DirectoryClient({
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="Search by title, company, location, category, or deal type"
-              className="flex-1 bg-transparent outline-none py-3 text-sm md:text-base text-navy-900 placeholder:text-navy-700/45"
+              className="flex-1 min-w-0 bg-transparent outline-none py-3 text-sm md:text-base text-navy-900 placeholder:text-navy-700/45"
             />
             <button
               type="submit"

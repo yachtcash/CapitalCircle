@@ -44,7 +44,11 @@ export default function CollectionRow({ collection }: Props) {
                 key={opportunity.id}
                 className="snap-start shrink-0 w-[280px] sm:w-[320px] md:w-[360px]"
               >
-                <OpportunityCard opportunity={opportunity} showPublicId />
+                <OpportunityCard
+                  opportunity={opportunity}
+                  showPublicId
+                  ribbon={collection.ribbon ?? null}
+                />
               </div>
             ))}
             {/* Spacer so the last card has visual breathing room */}

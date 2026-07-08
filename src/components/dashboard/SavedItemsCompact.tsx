@@ -38,7 +38,7 @@ export default function SavedItemsCompact() {
           </div>
         </div>
         <Link
-          href="/profile"
+          href="/saved"
           className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.14em] font-semibold text-gold-700 hover:text-gold-600 transition-colors group whitespace-nowrap"
         >
           View all

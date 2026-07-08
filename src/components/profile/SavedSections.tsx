@@ -7,6 +7,7 @@ import { featuredOpportunities } from "@/data/opportunities";
 import { companies } from "@/data/companies";
 import OpportunityCard from "@/components/OpportunityCard";
 import VerificationBadge from "@/components/company/VerificationBadge";
+import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 
 function initialsFor(name: string): string {
   return name
@@ -44,10 +45,15 @@ export default function SavedSections() {
           </span>
         </header>
 
-        {hydrated && savedOpportunities.length === 0 ? (
+        {!hydrated ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SkeletonCard />
+            <SkeletonCard className="hidden sm:block" />
+          </div>
+        ) : savedOpportunities.length === 0 ? (
           <EmptyHint
             label="No saved opportunities yet"
-            hint='Tap "Save Opportunity" on any listing to keep it here for later.'
+            hint='Tap "Save Opportunity" on any listing — the button on every opportunity page and card — to shortlist it here.'
             ctaLabel="Browse opportunities"
             ctaHref="/opportunities"
           />
@@ -76,12 +82,17 @@ export default function SavedSections() {
           </span>
         </header>
 
-        {hydrated && savedCompanies.length === 0 ? (
+        {!hydrated ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20 hidden sm:block" />
+          </div>
+        ) : savedCompanies.length === 0 ? (
           <EmptyHint
             label="No saved companies yet"
-            hint='Tap "Follow Company" on any sponsor profile to keep it here.'
-            ctaLabel="Browse opportunities"
-            ctaHref="/opportunities"
+            hint='Tap "Save" on any company card or sponsor profile to follow the firm here.'
+            ctaLabel="Browse companies"
+            ctaHref="/companies"
           />
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">

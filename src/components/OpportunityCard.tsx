@@ -10,10 +10,12 @@ import OpportunityStatusBadge from "@/components/OpportunityStatusBadge";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useResolvedImage } from "@/lib/imageStore";
 
+export type OpportunityRibbon = "Featured" | "Trending" | "New" | "Closing Soon" | null;
+
 type Props = {
   opportunity: Opportunity;
   priority?: boolean;
-  ribbon?: "Featured" | "Trending" | "New" | null;
+  ribbon?: OpportunityRibbon;
   showPublicId?: boolean;
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Search, X, SearchX, ChevronDown } from "lucide-react";
 import MemberCard from "./MemberCard";
 import type { Member, MemberType } from "@/data/members";
@@ -284,15 +285,24 @@ export default function MemberDirectoryClient({ members }: Props) {
                   No members matched your search.
                 </h3>
                 <p className="mt-3 text-sm md:text-base text-navy-700/70 leading-relaxed max-w-md mx-auto">
-                  Try widening your filters or clearing your search.
+                  Your active filters are narrowing the network to zero matches. Remove a
+                  member type or region filter to widen the net.
                 </p>
-                <button
-                  type="button"
-                  onClick={onClearAll}
-                  className="mt-6 inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold text-sm px-5 py-2.5 transition-colors"
-                >
-                  Clear filters
-                </button>
+                <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    type="button"
+                    onClick={onClearAll}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold text-sm px-5 py-2.5 transition-colors"
+                  >
+                    Clear filters
+                  </button>
+                  <Link
+                    href="/opportunities"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white ring-1 ring-navy-900/15 hover:ring-navy-900/40 text-navy-900 font-semibold text-sm px-5 py-2.5 transition-shadow"
+                  >
+                    Browse the marketplace
+                  </Link>
+                </div>
               </div>
             )}
           </main>

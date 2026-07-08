@@ -17,8 +17,8 @@ export default function EmptyResults({ onClearFilters }: Props) {
         No opportunities matched your search.
       </h3>
       <p className="mt-3 text-sm md:text-base text-navy-700/70 leading-relaxed max-w-md mx-auto">
-        Try widening your filters or browse the full marketplace — fresh listings come in
-        every week.
+        Your active filters are narrowing the marketplace to zero matches. Remove a
+        filter or two to widen the net — fresh listings come in every week.
       </p>
       <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
         <button
@@ -34,6 +34,19 @@ export default function EmptyResults({ onClearFilters }: Props) {
         >
           Browse All Opportunities
           <ArrowRight className="h-4 w-4" strokeWidth={2.4} />
+        </Link>
+      </div>
+      <div className="mt-5 flex items-center justify-center gap-4 text-xs font-semibold text-navy-700/60">
+        <Link href="/opportunities" className="hover:text-gold-700 transition-colors">
+          Curated collections
+        </Link>
+        <span className="text-navy-700/25">·</span>
+        <Link href="/companies" className="hover:text-gold-700 transition-colors">
+          Companies
+        </Link>
+        <span className="text-navy-700/25">·</span>
+        <Link href="/map" className="hover:text-gold-700 transition-colors">
+          Map view
         </Link>
       </div>
     </div>
