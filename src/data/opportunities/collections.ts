@@ -56,7 +56,7 @@ export type DirectoryCollection = {
 };
 
 /** First percentage figure in the return string ("18% IRR · 2.3x MOIC" -> 18). */
-function parseReturnPct(o: Opportunity): number | null {
+export function parseReturnPct(o: Opportunity): number | null {
   const m = /(\d+(?:\.\d+)?)\s*%/.exec(o.expectedReturns || o.expectedReturn || "");
   return m ? parseFloat(m[1]) : null;
 }

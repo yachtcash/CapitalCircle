@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { LayoutGrid, TrendingUp, Building2, Globe2, DoorOpen, CircleDollarSign } from "lucide-react";
+import Link from "next/link";
+import { LayoutGrid, TrendingUp, Building2, Globe2, DoorOpen, CircleDollarSign, ArrowRight } from "lucide-react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useAllOpportunities } from "@/lib/opportunities/all";
 import { featuredOpportunities } from "@/data/opportunities";
 import { compactMoney } from "@/lib/home/format";
-
-const ACTIVE_FUNDING_STATUSES = new Set(["Open", "Seeking Capital", "Negotiating"]);
+import { marketSnapshot } from "@/lib/intelligence/market";
 
 export default function MarketStatsStrip() {
   const { auditEvents, hydrated } = useMessaging();
@@ -16,22 +16,19 @@ export default function MarketStatsStrip() {
   const pool = allOpps.length ? allOpps : featuredOpportunities;
 
   const stats = useMemo(() => {
-    const total = pool.length;
-    const capital = pool
-      .filter((o) => ACTIVE_FUNDING_STATUSES.has(o.status))
-      .reduce((sum, o) => sum + (o.fundingAmount || 0), 0);
-    const sponsors = new Set(pool.map((o) => o.companyId).filter(Boolean)).size;
-    const countries = new Set(pool.map((o) => o.place?.country).filter(Boolean)).size;
+    // Shared marketplace math lives in lib/intelligence/market — this strip
+    // and the Market Intelligence center derive from the same functions.
+    const snapshot = marketSnapshot(pool);
     const open = pool.filter((o) => o.status === "Open").length;
     const underContract = pool.filter((o) => o.status === "Under Contract").length;
     const closedDeals = hydrated ? auditEvents.filter((e) => e.action === "Deal Closed").length : 0;
     const recentlyFunded = underContract + closedDeals;
 
     return [
-      { icon: LayoutGrid, label: "Total Opportunities", value: total.toString() },
-      { icon: TrendingUp, label: "Capital Being Raised", value: compactMoney(capital) },
-      { icon: Building2, label: "Active Sponsors", value: sponsors.toString() },
-      { icon: Globe2, label: "Countries Represented", value: countries.toString() },
+      { icon: LayoutGrid, label: "Total Opportunities", value: snapshot.total.toString() },
+      { icon: TrendingUp, label: "Capital Being Raised", value: compactMoney(snapshot.capitalRaising) },
+      { icon: Building2, label: "Active Sponsors", value: snapshot.sponsorCount.toString() },
+      { icon: Globe2, label: "Countries Represented", value: snapshot.countryCount.toString() },
       { icon: DoorOpen, label: "Open Deals", value: open.toString() },
       { icon: CircleDollarSign, label: "Recently Funded", value: recentlyFunded.toString() },
     ];
@@ -53,7 +50,14 @@ export default function MarketStatsStrip() {
           ))}
         </div>
       <p className="mt-3 text-center text-[11px] text-navy-700/45">
-        Live figures from the current marketplace · updated as deals move
+        Live figures from the current marketplace · updated as deals move ·{" "}
+        <Link
+          href="/intelligence"
+          className="font-semibold text-gold-700 hover:text-gold-600 transition-colors inline-flex items-center gap-0.5"
+        >
+          Explore Market Intelligence
+          <ArrowRight className="h-3 w-3" strokeWidth={2.4} />
+        </Link>
       </p>
     </div>
   );
