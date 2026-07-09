@@ -1,4 +1,5 @@
 import type { ListingStatus } from "@/data/listings";
+import Badge from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 
 const STATUS_CLASSES: Record<ListingStatus, string> = {
@@ -18,17 +19,16 @@ type Props = {
 
 export default function ListingStatusBadge({ status, className }: Props) {
   return (
-    <span
+    <Badge
       className={cn(
-        "rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center ring-1 ring-inset",
         STATUS_CLASSES[status],
-        // Only Draft variant relies on its ring; others get a transparent ring
-        // to preserve the same box geometry without extra outline.
+        // Only Draft relies on a visible ring; the solid fills get a
+        // transparent ring to keep identical geometry without an outline.
         status !== "Draft" && "ring-transparent",
         className
       )}
     >
       {status}
-    </span>
+    </Badge>
   );
 }

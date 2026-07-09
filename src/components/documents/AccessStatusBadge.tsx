@@ -1,6 +1,6 @@
 import { Clock3, CheckCircle2, XCircle } from "lucide-react";
 import type { AccessRequestStatus } from "@/data/documents";
-import { cn } from "@/lib/cn";
+import Badge from "@/components/ui/Badge";
 
 const META: Record<
   AccessRequestStatus,
@@ -15,14 +15,9 @@ export default function AccessStatusBadge({ status }: { status: AccessRequestSta
   const m = META[status];
   const Icon = m.icon;
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full ring-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] font-bold",
-        m.tone
-      )}
-    >
+    <Badge className={m.tone}>
       <Icon className="h-3 w-3" strokeWidth={2.4} />
       {status}
-    </span>
+    </Badge>
   );
 }

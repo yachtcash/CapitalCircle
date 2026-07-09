@@ -59,7 +59,7 @@ export default function OpportunityCard({
 
         {/* Top-left: ribbon (Featured / Trending / New) */}
         {ribbon ? (
-          <span className="absolute top-3 left-3 inline-flex items-center text-[10px] uppercase tracking-[0.16em] font-bold bg-navy-900 text-gold-400 ring-1 ring-gold-500/40 rounded-full px-2.5 py-1">
+          <span className="absolute top-3 left-3 inline-flex items-center text-[10px] uppercase tracking-[0.14em] font-bold bg-navy-900 text-gold-400 ring-1 ring-gold-500/40 rounded-full px-2.5 py-1">
             {ribbon}
           </span>
         ) : null}

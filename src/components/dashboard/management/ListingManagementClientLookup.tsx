@@ -6,6 +6,7 @@ import { ArrowLeft, Briefcase } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { getCompanyById } from "@/data/companies";
 import ListingManagementView from "./ListingManagementView";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 /**
  * Client-side resolver for listings that don't exist in the seed catalog —
@@ -23,8 +24,8 @@ export default function ListingManagementClientLookup({ id }: { id: string }) {
     return (
       <div className="bg-cream min-h-[calc(100vh-5rem)]">
         <div className="max-w-6xl mx-auto px-5 md:px-10 py-16">
-          <div className="h-10 w-72 rounded-lg bg-navy-900/[0.06] animate-pulse" />
-          <div className="mt-6 h-64 rounded-3xl bg-navy-900/[0.05] animate-pulse" />
+          <Skeleton className="h-10 w-72" />
+          <Skeleton className="mt-6 h-64" />
         </div>
       </div>
     );

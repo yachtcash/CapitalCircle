@@ -18,6 +18,7 @@ import type { Member } from "@/data/members";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { useResolvedImage } from "@/lib/imageStore";
 import { cn } from "@/lib/cn";
+import Badge from "@/components/ui/Badge";
 import RequestIntroductionModal from "./RequestIntroductionModal";
 
 type Props = {
@@ -81,20 +82,15 @@ export default function MemberCard({ member: seedMember, priority = false }: Pro
           }}
         />
         {member.featured ? (
-          <span className="absolute top-3 left-3 inline-flex items-center text-[10px] uppercase tracking-[0.16em] font-bold bg-navy-900 text-gold-400 ring-1 ring-gold-500/40 rounded-full px-2.5 py-1">
+          <Badge className="absolute top-3 left-3 bg-navy-900 text-gold-400 ring-gold-500/40">
             Featured
-          </span>
+          </Badge>
         ) : null}
         <div className="absolute top-3 right-3">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ring-1",
-              verificationStyles[member.verification]
-            )}
-          >
+          <Badge size="sm" className={verificationStyles[member.verification]}>
             <ShieldCheck className="h-3 w-3" strokeWidth={2.4} />
             {member.verification}
-          </span>
+          </Badge>
         </div>
       </div>
 

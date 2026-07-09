@@ -54,7 +54,7 @@ function RankingCardShell({
   return (
     <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] overflow-hidden">
       <header className="px-5 py-4 border-b border-navy-900/[0.06]">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-gold-600 font-semibold inline-flex items-center gap-1.5">
+        <div className="text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold inline-flex items-center gap-1.5">
           <Icon className="h-3.5 w-3.5" strokeWidth={2.2} />
           {eyebrow}
         </div>

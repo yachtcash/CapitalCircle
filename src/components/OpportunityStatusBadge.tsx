@@ -1,8 +1,10 @@
 import type { Opportunity } from "@/data/opportunities";
+import Badge from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 
 // Canonical colors for the public opportunity lifecycle status. Single source of
 // truth so the marketplace card, detail hero, and map preview stay identical.
+// Solid fills (not tints) because these ride on image overlays.
 const STATUS_STYLES: Record<Opportunity["status"], string> = {
   Open: "bg-emerald-500 text-white",
   "Seeking Capital": "bg-gold-500 text-navy-900",
@@ -21,17 +23,16 @@ export default function OpportunityStatusBadge({
   className?: string;
 }) {
   return (
-    <span
+    <Badge
+      size={size === "md" ? "lg" : "md"}
       className={cn(
-        "inline-flex items-center font-bold uppercase rounded-full",
-        size === "md"
-          ? "text-[10px] tracking-[0.18em] px-3 py-1 shadow-md"
-          : "text-[10px] tracking-[0.14em] px-2.5 py-1 shadow-sm",
         STATUS_STYLES[status],
+        "ring-transparent",
+        size === "md" ? "shadow-md" : "shadow-sm",
         className
       )}
     >
       {status}
-    </span>
+    </Badge>
   );
 }

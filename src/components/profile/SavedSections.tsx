@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Bookmark, Building2, ArrowRight, MapPin } from "lucide-react";
+import { Bookmark, Building2, MapPin } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { featuredOpportunities } from "@/data/opportunities";
 import { companies } from "@/data/companies";
 import OpportunityCard from "@/components/OpportunityCard";
 import VerificationBadge from "@/components/company/VerificationBadge";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
+import EmptyState from "@/components/ui/EmptyState";
 
 function initialsFor(name: string): string {
   return name
@@ -51,12 +52,15 @@ export default function SavedSections() {
             <SkeletonCard className="hidden sm:block" />
           </div>
         ) : savedOpportunities.length === 0 ? (
-          <EmptyHint
-            label="No saved opportunities yet"
-            hint='Tap "Save Opportunity" on any listing — the button on every opportunity page and card — to shortlist it here.'
-            ctaLabel="Browse opportunities"
-            ctaHref="/opportunities"
-          />
+          <div className="rounded-xl bg-bone/40 ring-1 ring-navy-900/[0.04]">
+            <EmptyState
+              Icon={Bookmark}
+              compact
+              title="No saved opportunities yet"
+              description='Tap "Save Opportunity" on any opportunity page or card to shortlist it here.'
+              action={{ label: "Browse opportunities", href: "/opportunities" }}
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {savedOpportunities.map((opportunity) => (
@@ -88,12 +92,15 @@ export default function SavedSections() {
             <Skeleton className="h-20 hidden sm:block" />
           </div>
         ) : savedCompanies.length === 0 ? (
-          <EmptyHint
-            label="No saved companies yet"
-            hint='Tap "Save" on any company card or sponsor profile to follow the firm here.'
-            ctaLabel="Browse companies"
-            ctaHref="/companies"
-          />
+          <div className="rounded-xl bg-bone/40 ring-1 ring-navy-900/[0.04]">
+            <EmptyState
+              Icon={Building2}
+              compact
+              title="No saved companies yet"
+              description='Tap "Save" on any company card or sponsor profile to follow the firm here.'
+              action={{ label: "Browse companies", href: "/companies" }}
+            />
+          </div>
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {savedCompanies.map((company) => {
@@ -137,31 +144,3 @@ export default function SavedSections() {
   );
 }
 
-function EmptyHint({
-  label,
-  hint,
-  ctaLabel,
-  ctaHref,
-}: {
-  label: string;
-  hint: string;
-  ctaLabel: string;
-  ctaHref: string;
-}) {
-  return (
-    <div className="rounded-xl bg-bone/40 ring-1 ring-navy-900/[0.04] px-5 py-6 text-center">
-      <div className="text-sm font-semibold text-navy-900">{label}</div>
-      <p className="mt-1.5 text-xs text-navy-700/65 leading-relaxed max-w-sm mx-auto">{hint}</p>
-      <Link
-        href={ctaHref}
-        className="mt-4 inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] font-semibold text-gold-700 hover:text-gold-600 transition-colors group"
-      >
-        {ctaLabel}
-        <ArrowRight
-          className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
-          strokeWidth={2.4}
-        />
-      </Link>
-    </div>
-  );
-}

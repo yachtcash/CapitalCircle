@@ -7,6 +7,8 @@ import { featuredOpportunities } from "@/data/opportunities";
 import { companies } from "@/data/companies";
 import OpportunityCard from "@/components/OpportunityCard";
 import VerificationBadge from "@/components/company/VerificationBadge";
+import { Skeleton } from "@/components/ui/Skeleton";
+import EmptyState from "@/components/ui/EmptyState";
 
 function initialsFor(name: string): string {
   return name
@@ -61,7 +63,7 @@ export default function SavedItemsCompact() {
             </span>
           </div>
           {!hydrated ? (
-            <div className="h-32 rounded-xl bg-bone/60 animate-pulse" />
+            <Skeleton className="h-32" />
           ) : savedOpportunities.length === 0 ? (
             <EmptyHint
               label="Nothing saved yet"
@@ -92,10 +94,7 @@ export default function SavedItemsCompact() {
           {!hydrated ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-14 rounded-xl bg-bone/60 animate-pulse"
-                />
+                <Skeleton key={i} className="h-14" />
               ))}
             </div>
           ) : savedCompanies.length === 0 ? (
@@ -133,13 +132,11 @@ export default function SavedItemsCompact() {
   );
 }
 
+/** Compact wrapper around the canonical EmptyState for widget slots. */
 function EmptyHint({ label, hint }: { label: string; hint: string }) {
   return (
-    <div className="rounded-xl bg-bone/40 ring-1 ring-navy-900/[0.04] px-4 py-5 text-center">
-      <div className="text-sm font-semibold text-navy-900">{label}</div>
-      <p className="mt-1 text-[11px] text-navy-700/65 leading-relaxed max-w-xs mx-auto">
-        {hint}
-      </p>
+    <div className="rounded-xl bg-bone/40 ring-1 ring-navy-900/[0.04]">
+      <EmptyState compact title={label} description={hint} />
     </div>
   );
 }

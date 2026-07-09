@@ -10,6 +10,7 @@ import type { Company } from "@/data/companies";
 import ManagementHero from "./ManagementHero";
 import ManagementTabs from "./ManagementTabs";
 import ImageManager from "./ImageManager";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type Props = {
   initialListing: ListingRecord;
@@ -62,7 +63,7 @@ export default function ListingManagementView({
       <Suspense
         fallback={
           <div className="max-w-7xl mx-auto px-5 md:px-8 py-10">
-            <div className="h-10 w-64 rounded-lg bg-navy-900/[0.06] animate-pulse" />
+            <Skeleton className="h-10 w-64" />
           </div>
         }
       >
