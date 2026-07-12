@@ -20,8 +20,12 @@ import {
 } from "lucide-react";
 
 import { useAllOpportunities } from "@/lib/opportunities/all";
+import { useMessaging } from "@/components/providers/MessagingProvider";
 import { companies } from "@/data/companies";
 import { MEMBERS } from "@/data/members";
+import { allRecentActivity } from "@/data/listings";
+import { fromListingActivity } from "@/lib/activity/adapters";
+import ActivityFeed from "@/components/activity/ActivityFeed";
 import {
   marketSnapshot,
   marketInsights,
@@ -55,9 +59,20 @@ const RAIL_SLUGS = ["recently-added", "featured-now", "closing-soon"];
 
 export default function IntelligenceClient() {
   const pool = useAllOpportunities();
+  const { hydrated } = useMessaging();
 
   const snapshot = useMemo(() => marketSnapshot(pool), [pool]);
   const insights = useMemo(() => marketInsights(pool, companies), [pool]);
+  const activityEvents = useMemo(
+    () =>
+      allRecentActivity(20).map((a) =>
+        fromListingActivity(a, {
+          detail: [a.title, a.body].filter(Boolean).join(" — "),
+          href: a.opportunitySlug ? `/opportunity/${a.opportunitySlug}` : undefined,
+        })
+      ),
+    []
+  );
   const rails = DIRECTORY_COLLECTIONS.filter((c) => RAIL_SLUGS.includes(c.slug));
 
   return (
@@ -175,6 +190,26 @@ export default function IntelligenceClient() {
         <section>
           <SectionHeader eyebrow="Sponsors" title="Most active on the platform" />
           <SponsorRankingsSection pool={pool} companies={companies} members={MEMBERS} />
+        </section>
+
+        {/* Live activity — the unified activity engine over listing events */}
+        <section>
+          <SectionHeader eyebrow="Live" title="What is happening right now" />
+          <ActivityFeed
+            events={activityEvents}
+            loading={!hydrated}
+            nowMs={hydrated ? Date.now() : 0}
+            limit={10}
+            filters={[
+              { label: "All", entities: null },
+              { label: "Marketplace", entities: ["opportunity", "listing"] },
+              { label: "Deals", entities: ["deal"] },
+              { label: "Companies", entities: ["company"] },
+              { label: "Documents", entities: ["document"] },
+            ]}
+            emptyTitle="No marketplace activity yet"
+            emptyDescription="Interest, negotiations, and data-room events will appear here."
+          />
         </section>
       </div>
 

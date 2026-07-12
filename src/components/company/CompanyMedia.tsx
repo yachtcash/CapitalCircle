@@ -61,10 +61,10 @@ export default function CompanyMedia({ company }: { company: Company }) {
         ) : null}
       </div>
 
-      <div className="grid lg:grid-cols-[1.6fr_minmax(0,1fr)] gap-4 md:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_minmax(0,1fr)] gap-4 md:gap-5">
         {/* Gallery — lead image + thumbnail strip */}
         {gallery.length > 0 ? (
-          <div>
+          <div className="min-w-0">
             <button
               type="button"
               onClick={() => lb.openAt(0)}

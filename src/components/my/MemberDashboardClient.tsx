@@ -12,7 +12,6 @@ import {
   TrendingUp,
   PlusCircle,
   Bell,
-  Activity,
   ArrowUpRight,
 } from "lucide-react";
 
@@ -30,7 +29,9 @@ import DocumentCenterCard from "@/components/dashboard/DocumentCenterCard";
 import CalendarEventsPanel from "@/components/calendar/CalendarEventsPanel";
 import { NOTIFICATION_ICONS, TONE_TILE } from "@/components/notifications/notificationUi";
 import { toneForStatus } from "@/components/ui/StatusBadge";
-import { compactMoney, timeAgo } from "@/lib/home/format";
+import { compactMoney } from "@/lib/home/format";
+import { fromListingActivity } from "@/lib/activity/adapters";
+import ActivityFeed from "@/components/activity/ActivityFeed";
 import { cn } from "@/lib/cn";
 
 const SELF_MEMBER_ID = "MEM-000001";
@@ -110,14 +111,17 @@ function MemberDashboardInner() {
     [centerNotifications]
   );
 
-  const recentActivity = useMemo(() => {
-    const all = listings.flatMap((l) =>
-      (l.activity ?? []).map((a) => ({ ...a, listingTitle: l.title, listingId: l.id }))
-    );
-    return all
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 6);
-  }, [listings]);
+  const recentActivity = useMemo(
+    () =>
+      listings.flatMap((l) =>
+        (l.activity ?? []).map((a) =>
+          fromListingActivity(a, {
+            detail: [a.title, l.title].filter(Boolean).join(" · "),
+          })
+        )
+      ),
+    [listings]
+  );
 
   return (
     <div className="bg-cream min-h-[calc(100vh-5rem)]">
@@ -183,35 +187,17 @@ function MemberDashboardInner() {
               />
             </section>
 
-            {/* Recent activity — own listings only */}
+            {/* Recent activity — own listings only, unified activity language */}
             <section>
               <SectionHeader eyebrow="Activity" title="Recent activity" />
-              <ul className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] divide-y divide-navy-900/[0.05] overflow-hidden">
-                {recentActivity.length === 0 ? (
-                  <li className="px-4 py-8 text-center text-sm text-navy-700/55">
-                    Activity on your listings will appear here.
-                  </li>
-                ) : (
-                  recentActivity.map((a) => (
-                    <li key={a.id} className="flex items-start gap-3 px-4 py-3">
-                      <span className="mt-0.5 h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-lg bg-navy-900/[0.05] text-navy-700 ring-1 ring-navy-900/10">
-                        <Activity className="h-4 w-4" strokeWidth={2} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-navy-900 leading-snug">
-                          {a.title}
-                        </div>
-                        <div className="mt-0.5 text-xs text-navy-700/60 truncate">
-                          {a.listingTitle}
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-navy-700/45 tabular-nums whitespace-nowrap shrink-0 mt-0.5">
-                        {hydrated ? timeAgo(a.createdAt, nowMs) : "·"}
-                      </span>
-                    </li>
-                  ))
-                )}
-              </ul>
+              <ActivityFeed
+                events={recentActivity}
+                loading={!hydrated}
+                nowMs={nowMs}
+                limit={6}
+                emptyTitle="No activity yet"
+                emptyDescription="Activity on your listings will appear here."
+              />
             </section>
           </div>
 
