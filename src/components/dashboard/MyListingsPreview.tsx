@@ -137,7 +137,7 @@ function ListingRow({ listing }: { listing: ListingRecord }) {
           </div>
 
           <div className="mt-auto pt-3 flex items-center justify-between gap-3 flex-wrap">
-            <dl className="flex items-center gap-4 text-[11px]">
+            <dl className="flex items-center gap-x-4 gap-y-1 flex-wrap min-w-0 text-[11px]">
               <Metric icon={Eye} label="Views" value={listing.views} />
               <Metric icon={Bookmark} label="Saves" value={listing.saves} />
               <Metric

@@ -4,44 +4,19 @@ import { useMemo } from "react";
 import { Activity } from "lucide-react";
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
-import type { AuditAction } from "@/data/audit";
-import type { ActivityEntity, ActivityEvent } from "@/lib/activity/types";
-import { auditToneFor } from "@/lib/activity/adapters";
+import type { ActivityEvent } from "@/lib/activity/types";
+import { fromAuditEvent } from "@/lib/activity/adapters";
 import ActivityFeed from "@/components/activity/ActivityFeed";
-
-// Investor-facing relabel of the platform audit log. Only positive, market-moving
-// actions are surfaced — moderation/member noise is filtered out.
-const ACTIVITY: Partial<Record<AuditAction, { label: string; entity: ActivityEntity }>> = {
-  "Deal Created": { label: "New deal created", entity: "deal" },
-  "Deal Closed": { label: "Deal closed", entity: "deal" },
-  "Deal Stage Changed": { label: "Deal advanced", entity: "deal" },
-  "Company Verified": { label: "Sponsor verified", entity: "company" },
-  "Company Featured": { label: "Sponsor featured", entity: "company" },
-  "Opportunity Approved": { label: "New opportunity added", entity: "opportunity" },
-  "Introduction Approved": { label: "Introduction approved", entity: "introduction" },
-  "Introduction Converted": { label: "Introduction converted to deal", entity: "introduction" },
-  "Access Approved": { label: "Data-room access granted", entity: "document" },
-  "Document Uploaded": { label: "Financials updated", entity: "document" },
-};
 
 export default function MarketActivity() {
   const { auditEvents, hydrated } = useMessaging();
 
   const events = useMemo<ActivityEvent[]>(() => {
     if (!hydrated) return [];
+    // Shared platform-ledger vocabulary — only market-moving actions surface.
     return auditEvents
-      .filter((e) => ACTIVITY[e.action])
-      .map((e) => {
-        const cfg = ACTIVITY[e.action]!;
-        return {
-          id: e.id,
-          entity: cfg.entity,
-          tone: auditToneFor(e.action),
-          title: cfg.label,
-          detail: e.targetLabel ?? e.targetId,
-          dateMs: Date.parse(e.createdAt) || 0,
-        };
-      });
+      .map(fromAuditEvent)
+      .filter((e): e is ActivityEvent => e !== null);
   }, [auditEvents, hydrated]);
 
   const now = hydrated ? Date.now() : 0;

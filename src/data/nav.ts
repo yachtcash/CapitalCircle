@@ -17,6 +17,7 @@ import {
   Search,
   Gavel,
   FileText,
+  Gauge,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -73,6 +74,7 @@ const MEMBER_NAV: NavItem[] = [
 /** Internal operations — Admin / Super Admin. Unchanged from before. */
 const OPERATIONS_NAV: NavItem[] = [
   { label: "Home", shortLabel: "Home", href: "/", icon: Home },
+  { label: "Command Center", shortLabel: "Command", href: "/command", icon: Gauge, hideOnMobile: true },
   { label: "Opportunities", shortLabel: "Browse", href: "/opportunities", icon: Compass },
   { label: "Companies", shortLabel: "Firms", href: "/companies", icon: Building2, hideOnMobile: true },
   { label: "Members", shortLabel: "Members", href: "/members", icon: Users },

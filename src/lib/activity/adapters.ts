@@ -3,7 +3,7 @@
 // kind maps, labels, or tones anywhere else.
 
 import type { ListingActivity } from "@/data/listings";
-import { toneForAction, type AuditAction } from "@/data/audit";
+import { toneForAction, type AuditAction, type AuditEvent } from "@/data/audit";
 import type { ActivityEntity, ActivityEvent, ActivityTone } from "./types";
 
 /** Audit tone vocabulary -> unified activity tones ("amber" is gold here). */
@@ -55,3 +55,36 @@ export const MEMBER_ACTIVITY_ENTITY: Record<string, ActivityEntity> = {
   join: "member",
   verification: "member",
 };
+
+/**
+ * Investor-facing relabel of positive, market-moving audit actions —
+ * the platform ledger vocabulary (homepage + command center).
+ */
+export const AUDIT_ACTIVITY_META: Partial<
+  Record<AuditAction, { label: string; entity: ActivityEntity }>
+> = {
+  "Deal Created": { label: "New deal created", entity: "deal" },
+  "Deal Closed": { label: "Deal closed", entity: "deal" },
+  "Deal Stage Changed": { label: "Deal advanced", entity: "deal" },
+  "Company Verified": { label: "Sponsor verified", entity: "company" },
+  "Company Featured": { label: "Sponsor featured", entity: "company" },
+  "Opportunity Approved": { label: "New opportunity added", entity: "opportunity" },
+  "Introduction Approved": { label: "Introduction approved", entity: "introduction" },
+  "Introduction Converted": { label: "Introduction converted to deal", entity: "introduction" },
+  "Access Approved": { label: "Data-room access granted", entity: "document" },
+  "Document Uploaded": { label: "Financials updated", entity: "document" },
+};
+
+/** Ledger adapter — returns null for actions outside the public vocabulary. */
+export function fromAuditEvent(e: AuditEvent): ActivityEvent | null {
+  const meta = AUDIT_ACTIVITY_META[e.action];
+  if (!meta) return null;
+  return {
+    id: e.id,
+    entity: meta.entity,
+    tone: auditToneFor(e.action),
+    title: meta.label,
+    detail: e.targetLabel ?? e.targetId,
+    dateMs: Date.parse(e.createdAt) || 0,
+  };
+}

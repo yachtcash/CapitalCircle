@@ -403,7 +403,7 @@ export function DealInsightsPanel() {
   }, [deals, profile.name, nowMs]);
 
   return (
-    <section className="grid md:grid-cols-2 gap-4">
+    <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Widget title="My Active Deals" Icon={Briefcase} deals={widgets.mine} empty="Nothing assigned to you right now." />
       <Widget title="Deals Needing Attention" Icon={AlertCircle} deals={widgets.attention} empty="All deals are healthy." />
       <Widget title="Deals Closing Soon" Icon={CalendarClock} deals={widgets.closingSoon} empty="Nothing closing in the next three weeks." />
