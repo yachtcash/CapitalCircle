@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, FileSearch, PlusCircle, X } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { FileSearch, PlusCircle } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import type { ListingRecord, ListingStatus } from "@/data/listings";
+import ActionToast, { useActionToast } from "@/components/ui/ActionToast";
 import { cn } from "@/lib/cn";
 import AnalyticsSection from "./AnalyticsSection";
 import ListingsCardGrid from "./ListingsCardGrid";
@@ -76,20 +77,13 @@ function sortListings(
   return out;
 }
 
-type Toast = {
-  id: string;
-  message: string;
-  href?: string;
-  linkLabel?: string;
-};
-
 export default function ListingsWorkspace() {
   const { listings } = useMessaging();
 
   const [query, setQuery] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<ListingStatus[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
-  const [toast, setToast] = useState<Toast | null>(null);
+  const { toast, show: showToast, dismiss: dismissToast } = useActionToast();
   const [sortKey, setSortKey] = useState<SortKey>("default");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -147,20 +141,15 @@ export default function ListingsWorkspace() {
     [filtered, sortKey, sortDir]
   );
 
-  const handleDuplicateSuccess = useCallback((newId: string) => {
-    setToast({
-      id: `toast-${Date.now()}`,
-      message: `Listing duplicated as ${newId}`,
-      href: `/dashboard/listings/${newId}`,
-      linkLabel: "Open draft",
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 5000);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
+  const handleDuplicateSuccess = useCallback(
+    (newId: string) => {
+      showToast(`Listing duplicated as ${newId}`, {
+        href: `/dashboard/listings/${newId}`,
+        linkLabel: "Open draft",
+      });
+    },
+    [showToast]
+  );
 
   const hasAnyListing = listings.length > 0;
   const isFiltering =
@@ -237,36 +226,7 @@ export default function ListingsWorkspace() {
         <AnalyticsSection listings={listings} />
       </div>
 
-      {toast ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50"
-        >
-          <div className="flex items-center gap-3 bg-navy-900 text-white rounded-2xl shadow-xl shadow-navy-900/30 ring-1 ring-gold-500/40 pl-3 pr-2 py-2">
-            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold-500 text-navy-900">
-              <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.6} />
-            </span>
-            <span className="text-sm font-medium">{toast.message}</span>
-            {toast.href ? (
-              <Link
-                href={toast.href}
-                className="text-xs font-bold uppercase tracking-[0.14em] text-gold-400 hover:text-gold-300 ml-1"
-              >
-                {toast.linkLabel ?? "Open"}
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => setToast(null)}
-              aria-label="Dismiss notification"
-              className="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/[0.08]"
-            >
-              <X className="h-3.5 w-3.5" strokeWidth={2.4} />
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ActionToast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

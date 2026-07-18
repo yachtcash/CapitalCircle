@@ -4,7 +4,7 @@ const CARDS: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: Handshake,
     title: "Direct Sponsor Access",
-    body: "Engage sponsors and developers directly — no brokers, no layers. Every listing connects you to the team behind the deal.",
+    body: "Engage sponsors and developers directly — no brokers, no layers. Every opportunity connects you to the team behind the deal.",
   },
   {
     icon: Star,

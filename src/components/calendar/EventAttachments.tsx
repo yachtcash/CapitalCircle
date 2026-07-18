@@ -15,6 +15,7 @@ import {
 import { putImage, useResolvedImage, isStoredImageToken } from "@/lib/imageStore";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import { attachmentKind, type CalendarEvent, type EventAttachment } from "@/data/calendar";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { cn } from "@/lib/cn";
 
 const ACCEPT = "image/*,application/pdf";
@@ -227,6 +228,7 @@ export default function EventAttachments({
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<EventAttachment | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<EventAttachment | null>(null);
 
   const attachments = event.attachments ?? [];
 
@@ -282,14 +284,9 @@ export default function EventAttachments({
     replaceInputRef.current?.click();
   }, []);
 
-  const requestDelete = useCallback(
-    (att: EventAttachment) => {
-      if (window.confirm(`Delete attachment "${att.name}"? This cannot be undone.`)) {
-        removeCalendarAttachment(event.id, att.id);
-      }
-    },
-    [removeCalendarAttachment, event.id]
-  );
+  const requestDelete = useCallback((att: EventAttachment) => {
+    setDeleteTarget(att);
+  }, []);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -414,6 +411,23 @@ export default function EventAttachments({
           onClose={() => setPreview(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete this attachment?"
+        body={
+          deleteTarget
+            ? `"${deleteTarget.name}" will be permanently removed from this event. This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete Attachment"
+        tone="danger"
+        onConfirm={() => {
+          if (deleteTarget) removeCalendarAttachment(event.id, deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

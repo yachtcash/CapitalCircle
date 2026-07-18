@@ -216,7 +216,7 @@ export default function IntelligenceClient() {
       {/* Attention-worthy mandates — the marketplace rails, reused verbatim */}
       <div className="pb-10">
         <div className="max-w-7xl mx-auto px-5 md:px-10 pt-2">
-          <SectionHeader eyebrow="Watchlist" title="Deserving attention now" />
+          <SectionHeader eyebrow="Spotlight" title="Deserving attention now" />
         </div>
         {rails.map((collection) => (
           <CollectionRow key={collection.slug} collection={collection} />

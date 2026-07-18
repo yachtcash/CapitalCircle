@@ -18,7 +18,7 @@ export default function EmptyResults({ onClearFilters }: Props) {
       </h3>
       <p className="mt-3 text-sm md:text-base text-navy-700/70 leading-relaxed max-w-md mx-auto">
         Your active filters are narrowing the marketplace to zero matches. Remove a
-        filter or two to widen the net — fresh listings come in every week.
+        filter or two to widen the net — fresh opportunities arrive every week.
       </p>
       <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
         <button

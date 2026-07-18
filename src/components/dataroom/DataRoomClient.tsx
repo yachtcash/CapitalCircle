@@ -321,7 +321,7 @@ export default function DataRoomClient({ listing, opportunity, company }: Props)
 
               <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-5">
                 <div className="text-[11px] uppercase tracking-[0.18em] text-gold-600 font-semibold">
-                  Need to demo as a guest?
+                  Preview the visitor view
                 </div>
                 <p className="mt-2 text-sm text-navy-700/70 leading-relaxed">
                   Open the public opportunity page to experience the visitor side of the data

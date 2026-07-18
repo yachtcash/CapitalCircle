@@ -67,7 +67,7 @@ export default function SavedItemsCompact() {
           ) : savedOpportunities.length === 0 ? (
             <EmptyHint
               label="Nothing saved yet"
-              hint='Tap "Save Opportunity" on any listing to keep it here.'
+              hint='Tap "Save Opportunity" on any opportunity to keep it here.'
             />
           ) : (
             <div className="space-y-3">
@@ -100,7 +100,7 @@ export default function SavedItemsCompact() {
           ) : savedCompanies.length === 0 ? (
             <EmptyHint
               label="No companies followed"
-              hint='Tap "Follow Company" on any sponsor profile.'
+              hint='Tap "Save Company" on any sponsor profile.'
             />
           ) : (
             <ul className="space-y-2">

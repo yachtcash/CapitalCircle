@@ -19,6 +19,7 @@ import ExpertiseCard from "./ExpertiseCard";
 import ContactCard from "./ContactCard";
 import EditProfileModal from "./EditProfileModal";
 import SavedSections from "@/components/profile/SavedSections";
+import ActionToast, { useActionToast } from "@/components/ui/ActionToast";
 
 export default function ProfileClient() {
   const {
@@ -30,6 +31,7 @@ export default function ProfileClient() {
     conversations,
   } = useMessaging();
   const [editOpen, setEditOpen] = useState(false);
+  const { toast, show: showToast, dismiss: dismissToast } = useActionToast();
 
   const activeListings = listings.filter(
     (l) => l.status !== "Draft" && l.status !== "Archived" && l.status !== "Closed"
@@ -110,7 +112,12 @@ export default function ProfileClient() {
         </div>
       </div>
 
-      <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
+      <EditProfileModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSaved={() => showToast("Profile saved")}
+      />
+      <ActionToast toast={toast} onDismiss={dismissToast} />
     </>
   );
 }

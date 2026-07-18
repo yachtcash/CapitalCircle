@@ -1054,12 +1054,12 @@ function SuccessScreen({
           )}
         </span>
         <div className="mt-6 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-semibold">
-          {isDraft ? "Draft saved" : "Listing published"}
+          {isDraft ? "Draft saved" : "Opportunity published"}
         </div>
         <h1 className="mt-2 text-3xl md:text-4xl font-semibold text-navy-900 tracking-tight text-balance">
           {isDraft
             ? "Your draft has been saved."
-            : "Your listing is live on Capital Circle."}
+            : "Your opportunity is live on Capital Circle."}
         </h1>
         <p className="mt-4 text-base text-navy-700/75 leading-relaxed">
           {isDraft ? (
@@ -1091,7 +1091,7 @@ function SuccessScreen({
               className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-500 hover:bg-gold-400 text-navy-900 font-semibold px-6 py-3 text-sm transition-colors"
             >
               <ExternalLink className="h-4 w-4" strokeWidth={2.4} />
-              View Public Listing
+              View Opportunity
             </Link>
           ) : null}
           <Link

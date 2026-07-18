@@ -5,7 +5,7 @@ const ACTIONS: { href: string; label: string; icon: LucideIcon; primary?: boolea
   { href: "/opportunities", label: "Browse Opportunities", icon: LayoutGrid, primary: true },
   { href: "/companies", label: "View Sponsors", icon: Building2 },
   { href: "/map", label: "Explore Map", icon: MapIcon },
-  { href: "/create-listing", label: "Create Listing", icon: PlusCircle },
+  { href: "/create-listing", label: "Create Opportunity", icon: PlusCircle },
 ];
 
 export default function FinalCta() {

@@ -15,7 +15,7 @@ export default function SavedPage() {
       <div className="bg-cream min-h-[calc(100vh-5rem)]">
         <div className="max-w-5xl mx-auto px-5 md:px-10 py-8 md:py-10 space-y-6">
           <PageHeader
-            eyebrow="Watchlist"
+            eyebrow="Saved"
             title="Saved"
             subtitle="Opportunities you shortlisted and sponsors you follow — everything you bookmarked across the marketplace."
           />

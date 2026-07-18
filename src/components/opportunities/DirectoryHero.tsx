@@ -53,7 +53,7 @@ export default function DirectoryHero() {
         </h1>
         <p className="mt-2 text-sm md:text-base text-navy-700/70 leading-relaxed max-w-2xl">
           Investments, joint ventures, hotels, land, businesses for sale, suppliers, and
-          services — sponsor-vetted, with private data rooms behind every listing.
+          services — sponsor-vetted, with private data rooms behind every opportunity.
         </p>
 
         <div className="mt-4">

@@ -13,7 +13,7 @@ export default function InvestmentSnapshot({ opportunity }: { opportunity: Oppor
   push(Coins, "Capital Required", capitalRequired(opportunity));
   push(Wallet, "Minimum Investment", opportunity.minimumInvestment);
   push(PieChart, "Equity Offered", opportunity.equityAvailable);
-  push(TrendingUp, "Expected Return", opportunity.expectedReturns || opportunity.expectedReturn);
+  push(TrendingUp, "Target Return", opportunity.expectedReturns || opportunity.expectedReturn);
   push(Factory, "Industry", opportunity.industry);
   push(Globe2, "Country", opportunity.place?.country || opportunity.location);
   push(Briefcase, "Investment Type", opportunity.dealType);

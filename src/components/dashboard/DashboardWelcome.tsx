@@ -10,7 +10,10 @@ export default function DashboardWelcome() {
     conversations,
     savedOpportunityIds,
     totalUnreadConversations,
+    profile,
   } = useMessaging();
+
+  const firstName = profile.name.trim().split(/\s+/)[0] || "there";
 
   const activeListingsCount = listings.filter(
     (l) =>
@@ -28,7 +31,7 @@ export default function DashboardWelcome() {
             Dashboard
           </div>
           <h1 className="mt-1.5 text-2xl md:text-3xl font-semibold tracking-tight">
-            Welcome back, Stevie.
+            Welcome back, {firstName}.
           </h1>
           <p className="mt-2 text-sm text-white/65 inline-flex items-center gap-2">
             <Crown className="h-3.5 w-3.5 text-gold-400" strokeWidth={2.2} />

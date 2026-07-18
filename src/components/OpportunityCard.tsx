@@ -107,7 +107,7 @@ export default function OpportunityCard({
         <div className="mt-auto pt-4 flex items-end justify-between gap-3 border-t border-navy-900/[0.06] mt-4">
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-[0.14em] text-navy-700/55 font-semibold">
-              {opportunity.dealType === "Acquisition" ? "Asking" : "Investment"}
+              {opportunity.dealType === "Acquisition" ? "Asking" : "Capital Required"}
             </div>
             <div className="mt-0.5 text-lg font-bold tracking-tight text-navy-900 tabular-nums truncate">
               {opportunity.investmentRange}

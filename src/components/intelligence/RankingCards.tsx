@@ -248,7 +248,7 @@ export function EngagementRankingsSection({ pool }: { pool: Opportunity[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-start">
       <EngagementList pool={pool} metric="views" icon={Eye} eyebrow="Attention" title="Most viewed" />
-      <EngagementList pool={pool} metric="saves" icon={Bookmark} eyebrow="Watchlists" title="Most saved" />
+      <EngagementList pool={pool} metric="saves" icon={Bookmark} eyebrow="Saved" title="Most saved" />
       <EngagementList pool={pool} metric="interests" icon={Sparkles} eyebrow="Engagement" title="Most interest received" />
     </div>
   );

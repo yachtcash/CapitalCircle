@@ -16,6 +16,8 @@ import { cn } from "@/lib/cn";
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** Called after a successful save so the host page can acknowledge it. */
+  onSaved?: () => void;
 };
 
 const inputClass =
@@ -63,7 +65,7 @@ function nextExperienceId(existing: ProfileExperience[]): string {
   return `exp-${maxNum + 1}`;
 }
 
-export default function EditProfileModal({ open, onClose }: Props) {
+export default function EditProfileModal({ open, onClose, onSaved }: Props) {
   const { profile, updateProfile } = useMessaging();
   const [draft, setDraft] = useState<UserProfile>(profile);
   const [initialsTouched, setInitialsTouched] = useState(false);
@@ -200,6 +202,7 @@ export default function EditProfileModal({ open, onClose }: Props) {
       initials: draft.initials.trim() || deriveInitials(draft.name),
     };
     updateProfile(cleaned);
+    onSaved?.();
     onClose();
   };
 

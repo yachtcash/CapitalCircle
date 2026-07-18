@@ -144,7 +144,7 @@ function MemberDashboardInner() {
         <StatGrid columns="grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
           <StatCard icon={Eye} label="Views" value={hydrated ? stats.views : "—"} dense />
           <StatCard icon={MessageSquare} label="Messages" value={hydrated ? stats.messages + totalUnreadConversations : "—"} dense />
-          <StatCard icon={Bookmark} label="Favorites" value={hydrated ? stats.favorites : "—"} dense />
+          <StatCard icon={Bookmark} label="Saved" value={hydrated ? stats.favorites : "—"} dense />
           <StatCard icon={Handshake} label="Introductions" value={hydrated ? stats.intros : "—"} dense />
           <StatCard icon={FileText} label="Documents" value={hydrated ? stats.docsShared : "—"} dense />
           <StatCard icon={Layers} label="Active Listings" value={hydrated ? stats.active : "—"} dense />

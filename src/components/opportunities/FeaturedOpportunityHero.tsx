@@ -70,7 +70,7 @@ export default function FeaturedOpportunityHero({
               <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <dt className="text-[10px] uppercase tracking-[0.16em] text-white/55 font-semibold">
-                    Investment
+                    Capital Required
                   </dt>
                   <dd className="mt-0.5 font-semibold text-white">
                     {opportunity.investmentRange}

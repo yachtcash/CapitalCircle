@@ -16,6 +16,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import type { ListingRecord } from "@/data/listings";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ActionToast, { useActionToast } from "@/components/ui/ActionToast";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -47,6 +49,8 @@ export default function ListingActionsMenu({
   } = useMessaging();
 
   const [open, setOpen] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const { toast, show: showToast, dismiss: dismissToast } = useActionToast();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -107,6 +111,7 @@ export default function ListingActionsMenu({
       icon: CheckCircle2,
       onClick: () => {
         markListingClosed(listing.id);
+        showToast("Listing marked as Closed");
         close();
       },
     });
@@ -116,13 +121,7 @@ export default function ListingActionsMenu({
       icon: Archive,
       destructive: true,
       onClick: () => {
-        if (typeof window !== "undefined") {
-          const ok = window.confirm(
-            `Archive ${listing.title}? It will be removed from the active marketplace.`
-          );
-          if (!ok) return;
-        }
-        archiveListing(listing.id);
+        setConfirmArchive(true);
         close();
       },
     });
@@ -133,6 +132,7 @@ export default function ListingActionsMenu({
       icon: RotateCcw,
       onClick: () => {
         restoreListing(listing.id);
+        showToast("Listing restored");
         close();
       },
     });
@@ -222,6 +222,22 @@ export default function ListingActionsMenu({
           })}
         </ul>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmArchive}
+        title="Archive this listing?"
+        body={`${listing.title} will be removed from the active marketplace. You can restore it from the Archived tab at any time.`}
+        confirmLabel="Archive Listing"
+        tone="danger"
+        onConfirm={() => {
+          archiveListing(listing.id);
+          setConfirmArchive(false);
+          showToast("Listing archived");
+        }}
+        onCancel={() => setConfirmArchive(false)}
+      />
+
+      <ActionToast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

@@ -25,6 +25,7 @@ import type {
   DocumentVisibility,
 } from "@/data/documents";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ActionToast, { useActionToast } from "@/components/ui/ActionToast";
 import {
   downloadDocumentPlaceholder,
   openDocumentPlaceholder,
@@ -139,6 +140,7 @@ export default function DocumentManager({ listingId, listingTitle }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<DataRoomDocument | null>(
     null
   );
+  const { toast, show: showToast, dismiss: dismissToast } = useActionToast();
 
   const openUpload = () => uploadInput.current?.click();
   const openReplace = (id: string) => {
@@ -159,6 +161,13 @@ export default function DocumentManager({ listingId, listingTitle }: Props) {
         description: undefined,
       });
     }
+    if (files.length > 0) {
+      showToast(
+        files.length === 1
+          ? "Document uploaded"
+          : `${files.length} documents uploaded`
+      );
+    }
     e.target.value = "";
   };
 
@@ -171,6 +180,7 @@ export default function DocumentManager({ listingId, listingTitle }: Props) {
         fileType: fileTypeFor(file.name),
         sizeBytes: file.size,
       });
+      showToast("Document replaced");
     }
     replaceTargetIdRef.current = null;
     e.target.value = "";
@@ -362,9 +372,12 @@ export default function DocumentManager({ listingId, listingTitle }: Props) {
           if (deleteTarget) {
             deleteDocument(deleteTarget.id);
             setDeleteTarget(null);
+            showToast("Document deleted");
           }
         }}
       />
+
+      <ActionToast toast={toast} onDismiss={dismissToast} />
     </section>
   );
 }

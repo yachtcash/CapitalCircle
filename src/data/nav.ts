@@ -59,7 +59,7 @@ const GUEST_NAV: NavItem[] = [
 
 /** Member — the investment portal. */
 const MEMBER_NAV: NavItem[] = [
-  { label: "Marketplace", shortLabel: "Browse", href: "/opportunities", icon: Compass },
+  { label: "Opportunities", shortLabel: "Browse", href: "/opportunities", icon: Compass },
   { label: "Companies", shortLabel: "Firms", href: "/companies", icon: Building2, hideOnMobile: true },
   { label: "Members", shortLabel: "Members", href: "/members", icon: Users, hideOnMobile: true },
   { label: "Map", shortLabel: "Map", href: "/map", icon: MapIcon, hideOnMobile: true },
@@ -84,7 +84,7 @@ const OPERATIONS_NAV: NavItem[] = [
   { label: "Analytics", shortLabel: "Stats", href: "/analytics", icon: BarChart3, adminOnly: true },
   { label: "Admin", shortLabel: "Admin", href: "/admin", icon: ShieldCheck, adminOnly: true },
   { label: "Dashboard", shortLabel: "Dash", href: "/dashboard", icon: LayoutDashboard, hideOnMobile: true },
-  { label: "Create Listing", shortLabel: "Create", href: "/create-listing", icon: PlusCircle, hideOnMobile: true },
+  { label: "Create Opportunity", shortLabel: "Create", href: "/create-listing", icon: PlusCircle, hideOnMobile: true },
   { label: "Messages", shortLabel: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Profile", shortLabel: "Profile", href: "/profile", icon: User },
 ];

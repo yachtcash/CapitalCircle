@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, Handshake, Sparkles, Lock, ShieldCheck } from "lucide-react";
+import { Bookmark, Handshake, Sparkles, Lock, ShieldCheck } from "lucide-react";
 import type { Opportunity } from "@/data/opportunities";
 import { getCompanyById } from "@/data/companies";
 import { useMessaging } from "@/components/providers/MessagingProvider";
@@ -30,8 +30,8 @@ export default function ActionPanel({ opportunity }: { opportunity: Opportunity 
         </div>
         <div className="mt-2 text-base font-semibold">Engage with this opportunity</div>
         <p className="mt-1.5 text-sm text-white/65 leading-relaxed">
-          Members can express interest, open negotiations, and save deals to
-          their watchlist.
+          Members can express interest, open negotiations, and save
+          opportunities for later.
         </p>
         <a
           href="/login"
@@ -61,13 +61,13 @@ export default function ActionPanel({ opportunity }: { opportunity: Opportunity 
             <div className="mt-2 grid grid-cols-2 gap-3">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.14em] text-white/55 font-semibold">
-                  Minimum
+                  Minimum Investment
                 </div>
                 <div className="mt-1 text-sm font-semibold">{opportunity.minimumInvestment}</div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-[0.14em] text-white/55 font-semibold">
-                  Target return
+                  Target Return
                 </div>
                 <div className="mt-1 text-sm font-semibold">{opportunity.expectedReturn}</div>
               </div>
@@ -95,7 +95,7 @@ export default function ActionPanel({ opportunity }: { opportunity: Opportunity 
                 : "bg-white/5 hover:bg-white/10 ring-white/15 text-white/85"
             )}
           >
-            <Heart
+            <Bookmark
               className={cn("h-3.5 w-3.5", saved ? "fill-gold-400" : "")}
               strokeWidth={2}
             />

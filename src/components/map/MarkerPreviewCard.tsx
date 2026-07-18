@@ -100,7 +100,7 @@ export default function MarkerPreviewCard({ opportunity, onClose }: Props) {
         <div className="mt-3 flex items-end justify-between gap-3 border-t border-navy-900/[0.07] pt-3">
           <div>
             <div className="text-[9px] uppercase tracking-[0.16em] text-navy-700/55 font-bold">
-              Capital Sought
+              Capital Required
             </div>
             <div className="mt-0.5 text-xl font-semibold tracking-tight text-navy-900 tabular-nums">
               {formatInvestment(opportunity)}

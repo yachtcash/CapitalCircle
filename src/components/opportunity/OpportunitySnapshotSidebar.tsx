@@ -30,7 +30,7 @@ export default function OpportunitySnapshotSidebar({
     if (value && value.trim()) metrics.push({ label, value: value.trim() });
   };
   push("Target Return", opportunity.expectedReturns || opportunity.expectedReturn);
-  push("Min. Investment", opportunity.minimumInvestment);
+  push("Minimum Investment", opportunity.minimumInvestment);
   push("Equity Offered", opportunity.equityAvailable);
   push("Stage", opportunity.currentStage);
 

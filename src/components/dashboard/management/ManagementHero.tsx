@@ -20,6 +20,7 @@ import {
 
 import { useMessaging } from "@/components/providers/MessagingProvider";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ActionToast, { useActionToast } from "@/components/ui/ActionToast";
 import { useResolvedImage } from "@/lib/imageStore";
 import type { ListingRecord, ListingStatus } from "@/data/listings";
 import type { Opportunity } from "@/data/opportunities";
@@ -86,14 +87,19 @@ export default function ManagementHero({ listing, opportunity }: Props) {
     deleteListing,
   } = useMessaging();
 
-  const [toast, setToast] = useState<{ id: string } | null>(null);
+  const { toast, show: showToast, dismiss: dismissToast } = useActionToast();
   const [dialog, setDialog] = useState<DialogKind>(null);
 
   const coverImage = useResolvedImage(opportunity?.images?.[0]);
 
   const handleDuplicate = () => {
     const newId = duplicateListing(listing.id);
-    if (newId) setToast({ id: newId });
+    if (newId) {
+      showToast(`Listing duplicated as ${newId}`, {
+        href: `/dashboard/listings/${newId}`,
+        linkLabel: "Open new listing",
+      });
+    }
   };
 
   const handleRestore = () => restoreListing(listing.id);
@@ -277,22 +283,7 @@ export default function ManagementHero({ listing, opportunity }: Props) {
             </div>
           </div>
 
-          {/* Toast: duplication success */}
-          {toast ? (
-            <div className="mt-5 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/30 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-emerald-800 font-medium">
-                Duplicated to{" "}
-                <span className="font-semibold">{toast.id}</span>.
-              </div>
-              <Link
-                href={`/dashboard/listings/${toast.id}`}
-                className="text-xs font-semibold text-emerald-800 hover:text-emerald-900 inline-flex items-center gap-1"
-              >
-                Open new listing
-                <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.4} />
-              </Link>
-            </div>
-          ) : null}
+          <ActionToast toast={toast} onDismiss={dismissToast} />
         </div>
       </div>
 
