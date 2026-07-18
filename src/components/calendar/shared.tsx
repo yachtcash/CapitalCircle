@@ -47,6 +47,10 @@ export type CalendarViewProps = {
   onCreateAt: (start: Date, allDay: boolean) => void;
   /** Persist a move/resize. end must be >= start. */
   onMoveEvent: (eventId: string, newStartISO: string, newEndISO: string) => void;
+  /** Month-as-navigation: the day highlighted in the schedule sidebar. */
+  selectedDate?: Date;
+  /** Month-as-navigation: a day cell was clicked — update the sidebar. */
+  onSelectDay?: (day: Date) => void;
 };
 
 export const TYPE_ICON: Record<EventType, LucideIcon> = {

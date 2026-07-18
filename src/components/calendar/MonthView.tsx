@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type DragEvent, type MouseEvent } from "react";
+import { useState, type DragEvent } from "react";
 import {
   type CalendarViewProps,
   type EventOccurrence,
-  EventChip,
+  categoryColor,
   getEventDrag,
 } from "@/components/calendar/shared";
 import {
@@ -12,13 +12,20 @@ import {
   sameDay,
   toDateKey,
   durationMs,
+  dayLabelLong,
   WEEKDAY_LABELS,
 } from "@/lib/calendar/dates";
 import { DEAL_DESK_NOW_MS } from "@/data/deals";
 import { cn } from "@/lib/cn";
 
-const MAX_VISIBLE = 3;
+const OPEN_STATUSES = new Set(["Scheduled", "Confirmed", "Tentative"]);
 
+/**
+ * Month as a navigation surface: each day shows its date, up to four
+ * category dots, an event count, and a priority flag — clicking a day
+ * drives the schedule sidebar. Events are read in the sidebar, not here.
+ * Drag-and-drop rescheduling is preserved on every cell.
+ */
 export default function MonthView({
   anchorDate,
   occurrences,
@@ -27,8 +34,11 @@ export default function MonthView({
   onSelectEvent,
   onCreateAt,
   onMoveEvent,
+  selectedDate,
+  onSelectDay,
 }: CalendarViewProps) {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  void onSelectEvent;
 
   const days = monthGridDays(anchorDate);
   const now = new Date(DEAL_DESK_NOW_MS);
@@ -43,7 +53,7 @@ export default function MonthView({
     else byDay.set(key, [occ]);
   }
 
-  function handleDrop(e: DragEvent<HTMLDivElement>, cellDay: Date) {
+  function handleDrop(e: DragEvent<HTMLElement>, cellDay: Date) {
     e.preventDefault();
     setDragOverKey(null);
     if (!canEdit) return;
@@ -68,137 +78,132 @@ export default function MonthView({
     onMoveEvent(eventId, newStart.toISOString(), newEnd.toISOString());
   }
 
+  function handleDayClick(cellDay: Date) {
+    if (onSelectDay) {
+      onSelectDay(cellDay);
+      return;
+    }
+    // Standalone fallback (no sidebar wired): keep the create-at behavior.
+    if (!canEdit) return;
+    const slot = new Date(cellDay.getFullYear(), cellDay.getMonth(), cellDay.getDate(), 9, 0, 0, 0);
+    onCreateAt(slot, false);
+  }
+
   return (
-    <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] overflow-hidden">
-      {/* Weekday header */}
-      <div className="grid grid-cols-7 border-b border-navy-900/[0.06] bg-bone/40">
+    <div>
+      {/* Weekday header — borderless, quiet */}
+      <div className="grid grid-cols-7 mb-1">
         {WEEKDAY_LABELS.map((label) => (
           <div
             key={label}
-            className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-navy-700/70"
+            className="px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-navy-700/50"
           >
             {label}
           </div>
         ))}
       </div>
 
-      {/* 6×7 grid */}
-      <div className="grid grid-cols-7 grid-rows-6">
-        {days.map((cellDay, i) => {
+      {/* 6×7 grid — one elegant surface, not forty-two boxes */}
+      <div role="grid" aria-label={dayLabelLong(anchorDate)} className="grid grid-cols-7 gap-1 sm:gap-1.5">
+        {days.map((cellDay) => {
           const key = toDateKey(cellDay);
           const inMonth = cellDay.getMonth() === anchorMonth;
           const isToday = sameDay(cellDay, now);
+          const isSelected = selectedDate ? sameDay(cellDay, selectedDate) : false;
           const dayOccs = byDay.get(key) ?? [];
-          const visible = dayOccs.slice(0, MAX_VISIBLE);
-          const overflow = dayOccs.length - visible.length;
           const isDragOver = dragOverKey === key;
-          const col = i % 7;
-          const row = Math.floor(i / 7);
+
+          // Up to four unique category colors as indicators.
+          const dotColors: string[] = [];
+          for (const occ of dayOccs) {
+            const c = categoryColor(occ.event, categories);
+            if (!dotColors.includes(c)) dotColors.push(c);
+            if (dotColors.length >= 4) break;
+          }
+          const hasUrgent = dayOccs.some(
+            (o) =>
+              (o.event.priority === "Urgent" || o.event.priority === "High") &&
+              OPEN_STATUSES.has(o.event.status)
+          );
 
           return (
-            <div
+            <button
               key={key}
-              onClick={() => {
-                if (!canEdit) return;
-                const slot = new Date(
-                  cellDay.getFullYear(),
-                  cellDay.getMonth(),
-                  cellDay.getDate(),
-                  9,
-                  0,
-                  0,
-                  0
-                );
-                onCreateAt(slot, false);
-              }}
+              type="button"
+              onClick={() => handleDayClick(cellDay)}
+              aria-pressed={isSelected}
+              aria-label={`${dayLabelLong(cellDay)} — ${dayOccs.length} ${dayOccs.length === 1 ? "event" : "events"}${hasUrgent ? ", high priority" : ""}`}
               onDragOver={(e) => {
                 if (!canEdit) return;
                 e.preventDefault();
                 if (dragOverKey !== key) setDragOverKey(key);
               }}
               onDragLeave={(e) => {
-                // Only clear when actually leaving the cell, not entering a child.
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                   setDragOverKey((k) => (k === key ? null : k));
                 }
               }}
               onDrop={(e) => handleDrop(e, cellDay)}
               className={cn(
-                "relative flex min-h-[7rem] flex-col gap-1 p-1.5 text-left transition-colors",
-                col !== 6 && "border-r border-navy-900/[0.06]",
-                row !== 5 && "border-b border-navy-900/[0.06]",
-                inMonth ? "bg-white" : "bg-bone/30",
-                canEdit && "cursor-pointer hover:bg-gold-500/[0.04]",
-                isDragOver && "ring-2 ring-inset ring-gold-500 bg-gold-500/[0.06]"
+                "relative flex min-h-[3.5rem] sm:min-h-[5rem] flex-col items-start gap-1 rounded-xl p-1.5 sm:p-2 text-left transition-all duration-150",
+                inMonth ? "bg-bone/40" : "bg-transparent",
+                inMonth && !isSelected && "hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-navy-900/[0.08]",
+                !inMonth && "hover:bg-bone/30",
+                isSelected && "bg-white ring-2 ring-gold-500 shadow-sm",
+                isDragOver && "ring-2 ring-gold-500 bg-gold-500/[0.06]"
               )}
             >
-              {/* Day number */}
-              <div className="flex items-center justify-end">
-                {isToday ? (
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gold-500 text-[11px] font-bold text-navy-900 ring-1 ring-gold-700/30">
-                    {cellDay.getDate()}
+              {/* Priority flag */}
+              {hasUrgent ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-rose-500/25"
+                />
+              ) : null}
+
+              {/* Date */}
+              {isToday ? (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gold-500 text-[11px] font-bold text-navy-900 ring-1 ring-gold-700/30">
+                  {cellDay.getDate()}
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    "text-[12px] font-semibold tabular-nums leading-6",
+                    inMonth ? "text-navy-900" : "text-navy-900/30"
+                  )}
+                >
+                  {cellDay.getDate()}
+                </span>
+              )}
+
+              {/* Indicators */}
+              {dayOccs.length > 0 ? (
+                <span className="mt-auto flex flex-col gap-0.5">
+                  <span className="flex items-center gap-1">
+                    {dotColors.map((c) => (
+                      <span
+                        key={c}
+                        aria-hidden="true"
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
                   </span>
-                ) : (
                   <span
                     className={cn(
-                      "px-1 text-[11px] font-semibold tabular-nums",
-                      inMonth ? "text-navy-900" : "text-navy-900/35"
+                      "hidden sm:block text-[10px] font-medium tabular-nums",
+                      inMonth ? "text-navy-700/55" : "text-navy-700/30"
                     )}
                   >
-                    {cellDay.getDate()}
+                    {dayOccs.length} {dayOccs.length === 1 ? "event" : "events"}
                   </span>
-                )}
-              </div>
-
-              {/* Occurrences */}
-              <div className="flex flex-col gap-0.5 overflow-hidden">
-                {visible.map((occ) => (
-                  <ChipRow
-                    key={occ.occurrenceId}
-                    occ={occ}
-                    categories={categories}
-                    canEdit={canEdit}
-                    onSelect={onSelectEvent}
-                  />
-                ))}
-                {overflow > 0 && (
-                  <span className="px-1 text-[10px] font-semibold text-navy-700/70">
-                    +{overflow} more
-                  </span>
-                )}
-              </div>
-            </div>
+                </span>
+              ) : null}
+            </button>
           );
         })}
       </div>
-    </div>
-  );
-}
-
-/**
- * A chip wrapped so its click selects the event without bubbling up to the
- * cell's create-on-empty-click handler.
- */
-function ChipRow({
-  occ,
-  categories,
-  canEdit,
-  onSelect,
-}: {
-  occ: EventOccurrence;
-  categories: import("@/components/calendar/shared").CalendarCategory[];
-  canEdit: boolean;
-  onSelect: (occ: EventOccurrence) => void;
-}) {
-  return (
-    <div onClick={(e: MouseEvent) => e.stopPropagation()}>
-      <EventChip
-        occ={occ}
-        categories={categories}
-        canEdit={canEdit}
-        variant="chip"
-        onClick={() => onSelect(occ)}
-      />
     </div>
   );
 }

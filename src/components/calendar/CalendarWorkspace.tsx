@@ -57,6 +57,7 @@ export default function CalendarWorkspace({ adminFrame = false }: { adminFrame?:
 
   const [view, setView] = useState<ViewKey>("month");
   const [anchor, setAnchor] = useState<Date>(() => new Date(DEAL_DESK_NOW_MS));
+  const [selectedDay, setSelectedDay] = useState<Date>(() => new Date(DEAL_DESK_NOW_MS));
   const [selected, setSelected] = useState<EventOccurrence | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -135,6 +136,15 @@ export default function CalendarWorkspace({ adminFrame = false }: { adminFrame?:
     );
   }
 
+  // Month-as-navigation: a day click selects it in the schedule sidebar and
+  // keeps the grid anchored to that day's month.
+  const selectDay = (day: Date) => {
+    setSelectedDay(day);
+    if (day.getMonth() !== anchor.getMonth() || day.getFullYear() !== anchor.getFullYear()) {
+      setAnchor(day);
+    }
+  };
+
   const viewProps = {
     anchorDate: anchor,
     occurrences,
@@ -143,6 +153,8 @@ export default function CalendarWorkspace({ adminFrame = false }: { adminFrame?:
     onSelectEvent: openDetail,
     onCreateAt: openCreate,
     onMoveEvent: onMove,
+    selectedDate: selectedDay,
+    onSelectDay: selectDay,
   };
 
   return (
@@ -198,7 +210,15 @@ export default function CalendarWorkspace({ adminFrame = false }: { adminFrame?:
           {view === "agenda" ? <AgendaView {...viewProps} /> : null}
         </div>
         <aside className="space-y-4">
-          <CalendarDashboard occurrences={dashOccurrences} categories={calendarCategories} onSelectEvent={openDetail} />
+          <CalendarDashboard
+            occurrences={dashOccurrences}
+            categories={calendarCategories}
+            onSelectEvent={openDetail}
+            selectedDay={selectedDay}
+            onChangeDay={selectDay}
+            canEdit={canEdit}
+            onCreateAt={openCreate}
+          />
         </aside>
       </div>
 
