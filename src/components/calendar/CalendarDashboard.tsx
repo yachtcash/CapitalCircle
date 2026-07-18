@@ -219,10 +219,10 @@ export default function CalendarDashboard({
             />
           ) : (
             <div className="space-y-3">
-              <ScheduleGroup label="All Day" items={model.allDay} categories={categories} onSelect={onSelectEvent} />
-              <ScheduleGroup label="Morning" items={model.morning} categories={categories} onSelect={onSelectEvent} />
-              <ScheduleGroup label="Afternoon" items={model.afternoon} categories={categories} onSelect={onSelectEvent} />
-              <ScheduleGroup label="Evening" items={model.evening} categories={categories} onSelect={onSelectEvent} />
+              <ScheduleGroup label="All Day" items={model.allDay} categories={categories} onSelect={onSelectEvent} now={model.now} />
+              <ScheduleGroup label="Morning" items={model.morning} categories={categories} onSelect={onSelectEvent} now={model.now} />
+              <ScheduleGroup label="Afternoon" items={model.afternoon} categories={categories} onSelect={onSelectEvent} now={model.now} />
+              <ScheduleGroup label="Evening" items={model.evening} categories={categories} onSelect={onSelectEvent} now={model.now} />
             </div>
           )}
 
@@ -304,11 +304,13 @@ function ScheduleGroup({
   items,
   categories,
   onSelect,
+  now,
 }: {
   label: string;
   items: EventOccurrence[];
   categories: CalendarCategory[];
   onSelect: (occ: EventOccurrence) => void;
+  now?: Date;
 }) {
   if (items.length === 0) return null;
   return (
@@ -318,7 +320,7 @@ function ScheduleGroup({
       </div>
       <ul className="space-y-2">
         {items.map((occ) => (
-          <EventCard key={occ.occurrenceId} occ={occ} categories={categories} onSelect={onSelect} />
+          <EventCard key={occ.occurrenceId} occ={occ} categories={categories} onSelect={onSelect} scheduleNow={now} />
         ))}
       </ul>
     </div>
@@ -333,6 +335,7 @@ function EventCard({
   withDay,
   now,
   overdue,
+  scheduleNow,
 }: {
   occ: EventOccurrence;
   categories: CalendarCategory[];
@@ -340,10 +343,20 @@ function EventCard({
   withDay?: boolean;
   now?: Date;
   overdue?: boolean;
+  /** When set, highlight in-progress events and fade completed ones. */
+  scheduleNow?: Date;
 }) {
   const color = categoryColor(occ.event, categories);
   const Icon = TYPE_ICON[occ.event.type];
   const cancelled = occ.event.status === "Cancelled";
+  const completed = occ.event.status === "Completed";
+  const isCurrent =
+    !!scheduleNow &&
+    !cancelled &&
+    !completed &&
+    !occ.event.allDay &&
+    occ.start.getTime() <= scheduleNow.getTime() &&
+    scheduleNow.getTime() <= occ.end.getTime();
   const related = useRelatedLabel(occ);
   const duration = durationLabel(occ);
   const showPriority = occ.event.priority === "Urgent" || occ.event.priority === "High";
@@ -357,7 +370,8 @@ function EventCard({
         title={occ.event.title}
         className={cn(
           "group w-full flex items-start gap-2.5 rounded-xl bg-white ring-1 ring-navy-900/[0.05] p-2.5 text-left transition-all duration-150 hover:ring-gold-500/40 hover:shadow-sm",
-          cancelled && "opacity-60"
+          (cancelled || completed) && "opacity-60",
+          isCurrent && "ring-2 ring-gold-500 shadow-sm"
         )}
       >
         <span className="w-[3.25rem] shrink-0 text-right pt-0.5">

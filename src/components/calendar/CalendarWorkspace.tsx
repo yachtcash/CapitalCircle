@@ -201,15 +201,22 @@ export default function CalendarWorkspace({ adminFrame = false }: { adminFrame?:
         </div>
       </header>
 
-      {/* Body: view + dashboard */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
+      {/* Body: calendar · selected day · (event workspace on xl when open) */}
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-5 items-start",
+          detailOpen
+            ? "xl:grid-cols-[minmax(0,1fr)_300px_360px]"
+            : "xl:grid-cols-[minmax(0,1fr)_320px]"
+        )}
+      >
         <div className="rounded-2xl bg-white ring-1 ring-navy-900/[0.06] p-3 md:p-4 min-w-0">
           {view === "month" ? <MonthView {...viewProps} /> : null}
           {view === "week" ? <WeekView {...viewProps} /> : null}
           {view === "day" ? <DayView {...viewProps} /> : null}
           {view === "agenda" ? <AgendaView {...viewProps} /> : null}
         </div>
-        <aside className="space-y-4">
+        <aside className="space-y-4 min-w-0">
           <CalendarDashboard
             occurrences={dashOccurrences}
             categories={calendarCategories}
@@ -220,6 +227,19 @@ export default function CalendarWorkspace({ adminFrame = false }: { adminFrame?:
             onCreateAt={openCreate}
           />
         </aside>
+        <EventDetailPanel
+          occ={selected}
+          open={detailOpen}
+          onClose={() => setDetailOpen(false)}
+          canEdit={canEdit}
+          categories={calendarCategories}
+          onEdit={(id) => {
+            setDetailOpen(false);
+            setEditId(id);
+            setPrefillStart(null);
+            setModalOpen(true);
+          }}
+        />
       </div>
 
       <EventModal
@@ -229,19 +249,6 @@ export default function CalendarWorkspace({ adminFrame = false }: { adminFrame?:
         prefillStart={prefillStart}
         prefillAllDay={prefillAllDay}
         categories={calendarCategories}
-      />
-      <EventDetailPanel
-        occ={selected}
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        canEdit={canEdit}
-        categories={calendarCategories}
-        onEdit={(id) => {
-          setDetailOpen(false);
-          setEditId(id);
-          setPrefillStart(null);
-          setModalOpen(true);
-        }}
       />
       <CategoryManager open={catOpen} onClose={() => setCatOpen(false)} />
     </div>
